@@ -1,0 +1,483 @@
+<!--Example -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Gauge SVG Recreation</title>
+  <style>
+    :root {
+      --bg: #000;
+      --ring: #9a9a9a;
+      --text: #b9b9b9;
+      --blue: #00aeef;
+      --cyan: #8fefff;
+      --teal: #008e95;
+      --red: #e20b0b;
+      --yellow: #e7d000;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .dash {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(22px, 4vw, 52px);
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    svg.gauge {
+      width: min(47vw, 520px);
+      height: auto;
+      overflow: visible;
+      filter: drop-shadow(0 0 2px rgba(0, 180, 255, 0.12));
+    }
+
+    .outer-ring {
+      fill: none;
+      stroke: var(--ring);
+      stroke-width: 4;
+      opacity: .95;
+    }
+
+    .inner-dial {
+      fill: url(#dialGradient);
+    }
+
+    .black-mask {
+      fill: #020202;
+    }
+
+    .blue-track {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 24;
+      stroke-linecap: butt;
+    }
+
+    .teal-track {
+      fill: none;
+      stroke: var(--teal);
+      stroke-width: 24;
+      stroke-linecap: butt;
+      opacity: .96;
+    }
+
+    .small-blue-track {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 18;
+      stroke-linecap: butt;
+    }
+
+    .red-track {
+      fill: none;
+      stroke: var(--red);
+      stroke-width: 18;
+      stroke-linecap: butt;
+    }
+
+    .white-track {
+      fill: none;
+      stroke: #f4f4f4;
+      stroke-width: 18;
+      stroke-linecap: butt;
+    }
+
+    .tick-major, .tick-minor, .tick-thin {
+      stroke: #fff;
+      stroke-linecap: square;
+      opacity: .92;
+    }
+
+    .tick-major { stroke-width: 3; }
+    .tick-minor { stroke-width: 1.2; opacity: .82; }
+    .tick-thin  { stroke-width: .7; opacity: .38; }
+
+    .blue-tick { stroke: #67dcff; opacity: .45; }
+    .teal-tick { stroke: #7bf4f4; opacity: .35; }
+    .red-tick { stroke: var(--red); }
+    .yellow-tick { stroke: var(--yellow); }
+
+    .label {
+      fill: var(--text);
+      font-weight: 700;
+      font-size: 27px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .small-label {
+      fill: var(--text);
+      font-weight: 700;
+      font-size: 15px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .center-value {
+      fill: #f7f7f7;
+      font-weight: 800;
+      font-size: 30px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .unit {
+      fill: var(--text);
+      font-weight: 800;
+      font-size: 27px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .gear {
+      fill: var(--text);
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 10px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .subtitle {
+      fill: var(--text);
+      font-size: 18px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .inner-ring {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 2.5;
+    }
+
+    .needle-blue, .needle-red {
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 3px rgba(0, 200, 255, .3));
+    }
+
+    .needle-blue {
+      stroke: var(--cyan);
+      stroke-width: 2.5;
+    }
+
+    .needle-red {
+      stroke: var(--red);
+      stroke-width: 3;
+    }
+
+    .fuel-icon, .thermo-icon {
+      fill: #fff;
+      stroke: #fff;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .warning-light {
+      fill: url(#redGlow);
+      filter: drop-shadow(0 0 9px rgba(255, 0, 0, .82));
+    }
+
+    .water-line {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 1.2;
+      opacity: .9;
+    }
+  </style>
+</head>
+<body>
+  <main class="dash">
+    <svg id="speedGauge" class="gauge" viewBox="0 0 520 520" role="img" aria-label="Speedometer gauge">
+      <defs>
+        <radialGradient id="dialGradient" cx="50%" cy="50%" r="55%">
+          <stop offset="0%" stop-color="#000" />
+          <stop offset="54%" stop-color="#00131a" />
+          <stop offset="100%" stop-color="#002733" />
+        </radialGradient>
+        <linearGradient id="fuelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#009fe8" />
+          <stop offset="100%" stop-color="#00c9ff" />
+        </linearGradient>
+      </defs>
+
+      <circle class="outer-ring" cx="260" cy="260" r="252" />
+      <circle class="inner-dial" cx="260" cy="260" r="205" />
+      <circle class="black-mask" cx="260" cy="260" r="116" />
+      <circle class="inner-ring" cx="260" cy="260" r="119" />
+      <circle class="inner-ring" cx="260" cy="260" r="109" />
+
+      <g id="speed-blue-arc"></g>
+      <g id="speed-ticks"></g>
+      <g id="speed-labels"></g>
+      <g id="fuel-arc"></g>
+      <g id="fuel-ticks"></g>
+
+      <line id="speedNeedle" class="needle-blue" x1="260" y1="147" x2="260" y2="260" />
+      <line id="fuelNeedle" class="needle-red" x1="260" y1="260" x2="323" y2="485" />
+
+      <text class="center-value" x="260" y="258">90</text>
+      <text class="unit" x="260" y="294">MPH</text>
+
+      <text class="small-label" x="152" y="442">E</text>
+      <text class="small-label" x="368" y="442">F</text>
+
+      <g transform="translate(260 420) scale(1.03)">
+        <path class="fuel-icon" d="M-12,-20 h20 a5,5 0 0 1 5,5 v43 h-30 v-43 a5,5 0 0 1 5,-5 z" fill="none" />
+        <rect class="fuel-icon" x="-9" y="-15" width="18" height="16" rx="2" fill="#000" />
+        <path class="fuel-icon" d="M15,-15 c9,5 9,11 5,16 c7,3 8,9 8,15 v8 c0,4 6,4 6,0 v-22 c0,-7 -4,-10 -10,-14" fill="none" />
+      </g>
+    </svg>
+
+    <svg id="rpmGauge" class="gauge" viewBox="0 0 520 520" role="img" aria-label="RPM gauge">
+      <defs>
+        <radialGradient id="dialGradientRpm" cx="50%" cy="50%" r="55%">
+          <stop offset="0%" stop-color="#000" />
+          <stop offset="55%" stop-color="#00131a" />
+          <stop offset="100%" stop-color="#002733" />
+        </radialGradient>
+        <radialGradient id="redGlow" cx="35%" cy="30%" r="72%">
+          <stop offset="0%" stop-color="#ff2a2a" />
+          <stop offset="55%" stop-color="#d00000" />
+          <stop offset="100%" stop-color="#700000" />
+        </radialGradient>
+      </defs>
+
+      <circle class="outer-ring" cx="260" cy="260" r="252" />
+      <circle class="inner-dial" cx="260" cy="260" r="205" style="fill:url(#dialGradientRpm)" />
+      <circle class="black-mask" cx="260" cy="260" r="116" />
+      <circle class="inner-ring" cx="260" cy="260" r="119" />
+      <circle class="inner-ring" cx="260" cy="260" r="109" />
+
+      <g id="rpm-left-arc"></g>
+      <g id="rpm-top-track"></g>
+      <g id="rpm-ticks"></g>
+      <g id="rpm-labels"></g>
+      <g id="temp-arc"></g>
+      <g id="temp-ticks"></g>
+
+      <line id="rpmNeedle" class="needle-blue" x1="260" y1="260" x2="240" y2="42" />
+      <line id="tempNeedle" class="needle-red" x1="260" y1="260" x2="327" y2="485" />
+
+      <text class="subtitle" x="260" y="116">RPM x 1000</text>
+      <text class="gear" x="260" y="265">P R N D S</text>
+
+      <circle class="warning-light" cx="212" cy="419" r="19" />
+
+      <g transform="translate(260 414)">
+        <line class="thermo-icon" x1="0" y1="-22" x2="0" y2="12" />
+        <circle class="thermo-icon" cx="0" cy="18" r="6" />
+        <line class="thermo-icon" x1="5" y1="-18" x2="13" y2="-18" />
+        <line class="thermo-icon" x1="5" y1="-9" x2="12" y2="-9" />
+        <line class="thermo-icon" x1="5" y1="0" x2="12" y2="0" />
+        <text class="small-label" x="27" y="-12" style="font-size:17px">C</text>
+      </g>
+
+      <path class="water-line" d="M237,455 q5,7 10,0 q5,-7 10,0 q5,7 10,0 q5,-7 10,0 q5,7 10,0" />
+      <path class="water-line" d="M237,464 q5,7 10,0 q5,-7 10,0 q5,7 10,0 q5,-7 10,0 q5,7 10,0" />
+      <path class="water-line" d="M237,473 q5,7 10,0 q5,-7 10,0 q5,7 10,0 q5,-7 10,0 q5,7 10,0" />
+
+      <text class="small-label" x="152" y="442">50</text>
+      <text class="small-label" x="364" y="442">130</text>
+    </svg>
+  </main>
+
+  <script>
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const CX = 260;
+    const CY = 260;
+
+    function polar(cx, cy, r, angleDeg) {
+      const a = (angleDeg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    }
+
+    function describeArc(cx, cy, r, startAngle, endAngle) {
+      const start = polar(cx, cy, r, endAngle);
+      const end = polar(cx, cy, r, startAngle);
+      const largeArc = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+      const sweep = endAngle >= startAngle ? "0" : "1";
+      return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`;
+    }
+
+    function addPath(group, d, className, extra = {}) {
+      const p = document.createElementNS(SVG_NS, "path");
+      p.setAttribute("d", d);
+      p.setAttribute("class", className);
+      Object.entries(extra).forEach(([k, v]) => p.setAttribute(k, v));
+      group.appendChild(p);
+      return p;
+    }
+
+    function addLine(group, p1, p2, className) {
+      const line = document.createElementNS(SVG_NS, "line");
+      line.setAttribute("x1", p1.x);
+      line.setAttribute("y1", p1.y);
+      line.setAttribute("x2", p2.x);
+      line.setAttribute("y2", p2.y);
+      line.setAttribute("class", className);
+      group.appendChild(line);
+      return line;
+    }
+
+    function addText(group, x, y, text, className) {
+      const t = document.createElementNS(SVG_NS, "text");
+      t.setAttribute("x", x);
+      t.setAttribute("y", y);
+      t.setAttribute("class", className);
+      t.textContent = text;
+      group.appendChild(t);
+      return t;
+    }
+
+    function tick(group, angle, outerR, innerR, className) {
+      addLine(group, polar(CX, CY, outerR, angle), polar(CX, CY, innerR, angle), className);
+    }
+
+    function buildSpeedometer() {
+      const arcGroup = document.getElementById("speed-blue-arc");
+      const tickGroup = document.getElementById("speed-ticks");
+      const labelGroup = document.getElementById("speed-labels");
+      const fuelGroup = document.getElementById("fuel-arc");
+      const fuelTicks = document.getElementById("fuel-ticks");
+
+      // Main blue sweep on the left/top and remaining white sweep on the right.
+      addPath(arcGroup, describeArc(CX, CY, 225, 305, 15), "blue-track");
+      addPath(arcGroup, describeArc(CX, CY, 225, 15, 128), "white-track", { "stroke-width": 4 });
+
+      const values = [0, 20, 40, 60, 80, 100, 120, 140, 160];
+      const startAngle = 235;
+      const endAngle = 485;
+      values.forEach((v, i) => {
+        const angle = startAngle + (endAngle - startAngle) * (v / 160);
+        tick(tickGroup, angle, 240, 219, "tick-major");
+        const pos = polar(CX, CY, 199, angle);
+        addText(labelGroup, pos.x, pos.y, String(v), "label");
+      });
+
+      for (let v = 0; v <= 160; v += 5) {
+        if (v % 20 === 0) continue;
+        const angle = startAngle + (endAngle - startAngle) * (v / 160);
+        const normalizedAngle = ((angle % 360) + 360) % 360;
+        const cls = angle <= 360 ? "tick-minor blue-tick" : "tick-minor";
+        tick(tickGroup, angle, 230, 218, cls);
+      }
+
+      // Fuel arc at lower edge.
+      addPath(fuelGroup, describeArc(CX, CY, 225, 202, 166), "small-blue-track");
+      addPath(fuelGroup, describeArc(CX, CY, 225, 166, 180), "red-track");
+      for (let i = 0; i <= 5; i++) {
+        const a = 202 + (180 - 202) * (i / 5);
+        tick(fuelTicks, a, 235, i === 0 || i === 5 ? 217 : 224, i === 0 || i === 5 ? "tick-major" : "tick-minor blue-tick");
+      }
+
+      // Speed needle at around 80 MPH.
+      const needleEnd = polar(CX, CY, 118, 15);
+      const needle = document.getElementById("speedNeedle");
+      needle.setAttribute("x1", CX);
+      needle.setAttribute("y1", CY - 20);
+      needle.setAttribute("x2", needleEnd.x);
+      needle.setAttribute("y2", needleEnd.y);
+    }
+
+    function buildTachometer() {
+      const leftArc = document.getElementById("rpm-left-arc");
+      const topTrack = document.getElementById("rpm-top-track");
+      const tickGroup = document.getElementById("rpm-ticks");
+      const labelGroup = document.getElementById("rpm-labels");
+      const tempGroup = document.getElementById("temp-arc");
+      const tempTicks = document.getElementById("temp-ticks");
+
+      addPath(leftArc, describeArc(CX, CY, 225, 305, 355), "teal-track");
+      addPath(topTrack, describeArc(CX, CY, 225, 355, 58), "white-track", { "stroke-width": 4 });
+
+      const startAngle = 235;
+      const endAngle = 485;
+      const max = 10;
+      for (let v = 0; v <= max; v++) {
+        const angle = startAngle + (endAngle - startAngle) * (v / max);
+        tick(tickGroup, angle, 240, 219, "tick-major");
+        const pos = polar(CX, CY, 201, angle);
+        addText(labelGroup, pos.x, pos.y, String(v), "label");
+      }
+
+      for (let v = 0; v <= max; v += .2) {
+        const rounded = Math.round(v * 10) / 10;
+        if (Math.abs(rounded - Math.round(rounded)) < 0.001) continue;
+        const angle = startAngle + (endAngle - startAngle) * (v / max);
+        let cls = "tick-minor";
+        if (v < 2.4) cls = "tick-minor teal-tick";
+        if (v >= 8.0 && v < 8.7) cls = "tick-minor yellow-tick";
+        if (v >= 8.7) cls = "tick-minor red-tick";
+        tick(tickGroup, angle, 230, 218, cls);
+      }
+
+      // Temperature arc at bottom right: white/yellow/red band.
+      addPath(tempGroup, describeArc(CX, CY, 225, 170, 188), "white-track", { "stroke-width": 4 });
+      addPath(tempGroup, describeArc(CX, CY, 225, 188, 194), "white-track", { "stroke-width": 4 });
+      addPath(tempGroup, describeArc(CX, CY, 225, 194, 202), "red-track");
+      for (let i = 0; i <= 12; i++) {
+        const a = 170 + (202 - 170) * (i / 12);
+        tick(tempTicks, a, 235, i === 0 || i === 12 ? 217 : 224, i > 9 ? "tick-minor red-tick" : "tick-minor");
+      }
+
+      const rpmNeedle = document.getElementById("rpmNeedle");
+      const rpmEnd = polar(CX, CY, 219, 355);
+      rpmNeedle.setAttribute("x1", CX);
+      rpmNeedle.setAttribute("y1", CY);
+      rpmNeedle.setAttribute("x2", rpmEnd.x);
+      rpmNeedle.setAttribute("y2", rpmEnd.y);
+
+      const tempNeedle = document.getElementById("tempNeedle");
+      const tempEnd = polar(CX, CY, 229, 198);
+      tempNeedle.setAttribute("x1", CX);
+      tempNeedle.setAttribute("y1", CY);
+      tempNeedle.setAttribute("x2", tempEnd.x);
+      tempNeedle.setAttribute("y2", tempEnd.y);
+    }
+
+    buildSpeedometer();
+    buildTachometer();
+
+    // Basic runtime hooks. Call these from your CAN/WebSocket layer later.
+    window.setGaugeValues = function setGaugeValues({ mph = 90, rpm = 4.9, tempAngle = 198, fuelAngle = 178 } = {}) {
+      document.querySelector("#speedGauge .center-value").textContent = Math.round(mph);
+
+      const speedAngle = 235 + (485 - 235) * (Math.max(0, Math.min(mph, 160)) / 160);
+      const speedEnd = polar(CX, CY, 118, speedAngle);
+      const speedNeedle = document.getElementById("speedNeedle");
+      speedNeedle.setAttribute("x2", speedEnd.x);
+      speedNeedle.setAttribute("y2", speedEnd.y);
+
+      const rpmAngle = 235 + (485 - 235) * (Math.max(0, Math.min(rpm, 10)) / 10);
+      const rpmEnd = polar(CX, CY, 219, rpmAngle);
+      const rpmNeedle = document.getElementById("rpmNeedle");
+      rpmNeedle.setAttribute("x2", rpmEnd.x);
+      rpmNeedle.setAttribute("y2", rpmEnd.y);
+
+      const tempEnd = polar(CX, CY, 229, tempAngle);
+      const tempNeedle = document.getElementById("tempNeedle");
+      tempNeedle.setAttribute("x2", tempEnd.x);
+      tempNeedle.setAttribute("y2", tempEnd.y);
+
+      const fuelEnd = polar(CX, CY, 229, fuelAngle);
+      const fuelNeedle = document.getElementById("fuelNeedle");
+      fuelNeedle.setAttribute("x2", fuelEnd.x);
+      fuelNeedle.setAttribute("y2", fuelEnd.y);
+    };
+  </script>
+</body>
+</html>
