@@ -1623,7 +1623,7 @@ function showPage(name) {
   document.getElementById('btn_' + name).classList.add('active');
 }
 
-function setText(id, value, decimals = 0) {
+function setText(id, value, decimals = 0, suffix = "") {
   const el = document.getElementById(id);
   if (!el) return;
 
@@ -1633,7 +1633,7 @@ function setText(id, value, decimals = 0) {
     return;
   }
 
-  el.textContent = n.toFixed(decimals);
+  el.textContent = n.toFixed(decimals) + suffix;
 }
 
 function setCardState(id, state) {
@@ -1777,14 +1777,10 @@ function updateCarDash(d) {
   setGaugeNeedle('boost_needle', mgp, -100, 250);
   setGaugeArc('boost_arc', mgp, -100, 250);
 
-  setText('cardash_ect_sub', ect, 0);
-  const ectSubReadout = document.getElementById('cardash_ect_sub');
-  if (ectSubReadout) ectSubReadout.textContent += '°C';
+  setText('cardash_ect_sub', ect, 0, '°C');
   setGaugeNeedle('ect_secondary_needle', ect, 0, 140);
 
-  setText('cardash_iat_sub', iat, 0);
-  const iatSubReadout = document.getElementById('cardash_iat_sub');
-  if (iatSubReadout) iatSubReadout.textContent += '°C';
+  setText('cardash_iat_sub', iat, 0, '°C');
   setGaugeNeedle('iat_secondary_needle', iat, 0, 140);
 
   setText('cardash_3v3', internal3v3, 2);
