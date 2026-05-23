@@ -330,6 +330,7 @@ String dashboardHtml() {
       --danger: #6b1515;
       --ok: #163f2a;
       --accent: #4da3ff;
+      --cardash-voltage-label-height: 30px;
     }
 
     body {
@@ -780,7 +781,7 @@ String dashboardHtml() {
       font-weight: bold;
       letter-spacing: 0.08em;
       margin-top: 8px;
-      min-height: 30px;
+      min-height: var(--cardash-voltage-label-height);
     }
 
     .voltage-value {
@@ -1562,12 +1563,27 @@ function updateCarDash(d) {
   const ectDanger = ect >= 110;
   const iatWarn = iat >= 60 && iat < 80;
   const iatDanger = iat >= 80;
-  const battWarn = battery > 0 && battery < 12.2;
-  const battDanger = battery > 0 && battery < 11.5;
-  const rail3v3Warn = internal3v3 > 0 && (internal3v3 < 3.15 || internal3v3 > 3.45);
-  const rail3v3Danger = internal3v3 > 0 && (internal3v3 < 3.0 || internal3v3 > 3.6);
-  const rail12vWarn = internal12v > 0 && (internal12v < 11.5 || internal12v > 13.5);
-  const rail12vDanger = internal12v > 0 && (internal12v < 10.5 || internal12v > 14.5);
+  const batteryWarnThreshold = 12.2;
+  const batteryDangerThreshold = 11.5;
+  const internal3v3WarnLow = 3.15;
+  const internal3v3WarnHigh = 3.45;
+  const internal3v3DangerLow = 3.0;
+  const internal3v3DangerHigh = 3.6;
+  const internal12vWarnLow = 11.5;
+  const internal12vWarnHigh = 13.5;
+  const internal12vDangerLow = 10.5;
+  const internal12vDangerHigh = 14.5;
+
+  const battWarn = battery > 0 && battery < batteryWarnThreshold;
+  const battDanger = battery > 0 && battery < batteryDangerThreshold;
+  const rail3v3Warn =
+    internal3v3 > 0 && (internal3v3 < internal3v3WarnLow || internal3v3 > internal3v3WarnHigh);
+  const rail3v3Danger =
+    internal3v3 > 0 && (internal3v3 < internal3v3DangerLow || internal3v3 > internal3v3DangerHigh);
+  const rail12vWarn =
+    internal12v > 0 && (internal12v < internal12vWarnLow || internal12v > internal12vWarnHigh);
+  const rail12vDanger =
+    internal12v > 0 && (internal12v < internal12vDangerLow || internal12v > internal12vDangerHigh);
 
   setMiniPanelState('cardash_ect_panel', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
   setMiniPanelState('cardash_iat_panel', iatDanger ? 'danger' : iatWarn ? 'warn' : null);
