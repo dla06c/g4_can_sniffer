@@ -633,17 +633,15 @@ String dashboardHtml() {
     .gauge-card {
       position: relative;
       overflow: hidden;
-      background:
-        radial-gradient(circle at 50% 16%, rgba(139, 205, 255, 0.22), transparent 34%),
-        linear-gradient(180deg, #364251 0%, #161d28 10%, #0b0f15 100%);
-      border: 1px solid #465364;
+      background: linear-gradient(180deg, #262d37 0%, #11161e 28%, #090d12 100%);
+      border: 1px solid #5b6574;
       border-radius: 26px;
       padding: 18px 16px 14px;
       text-align: center;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -18px 30px rgba(0, 0, 0, 0.35),
-        0 18px 28px rgba(0, 0, 0, 0.22);
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -14px 22px rgba(0, 0, 0, 0.38),
+        0 14px 24px rgba(0, 0, 0, 0.24);
     }
 
     .gauge-card.warn {
@@ -749,14 +747,12 @@ String dashboardHtml() {
       margin: -14px auto 0;
       padding: 10px 12px 11px;
       border-radius: 16px;
-      border: 1px solid #45556a;
-      background:
-        linear-gradient(180deg, rgba(33, 46, 61, 0.98), rgba(8, 12, 18, 0.98)),
-        linear-gradient(90deg, rgba(77, 163, 255, 0.18), transparent 55%);
+      border: 1px solid #4f5d70;
+      background: linear-gradient(180deg, rgba(24, 31, 41, 0.98), rgba(8, 12, 18, 0.98));
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        inset 0 0 26px rgba(0, 0, 0, 0.4),
-        0 10px 18px rgba(0, 0, 0, 0.22);
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 22px rgba(0, 0, 0, 0.42),
+        0 8px 14px rgba(0, 0, 0, 0.24);
       position: relative;
       z-index: 1;
     }
@@ -779,20 +775,20 @@ String dashboardHtml() {
     }
 
     .gauge-bezel-outer {
-      fill: #45505d;
-      stroke: #718095;
+      fill: #8d97a3;
+      stroke: #c3c8cf;
       stroke-width: 2;
     }
 
     .gauge-bezel-inner {
-      fill: #1c242f;
-      stroke: #0d1117;
+      fill: #2a313a;
+      stroke: #151a22;
       stroke-width: 6;
     }
 
     .gauge-face {
-      fill: #0c121a;
-      stroke: #2e3948;
+      fill: #06090e;
+      stroke: #3a424e;
       stroke-width: 2;
     }
 
@@ -807,7 +803,7 @@ String dashboardHtml() {
     }
 
     .gauge-scale {
-      fill: #93a1b1;
+      fill: #dde4ef;
       font-size: 10px;
       font-weight: bold;
       letter-spacing: 0.05em;
@@ -818,7 +814,7 @@ String dashboardHtml() {
     }
 
     .gauge-center-label {
-      fill: #6c7b8b;
+      fill: #98a4b4;
       font-size: 9px;
       font-weight: bold;
       letter-spacing: 0.18em;
@@ -848,10 +844,10 @@ String dashboardHtml() {
 
     .gauge-arc-active {
       fill: none;
-      stroke: #4da3ff;
+      stroke: #f4f7fb;
       stroke-width: 10;
       stroke-linecap: round;
-      filter: drop-shadow(0 0 7px var(--gauge-glow-blue));
+      filter: none;
     }
 
     .gauge-zone {
@@ -871,8 +867,8 @@ String dashboardHtml() {
     }
 
     .boost-arc {
-      stroke: #28d7ff;
-      filter: drop-shadow(0 0 8px var(--gauge-glow-cyan));
+      stroke: #f4f7fb;
+      filter: none;
     }
 
     .temp-arc {
@@ -892,7 +888,7 @@ String dashboardHtml() {
     }
 
     .gauge-needle {
-      stroke: #f2f4f8;
+      stroke: #ffd54f;
       stroke-width: 4.4;
       stroke-linecap: round;
     }
@@ -904,7 +900,7 @@ String dashboardHtml() {
     }
 
     .boost-needle {
-      stroke: #8ef2ff;
+      stroke: #ffd54f;
     }
 
     .temp-needle {
@@ -931,7 +927,7 @@ String dashboardHtml() {
 
     .gauge-secondary-arc-bg {
       fill: none;
-      stroke: #24303d;
+      stroke: #5b6574;
       stroke-width: 4;
       stroke-linecap: round;
     }
@@ -962,7 +958,7 @@ String dashboardHtml() {
     }
 
     .gauge-mini-needle {
-      stroke: #ffd7a8;
+      stroke: #ffb74d;
       stroke-width: 2.3;
       stroke-linecap: round;
     }
