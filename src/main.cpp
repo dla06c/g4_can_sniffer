@@ -331,6 +331,9 @@ String dashboardHtml() {
       --ok: #163f2a;
       --accent: #4da3ff;
       --cardash-voltage-label-height: 30px;
+      --gauge-glow-blue: rgba(77, 163, 255, 0.5);
+      --gauge-glow-cyan: rgba(40, 215, 255, 0.55);
+      --gauge-glow-orange: rgba(255, 157, 77, 0.5);
     }
 
     body {
@@ -637,20 +640,33 @@ String dashboardHtml() {
       position: relative;
       overflow: hidden;
       background:
-        radial-gradient(circle at 50% 28%, rgba(109, 199, 255, 0.24), transparent 42%),
-        radial-gradient(circle at 50% 100%, #1f2735 0%, #10151d 56%, #06080c 100%);
-      border: 1px solid #303642;
-      border-radius: 24px;
-      padding: 16px 16px 14px;
+        radial-gradient(circle at 50% 16%, rgba(139, 205, 255, 0.22), transparent 34%),
+        linear-gradient(180deg, #364251 0%, #161d28 10%, #0b0f15 100%);
+      border: 1px solid #465364;
+      border-radius: 26px;
+      padding: 18px 16px 14px;
       text-align: center;
-      box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.55);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -18px 30px rgba(0, 0, 0, 0.35),
+        0 18px 28px rgba(0, 0, 0, 0.22);
     }
 
     .gauge-card::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 28%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 26%, rgba(0,0,0,0.16));
+      pointer-events: none;
+    }
+
+    .gauge-card::before {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border-radius: 22px;
+      border: 1px solid rgba(124, 144, 165, 0.14);
+      box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.38);
       pointer-events: none;
     }
 
@@ -659,11 +675,20 @@ String dashboardHtml() {
     }
 
     .gauge-title {
-      color: var(--muted);
-      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 108px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(111, 129, 149, 0.45);
+      background: linear-gradient(180deg, rgba(29, 39, 52, 0.95), rgba(10, 14, 20, 0.95));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      color: #ced6df;
+      font-size: 11px;
       font-weight: bold;
-      letter-spacing: 0.12em;
-      margin-bottom: 4px;
+      letter-spacing: 0.18em;
+      margin-bottom: 8px;
       position: relative;
       z-index: 1;
     }
@@ -672,6 +697,7 @@ String dashboardHtml() {
       width: 100%;
       max-width: 360px;
       height: auto;
+      margin-top: 2px;
       position: relative;
       z-index: 1;
     }
@@ -681,62 +707,182 @@ String dashboardHtml() {
     }
 
     .gauge-value {
-      font-size: 42px;
+      font-size: 40px;
       font-weight: bold;
-      margin-top: -20px;
+      line-height: 1;
       position: relative;
       z-index: 1;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.12);
     }
 
     .gauge-card.secondary .gauge-value {
-      font-size: 34px;
-      margin-top: -16px;
+      font-size: 30px;
     }
 
     .gauge-unit {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 2px;
+      color: #97a6b7;
+      font-size: 11px;
+      margin-top: 4px;
+      position: relative;
+      z-index: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+
+    .gauge-readout {
+      width: min(150px, 72%);
+      margin: -14px auto 0;
+      padding: 10px 12px 11px;
+      border-radius: 16px;
+      border: 1px solid #45556a;
+      background:
+        linear-gradient(180deg, rgba(33, 46, 61, 0.98), rgba(8, 12, 18, 0.98)),
+        linear-gradient(90deg, rgba(77, 163, 255, 0.18), transparent 55%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 0 26px rgba(0, 0, 0, 0.4),
+        0 10px 18px rgba(0, 0, 0, 0.22);
       position: relative;
       z-index: 1;
     }
 
-    .gauge-tick {
-      stroke: #7d8794;
+    .gauge-card.secondary .gauge-readout {
+      width: min(128px, 76%);
+      margin-top: -10px;
+      padding-top: 9px;
+      padding-bottom: 9px;
+    }
+
+    .gauge-caption {
+      color: #677789;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-top: 9px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-bezel-outer {
+      fill: #45505d;
+      stroke: #718095;
       stroke-width: 2;
+    }
+
+    .gauge-bezel-inner {
+      fill: #1c242f;
+      stroke: #0d1117;
+      stroke-width: 6;
+    }
+
+    .gauge-face {
+      fill: #0c121a;
+      stroke: #2e3948;
+      stroke-width: 2;
+    }
+
+    .gauge-face-ring {
+      fill: none;
+      stroke: rgba(159, 181, 204, 0.08);
+      stroke-width: 1.5;
+    }
+
+    .gauge-glare {
+      fill: rgba(159, 209, 255, 0.06);
+    }
+
+    .gauge-scale {
+      fill: #93a1b1;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+    }
+
+    .gauge-center-label {
+      fill: #6c7b8b;
+      font-size: 9px;
+      font-weight: bold;
+      letter-spacing: 0.18em;
+    }
+
+    .gauge-status-line {
+      stroke: rgba(115, 134, 156, 0.32);
+      stroke-width: 1;
+    }
+
+    .gauge-tick {
+      stroke: #8f9eb0;
+      stroke-width: 2.2;
+    }
+
+    .gauge-tick.minor {
+      stroke-width: 1.3;
+      opacity: 0.55;
     }
 
     .gauge-arc-bg {
       fill: none;
-      stroke: #303642;
-      stroke-width: 14;
+      stroke: #28323e;
+      stroke-width: 10;
       stroke-linecap: round;
     }
 
     .gauge-arc-active {
       fill: none;
       stroke: #4da3ff;
-      stroke-width: 14;
+      stroke-width: 10;
       stroke-linecap: round;
-      filter: drop-shadow(0 0 7px rgba(77, 163, 255, 0.45));
+      filter: drop-shadow(0 0 7px var(--gauge-glow-blue));
+    }
+
+    .gauge-zone {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.92;
+    }
+
+    .gauge-zone-warn {
+      stroke: #ffb14d;
+      stroke-width: 8;
+    }
+
+    .gauge-zone-danger {
+      stroke: #ff5a5a;
+      stroke-width: 8;
     }
 
     .boost-arc {
       stroke: #28d7ff;
-      filter: drop-shadow(0 0 8px rgba(40, 215, 255, 0.55));
+      filter: drop-shadow(0 0 8px var(--gauge-glow-cyan));
     }
 
     .temp-arc {
       stroke: #ff9d4d;
-      filter: drop-shadow(0 0 8px rgba(255, 157, 77, 0.55));
+      filter: drop-shadow(0 0 8px var(--gauge-glow-orange));
+    }
+
+    .needle-pack {
+      transform-origin: 100px 100px;
+      transition: transform 80ms linear;
+    }
+
+    .gauge-needle-shadow {
+      stroke: rgba(0, 0, 0, 0.42);
+      stroke-width: 7;
+      stroke-linecap: round;
     }
 
     .gauge-needle {
       stroke: #f2f4f8;
-      stroke-width: 4;
+      stroke-width: 4.4;
       stroke-linecap: round;
-      transform-origin: 100px 100px;
-      transition: transform 80ms linear;
+    }
+
+    .gauge-needle-tail {
+      stroke: rgba(242, 244, 248, 0.4);
+      stroke-width: 3;
+      stroke-linecap: round;
     }
 
     .boost-needle {
@@ -752,10 +898,16 @@ String dashboardHtml() {
       fill: #f2f4f8;
     }
 
+    .gauge-hub-ring {
+      fill: none;
+      stroke: rgba(242, 244, 248, 0.4);
+      stroke-width: 2.5;
+    }
+
     .gauge-redline {
       fill: none;
       stroke: #ff4d4d;
-      stroke-width: 8;
+      stroke-width: 7;
       stroke-linecap: round;
     }
 
@@ -901,55 +1053,104 @@ String dashboardHtml() {
           <div class="gauge-title">TACHOMETER</div>
 
           <svg class="gauge-svg" viewBox="0 0 200 200">
+            <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
+            <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
+            <circle class="gauge-face" cx="100" cy="100" r="74" />
+            <circle class="gauge-face-ring" cx="100" cy="100" r="68" />
+            <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
+
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+            <path class="gauge-zone gauge-zone-warn" d="M 138 42 A 75 75 0 0 1 151 56" />
             <path class="gauge-redline" d="M 143 45 A 75 75 0 0 1 165 145" />
             <path class="gauge-arc-active" id="tach_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
+            <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
+            <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
+            <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
             <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
             <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
             <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
             <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
             <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+            <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
+            <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
+            <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
 
-            <text x="32" y="162" fill="#9da7b4" font-size="10">0</text>
-            <text x="47" y="68" fill="#9da7b4" font-size="10">2</text>
-            <text x="96" y="22" fill="#9da7b4" font-size="10">4</text>
-            <text x="143" y="68" fill="#9da7b4" font-size="10">6</text>
-            <text x="164" y="162" fill="#ff7777" font-size="10">8</text>
+            <text class="gauge-scale" x="31" y="162">0</text>
+            <text class="gauge-scale" x="47" y="68">2</text>
+            <text class="gauge-scale" x="96" y="22">4</text>
+            <text class="gauge-scale" x="143" y="68">6</text>
+            <text class="gauge-scale" x="164" y="162" fill="#ff7f7f">8</text>
 
-            <line id="tach_needle" class="gauge-needle" x1="100" y1="100" x2="100" y2="42" />
+            <line class="gauge-status-line" x1="66" y1="127" x2="134" y2="127" />
+            <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x1000</text>
+
+            <g id="tach_needle" class="needle-pack">
+              <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
+              <line class="gauge-needle" x1="100" y1="100" x2="100" y2="42" />
+              <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="122" />
+            </g>
+            <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
             <circle class="gauge-hub" cx="100" cy="100" r="7" />
           </svg>
 
-          <div class="gauge-value" id="cardash_rpm">0</div>
-          <div class="gauge-unit">rpm</div>
+          <div class="gauge-readout">
+            <div class="gauge-value" id="cardash_rpm">0</div>
+            <div class="gauge-unit">rpm</div>
+          </div>
+          <div class="gauge-caption">engine speed</div>
         </div>
 
         <div class="gauge-card">
           <div class="gauge-title">BOOST / MGP</div>
 
           <svg class="gauge-svg" viewBox="0 0 200 200">
+            <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
+            <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
+            <circle class="gauge-face" cx="100" cy="100" r="74" />
+            <circle class="gauge-face-ring" cx="100" cy="100" r="68" />
+            <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
+
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+            <path class="gauge-zone gauge-zone-warn" d="M 132 38 A 75 75 0 0 1 149 54" />
+            <path class="gauge-zone gauge-zone-danger" d="M 149 54 A 75 75 0 0 1 165 145" />
             <path class="gauge-arc-active boost-arc" id="boost_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
+            <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
+            <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
+            <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
             <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
             <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
             <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
             <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
             <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+            <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
+            <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
+            <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
 
-            <text x="20" y="162" fill="#9da7b4" font-size="10">-100</text>
-            <text x="48" y="68" fill="#9da7b4" font-size="10">0</text>
-            <text x="88" y="22" fill="#9da7b4" font-size="10">100</text>
-            <text x="130" y="68" fill="#9da7b4" font-size="10">200</text>
-            <text x="152" y="162" fill="#9da7b4" font-size="10">250</text>
+            <text class="gauge-scale" x="20" y="162">-100</text>
+            <text class="gauge-scale" x="48" y="68">0</text>
+            <text class="gauge-scale" x="88" y="22">100</text>
+            <text class="gauge-scale" x="130" y="68">200</text>
+            <text class="gauge-scale" x="152" y="162">250</text>
 
-            <line id="boost_needle" class="gauge-needle boost-needle" x1="100" y1="100" x2="100" y2="42" />
+            <line class="gauge-status-line" x1="62" y1="127" x2="138" y2="127" />
+            <text class="gauge-center-label" x="100" y="119" text-anchor="middle">BOOST PRESS</text>
+
+            <g id="boost_needle" class="needle-pack">
+              <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
+              <line class="gauge-needle boost-needle" x1="100" y1="100" x2="100" y2="42" />
+              <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="122" />
+            </g>
+            <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
             <circle class="gauge-hub" cx="100" cy="100" r="7" />
           </svg>
 
-          <div class="gauge-value" id="cardash_mgp">0</div>
-          <div class="gauge-unit">kPa gauge</div>
+          <div class="gauge-readout">
+            <div class="gauge-value" id="cardash_mgp">0</div>
+            <div class="gauge-unit">kPa gauge</div>
+          </div>
+          <div class="gauge-caption">turbo load</div>
         </div>
       </div>
 
@@ -959,54 +1160,104 @@ String dashboardHtml() {
             <div class="gauge-title">COOLANT TEMP</div>
 
             <svg class="gauge-svg" viewBox="0 0 200 200">
+              <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
+              <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
+              <circle class="gauge-face" cx="100" cy="100" r="74" />
+              <circle class="gauge-face-ring" cx="100" cy="100" r="68" />
+              <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
+
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48" />
+              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145" />
               <path class="gauge-arc-active temp-arc" id="ect_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
+              <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
+              <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
+              <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
               <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
               <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
               <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
               <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
               <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+              <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
+              <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
+              <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
 
-              <text x="30" y="162" fill="#9da7b4" font-size="10">0</text>
-              <text x="47" y="68" fill="#9da7b4" font-size="10">40</text>
-              <text x="92" y="22" fill="#9da7b4" font-size="10">80</text>
-              <text x="135" y="68" fill="#9da7b4" font-size="10">120</text>
-              <text x="154" y="162" fill="#ffb36b" font-size="10">140</text>
+              <text class="gauge-scale" x="30" y="162">0</text>
+              <text class="gauge-scale" x="47" y="68">40</text>
+              <text class="gauge-scale" x="92" y="22">80</text>
+              <text class="gauge-scale" x="135" y="68">120</text>
+              <text class="gauge-scale" x="154" y="162">140</text>
 
-              <line id="ect_needle" class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+              <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
+              <text class="gauge-center-label" x="100" y="119" text-anchor="middle">COOLANT</text>
+
+              <g id="ect_needle" class="needle-pack">
+                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="51" />
+                <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+                <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
+              </g>
+              <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
               <circle class="gauge-hub" cx="100" cy="100" r="7" />
             </svg>
 
-            <div class="gauge-value" id="cardash_ect">0</div>
-            <div class="gauge-unit">°C</div>
+            <div class="gauge-readout">
+              <div class="gauge-value" id="cardash_ect">0</div>
+              <div class="gauge-unit">°C</div>
+            </div>
+            <div class="gauge-caption">water temp</div>
           </div>
 
           <div class="gauge-card secondary" id="cardash_iat_panel">
             <div class="gauge-title">INTAKE AIR TEMP</div>
 
             <svg class="gauge-svg" viewBox="0 0 200 200">
+              <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
+              <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
+              <circle class="gauge-face" cx="100" cy="100" r="74" />
+              <circle class="gauge-face-ring" cx="100" cy="100" r="68" />
+              <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
+
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48" />
+              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145" />
               <path class="gauge-arc-active temp-arc" id="iat_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
+              <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
+              <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
+              <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
               <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
               <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
               <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
               <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
               <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+              <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
+              <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
+              <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
 
-              <text x="30" y="162" fill="#9da7b4" font-size="10">0</text>
-              <text x="47" y="68" fill="#9da7b4" font-size="10">40</text>
-              <text x="92" y="22" fill="#9da7b4" font-size="10">80</text>
-              <text x="135" y="68" fill="#9da7b4" font-size="10">120</text>
-              <text x="154" y="162" fill="#ffb36b" font-size="10">140</text>
+              <text class="gauge-scale" x="30" y="162">0</text>
+              <text class="gauge-scale" x="47" y="68">40</text>
+              <text class="gauge-scale" x="92" y="22">80</text>
+              <text class="gauge-scale" x="135" y="68">120</text>
+              <text class="gauge-scale" x="154" y="162">140</text>
 
-              <line id="iat_needle" class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+              <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
+              <text class="gauge-center-label" x="100" y="119" text-anchor="middle">INTAKE</text>
+
+              <g id="iat_needle" class="needle-pack">
+                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="51" />
+                <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+                <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
+              </g>
+              <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
               <circle class="gauge-hub" cx="100" cy="100" r="7" />
             </svg>
 
-            <div class="gauge-value" id="cardash_iat">0</div>
-            <div class="gauge-unit">°C</div>
+            <div class="gauge-readout">
+              <div class="gauge-value" id="cardash_iat">0</div>
+              <div class="gauge-unit">°C</div>
+            </div>
+            <div class="gauge-caption">charge temp</div>
           </div>
         </div>
 
