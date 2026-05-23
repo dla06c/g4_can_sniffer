@@ -1060,8 +1060,12 @@ String dashboardHtml() {
             <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-            <path class="gauge-zone gauge-zone-warn" d="M 138 42 A 75 75 0 0 1 151 56" />
-            <path class="gauge-redline" d="M 143 45 A 75 75 0 0 1 165 145" />
+            <path class="gauge-zone gauge-zone-warn" d="M 138 42 A 75 75 0 0 1 151 56">
+              <title>Warning zone approaching engine redline</title>
+            </path>
+            <path class="gauge-redline" d="M 143 45 A 75 75 0 0 1 165 145">
+              <title>Danger zone at engine redline</title>
+            </path>
             <path class="gauge-arc-active" id="tach_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
             <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
@@ -1112,8 +1116,12 @@ String dashboardHtml() {
             <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-            <path class="gauge-zone gauge-zone-warn" d="M 132 38 A 75 75 0 0 1 149 54" />
-            <path class="gauge-zone gauge-zone-danger" d="M 149 54 A 75 75 0 0 1 165 145" />
+            <path class="gauge-zone gauge-zone-warn" d="M 132 38 A 75 75 0 0 1 149 54">
+              <title>Warning zone for elevated boost pressure</title>
+            </path>
+            <path class="gauge-zone gauge-zone-danger" d="M 149 54 A 75 75 0 0 1 165 145">
+              <title>Danger zone for excessive boost pressure</title>
+            </path>
             <path class="gauge-arc-active boost-arc" id="boost_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
             <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
@@ -1167,8 +1175,12 @@ String dashboardHtml() {
               <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48" />
-              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145" />
+              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48">
+                <title>Warning zone for elevated coolant temperature</title>
+              </path>
+              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
+                <title>Danger zone for high coolant temperature</title>
+              </path>
               <path class="gauge-arc-active temp-arc" id="ect_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
               <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
@@ -1219,8 +1231,12 @@ String dashboardHtml() {
               <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48" />
-              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145" />
+              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48">
+                <title>Warning zone for elevated intake air temperature</title>
+              </path>
+              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
+                <title>Danger zone for high intake air temperature</title>
+              </path>
               <path class="gauge-arc-active temp-arc" id="iat_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
               <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
