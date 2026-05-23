@@ -1193,7 +1193,7 @@ String dashboardHtml() {
               <text class="gauge-center-label" x="100" y="119" text-anchor="middle">COOLANT</text>
 
               <g id="ect_needle" class="needle-pack">
-                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="51" />
+                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="50" />
                 <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
                 <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
               </g>
@@ -1245,7 +1245,7 @@ String dashboardHtml() {
               <text class="gauge-center-label" x="100" y="119" text-anchor="middle">INTAKE</text>
 
               <g id="iat_needle" class="needle-pack">
-                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="51" />
+                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="50" />
                 <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
                 <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
               </g>
