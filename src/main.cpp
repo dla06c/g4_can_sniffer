@@ -619,15 +619,9 @@ String dashboardHtml() {
 
     .cluster-footer {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 16px;
       margin-top: 16px;
-    }
-
-    .cluster-temps {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
     }
 
     .cluster-volts {
@@ -650,6 +644,14 @@ String dashboardHtml() {
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
         inset 0 -18px 30px rgba(0, 0, 0, 0.35),
         0 18px 28px rgba(0, 0, 0, 0.22);
+    }
+
+    .gauge-card.warn {
+      border-color: #8a6432;
+    }
+
+    .gauge-card.danger {
+      border-color: #963d3d;
     }
 
     .gauge-card::after {
@@ -728,6 +730,18 @@ String dashboardHtml() {
       z-index: 1;
       text-transform: uppercase;
       letter-spacing: 0.2em;
+    }
+
+    .gauge-sub-readout {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #9caaba;
+      letter-spacing: 0.14em;
+    }
+
+    .gauge-sub-readout .label {
+      margin-right: 4px;
+      color: #76879a;
     }
 
     .gauge-readout {
@@ -915,6 +929,44 @@ String dashboardHtml() {
       stroke-linecap: round;
     }
 
+    .gauge-secondary-arc-bg {
+      fill: none;
+      stroke: #24303d;
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+
+    .gauge-secondary-scale {
+      fill: #7f8ea0;
+      font-size: 8px;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+    }
+
+    .gauge-secondary-label {
+      fill: #647487;
+      font-size: 7px;
+      font-weight: bold;
+      letter-spacing: 0.14em;
+    }
+
+    .mini-needle-pack {
+      transform-origin: 100px 156px;
+      transition: transform 80ms linear;
+    }
+
+    .gauge-mini-needle-shadow {
+      stroke: rgba(0, 0, 0, 0.45);
+      stroke-width: 3.8;
+      stroke-linecap: round;
+    }
+
+    .gauge-mini-needle {
+      stroke: #ffd7a8;
+      stroke-width: 2.3;
+      stroke-linecap: round;
+    }
+
     .voltage-card {
       background: linear-gradient(180deg, #1b2230, #10151d);
       border: 1px solid #303642;
@@ -978,8 +1030,7 @@ String dashboardHtml() {
     }
 
     @media (max-width: 720px) {
-      .cluster-main,
-      .cluster-temps {
+      .cluster-main {
         grid-template-columns: 1fr;
       }
 
@@ -1053,7 +1104,7 @@ String dashboardHtml() {
     <div class="cluster-wrap">
 
       <div class="cluster-main">
-        <div class="gauge-card">
+        <div class="gauge-card" id="cardash_rpm_panel">
           <!-- <div class="gauge-title">TACHOMETER</div> -->
 
           <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Tachometer gauge showing engine speed with a warning zone and redline">
@@ -1093,10 +1144,20 @@ String dashboardHtml() {
             <line class="gauge-status-line" x1="66" y1="127" x2="134" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x 1000</text>
 
+            <path class="gauge-secondary-arc-bg" d="M 68 156 A 32 32 0 0 1 132 156" />
+            <text class="gauge-secondary-scale" x="64" y="162">0</text>
+            <text class="gauge-secondary-scale" x="94" y="129">70</text>
+            <text class="gauge-secondary-scale" x="126" y="162">140</text>
+            <text class="gauge-secondary-label" x="100" y="169" text-anchor="middle">COOLANT °C</text>
+
             <g id="tach_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
               <line class="gauge-needle" x1="100" y1="100" x2="100" y2="42" />
               <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="122" />
+            </g>
+            <g id="tach_ect_needle" class="mini-needle-pack">
+              <line class="gauge-mini-needle-shadow" x1="100.7" y1="156.7" x2="100.7" y2="139" />
+              <line class="gauge-mini-needle" x1="100" y1="156" x2="100" y2="138" />
             </g>
             <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
             <circle class="gauge-hub" cx="100" cy="100" r="7" />
@@ -1105,11 +1166,12 @@ String dashboardHtml() {
           <div class="gauge-readout">
             <div class="gauge-value" id="cardash_rpm">0</div>
             <div class="gauge-unit">rpm</div>
+            <div class="gauge-sub-readout"><span class="label">coolant</span><span id="cardash_ect">0</span> °C</div>
           </div>
           <div class="gauge-caption">engine speed</div>
         </div>
 
-        <div class="gauge-card">
+        <div class="gauge-card" id="cardash_mgp_panel">
           <!-- <div class="gauge-title">BOOST / MGP</div> -->
 
           <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Boost gauge showing manifold gauge pressure with warning and danger zones">
@@ -1149,10 +1211,20 @@ String dashboardHtml() {
             <line class="gauge-status-line" x1="62" y1="127" x2="138" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">BOOST PRESSURE</text>
 
+            <path class="gauge-secondary-arc-bg" d="M 68 156 A 32 32 0 0 1 132 156" />
+            <text class="gauge-secondary-scale" x="64" y="162">0</text>
+            <text class="gauge-secondary-scale" x="94" y="129">70</text>
+            <text class="gauge-secondary-scale" x="126" y="162">140</text>
+            <text class="gauge-secondary-label" x="100" y="169" text-anchor="middle">INTAKE °C</text>
+
             <g id="boost_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
               <line class="gauge-needle boost-needle" x1="100" y1="100" x2="100" y2="42" />
               <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="122" />
+            </g>
+            <g id="boost_iat_needle" class="mini-needle-pack">
+              <line class="gauge-mini-needle-shadow" x1="100.7" y1="156.7" x2="100.7" y2="139" />
+              <line class="gauge-mini-needle" x1="100" y1="156" x2="100" y2="138" />
             </g>
             <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
             <circle class="gauge-hub" cx="100" cy="100" r="7" />
@@ -1161,126 +1233,13 @@ String dashboardHtml() {
           <div class="gauge-readout">
             <div class="gauge-value" id="cardash_mgp">0</div>
             <div class="gauge-unit">kPa gauge</div>
+            <div class="gauge-sub-readout"><span class="label">intake</span><span id="cardash_iat">0</span> °C</div>
           </div>
           <div class="gauge-caption">turbo load</div>
         </div>
       </div>
 
       <div class="cluster-footer">
-        <div class="cluster-temps">
-          <div class="gauge-card secondary" id="cardash_ect_panel">
-            <!-- <div class="gauge-title">COOLANT TEMP</div> -->
-
-            <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Coolant temperature gauge with warning and danger zones">
-              <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
-              <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
-              <circle class="gauge-face" cx="100" cy="100" r="74" />
-              <circle class="gauge-face-ring" cx="100" cy="100" r="68" />
-              <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
-
-              <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-              <!--  <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48"> -->
-                <title>Warning zone for elevated coolant temperature</title>
-              </path>
-              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
-                <title>Danger zone for high coolant temperature</title>
-              </path>
-              <path class="gauge-arc-active temp-arc" id="ect_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
-
-              <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
-              <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
-              <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
-              <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
-              <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
-              <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
-              <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
-              <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
-              <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
-              <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
-              <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
-
-              <text class="gauge-scale" x="30" y="162">0</text>
-              <text class="gauge-scale" x="47" y="68">40</text>
-              <text class="gauge-scale" x="92" y="22">80</text>
-              <text class="gauge-scale" x="135" y="68">120</text>
-              <text class="gauge-scale gauge-scale-alert" x="154" y="162">140</text>
-
-              <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
-              <text class="gauge-center-label" x="100" y="119" text-anchor="middle">COOLANT</text>
-
-              <g id="ect_needle" class="needle-pack">
-                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="50" />
-                <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
-                <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
-              </g>
-              <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
-              <circle class="gauge-hub" cx="100" cy="100" r="7" />
-            </svg>
-
-            <div class="gauge-readout">
-              <div class="gauge-value" id="cardash_ect">0</div>
-              <div class="gauge-unit">°C</div>
-            </div>
-            <div class="gauge-caption">water temp</div>
-          </div>
-
-          <div class="gauge-card secondary" id="cardash_iat_panel">
-            <!-- <div class="gauge-title">INTAKE AIR TEMP</div> -->
-
-            <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Intake air temperature gauge with warning and danger zones">
-              <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
-              <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
-              <circle class="gauge-face" cx="100" cy="100" r="74" />
-              <circle class="gauge-face-ring" cx="100" cy="100" r="68" />
-              <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
-
-              <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-              <!-- <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48"> -->
-                <title>Warning zone for elevated intake air temperature</title>
-              </path>
-              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
-                <title>Danger zone for high intake air temperature</title>
-              </path>
-              <path class="gauge-arc-active temp-arc" id="iat_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
-
-              <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
-              <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
-              <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
-              <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
-              <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
-              <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
-              <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
-              <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
-              <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
-              <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
-              <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
-
-              <text class="gauge-scale" x="30" y="162">0</text>
-              <text class="gauge-scale" x="47" y="68">40</text>
-              <text class="gauge-scale" x="92" y="22">80</text>
-              <text class="gauge-scale" x="135" y="68">120</text>
-              <text class="gauge-scale gauge-scale-alert" x="154" y="162">140</text>
-
-              <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
-              <text class="gauge-center-label" x="100" y="119" text-anchor="middle">INTAKE</text>
-
-              <g id="iat_needle" class="needle-pack">
-                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="50" />
-                <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
-                <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
-              </g>
-              <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
-              <circle class="gauge-hub" cx="100" cy="100" r="7" />
-            </svg>
-
-            <div class="gauge-readout">
-              <div class="gauge-value" id="cardash_iat">0</div>
-              <div class="gauge-unit">°C</div>
-            </div>
-            <div class="gauge-caption">charge temp</div>
-          </div>
-        </div>
-
         <div class="cluster-volts">
           <div class="voltage-card" id="cardash_3v3_panel">
             <div class="voltage-icon">
@@ -1819,12 +1778,10 @@ function updateCarDash(d) {
   setGaugeArc('boost_arc', mgp, -100, 250);
 
   setText('cardash_ect', ect, 0);
-  setGaugeNeedle('ect_needle', ect, 0, 140);
-  setGaugeArc('ect_arc', ect, 0, 140);
+  setGaugeNeedle('tach_ect_needle', ect, 0, 140);
 
   setText('cardash_iat', iat, 0);
-  setGaugeNeedle('iat_needle', iat, 0, 140);
-  setGaugeArc('iat_arc', iat, 0, 140);
+  setGaugeNeedle('boost_iat_needle', iat, 0, 140);
 
   setText('cardash_3v3', internal3v3, 2);
   setText('cardash_12v', internal12v, 1);
@@ -1856,8 +1813,8 @@ function updateCarDash(d) {
   const rail12vDanger =
     internal12v > 0 && (internal12v < internal12vDangerLow || internal12v > internal12vDangerHigh);
 
-  setMiniPanelState('cardash_ect_panel', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
-  setMiniPanelState('cardash_iat_panel', iatDanger ? 'danger' : iatWarn ? 'warn' : null);
+  setMiniPanelState('cardash_rpm_panel', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
+  setMiniPanelState('cardash_mgp_panel', iatDanger ? 'danger' : iatWarn ? 'warn' : null);
   setMiniPanelState('cardash_batt_panel', battDanger ? 'danger' : battWarn ? 'warn' : null);
   setMiniPanelState('cardash_3v3_panel', rail3v3Danger ? 'danger' : rail3v3Warn ? 'warn' : null);
   setMiniPanelState('cardash_12v_panel', rail12vDanger ? 'danger' : rail12vWarn ? 'warn' : null);
