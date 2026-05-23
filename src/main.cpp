@@ -608,51 +608,96 @@ String dashboardHtml() {
 
     .cluster-main {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
       align-items: stretch;
     }
 
-    .cluster-small {
+    .cluster-footer {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .cluster-temps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .cluster-volts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
-      margin-top: 14px;
     }
 
     .gauge-card {
-      background: radial-gradient(circle at 50% 35%, #293241 0%, #161a22 58%, #090b0f 100%);
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(109, 199, 255, 0.24), transparent 42%),
+        radial-gradient(circle at 50% 100%, #1f2735 0%, #10151d 56%, #06080c 100%);
       border: 1px solid #303642;
-      border-radius: 22px;
-      padding: 12px;
+      border-radius: 24px;
+      padding: 16px 16px 14px;
       text-align: center;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.55);
+    }
+
+    .gauge-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 28%);
+      pointer-events: none;
+    }
+
+    .gauge-card.secondary {
+      padding-top: 14px;
     }
 
     .gauge-title {
       color: var(--muted);
       font-size: 13px;
       font-weight: bold;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.12em;
       margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
     }
 
     .gauge-svg {
       width: 100%;
       max-width: 360px;
       height: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-card.secondary .gauge-svg {
+      max-width: 250px;
     }
 
     .gauge-value {
-      font-size: 34px;
+      font-size: 42px;
       font-weight: bold;
       margin-top: -20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-card.secondary .gauge-value {
+      font-size: 34px;
+      margin-top: -16px;
     }
 
     .gauge-unit {
       color: var(--muted);
       font-size: 13px;
       margin-top: 2px;
+      position: relative;
+      z-index: 1;
     }
 
     .gauge-tick {
@@ -672,6 +717,17 @@ String dashboardHtml() {
       stroke: #4da3ff;
       stroke-width: 14;
       stroke-linecap: round;
+      filter: drop-shadow(0 0 7px rgba(77, 163, 255, 0.45));
+    }
+
+    .boost-arc {
+      stroke: #28d7ff;
+      filter: drop-shadow(0 0 8px rgba(40, 215, 255, 0.55));
+    }
+
+    .temp-arc {
+      stroke: #ff9d4d;
+      filter: drop-shadow(0 0 8px rgba(255, 157, 77, 0.55));
     }
 
     .gauge-needle {
@@ -680,6 +736,15 @@ String dashboardHtml() {
       stroke-linecap: round;
       transform-origin: 100px 100px;
       transition: transform 80ms linear;
+    }
+
+    .boost-needle {
+      stroke: #8ef2ff;
+    }
+
+    .temp-needle {
+      stroke: #ffd7a8;
+      stroke-width: 3.5;
     }
 
     .gauge-hub {
@@ -693,33 +758,86 @@ String dashboardHtml() {
       stroke-linecap: round;
     }
 
-    .mini-gauge-card {
-      background: var(--panel);
+    .voltage-card {
+      background: linear-gradient(180deg, #1b2230, #10151d);
       border: 1px solid #303642;
-      border-radius: 16px;
-      padding: 12px;
+      border-radius: 18px;
+      padding: 14px 12px;
       text-align: center;
     }
 
-    .mini-gauge-value {
-      font-size: 28px;
-      font-weight: bold;
+    .voltage-card.warn {
+      background: linear-gradient(180deg, #5f4311, #31210a);
     }
 
-    .mini-gauge-label {
+    .voltage-card.danger {
+      background: linear-gradient(180deg, #5d1b1b, #2d0d0d);
+    }
+
+    .voltage-label {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: bold;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
+      margin-top: 8px;
+      min-height: 30px;
+    }
+
+    .voltage-value {
+      font-size: 28px;
+      font-weight: bold;
+      line-height: 1.1;
+      margin-top: 6px;
+    }
+
+    .voltage-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 11, 17, 0.9);
+      border: 1px solid #303642;
+      color: #8bd5ff;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .voltage-icon svg {
+      width: 30px;
+      height: 30px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    @media (max-width: 960px) {
+      .cluster-footer {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 720px) {
-      .cluster-main {
+      .cluster-main,
+      .cluster-temps {
         grid-template-columns: 1fr;
       }
 
+      .cluster-volts {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .gauge-value {
-        font-size: 28px;
+        font-size: 34px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .cluster-volts {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -807,11 +925,11 @@ String dashboardHtml() {
         </div>
 
         <div class="gauge-card">
-          <div class="gauge-title">SPEEDOMETER</div>
+          <div class="gauge-title">BOOST / MGP</div>
 
           <svg class="gauge-svg" viewBox="0 0 200 200">
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-            <path class="gauge-arc-active" id="speed_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
+            <path class="gauge-arc-active boost-arc" id="boost_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
 
             <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
             <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
@@ -819,56 +937,113 @@ String dashboardHtml() {
             <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
             <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
 
-            <text x="30" y="162" fill="#9da7b4" font-size="10">0</text>
-            <text x="42" y="68" fill="#9da7b4" font-size="10">60</text>
-            <text x="92" y="22" fill="#9da7b4" font-size="10">120</text>
-            <text x="135" y="68" fill="#9da7b4" font-size="10">180</text>
-            <text x="158" y="162" fill="#9da7b4" font-size="10">240</text>
+            <text x="20" y="162" fill="#9da7b4" font-size="10">-100</text>
+            <text x="48" y="68" fill="#9da7b4" font-size="10">0</text>
+            <text x="88" y="22" fill="#9da7b4" font-size="10">100</text>
+            <text x="130" y="68" fill="#9da7b4" font-size="10">200</text>
+            <text x="152" y="162" fill="#9da7b4" font-size="10">250</text>
 
-            <line id="speed_needle" class="gauge-needle" x1="100" y1="100" x2="100" y2="42" />
+            <line id="boost_needle" class="gauge-needle boost-needle" x1="100" y1="100" x2="100" y2="42" />
             <circle class="gauge-hub" cx="100" cy="100" r="7" />
           </svg>
 
-          <div class="gauge-value" id="cardash_speed">--</div>
-          <div class="gauge-unit">km/h</div>
+          <div class="gauge-value" id="cardash_mgp">0</div>
+          <div class="gauge-unit">kPa gauge</div>
         </div>
       </div>
 
-      <div class="cluster-small">
-        <div class="mini-gauge-card" id="cardash_boost_panel">
-          <div class="mini-gauge-label">BOOST / MGP</div>
-          <div class="mini-gauge-value" id="cardash_mgp">0</div>
-          <div class="gauge-unit">kPa gauge</div>
+      <div class="cluster-footer">
+        <div class="cluster-temps">
+          <div class="gauge-card secondary" id="cardash_ect_panel">
+            <div class="gauge-title">COOLANT TEMP</div>
+
+            <svg class="gauge-svg" viewBox="0 0 200 200">
+              <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+              <path class="gauge-arc-active temp-arc" id="ect_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
+
+              <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
+              <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
+              <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
+              <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
+              <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+
+              <text x="30" y="162" fill="#9da7b4" font-size="10">0</text>
+              <text x="47" y="68" fill="#9da7b4" font-size="10">40</text>
+              <text x="92" y="22" fill="#9da7b4" font-size="10">80</text>
+              <text x="135" y="68" fill="#9da7b4" font-size="10">120</text>
+              <text x="154" y="162" fill="#ffb36b" font-size="10">140</text>
+
+              <line id="ect_needle" class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+              <circle class="gauge-hub" cx="100" cy="100" r="7" />
+            </svg>
+
+            <div class="gauge-value" id="cardash_ect">0</div>
+            <div class="gauge-unit">°C</div>
+          </div>
+
+          <div class="gauge-card secondary" id="cardash_iat_panel">
+            <div class="gauge-title">INTAKE AIR TEMP</div>
+
+            <svg class="gauge-svg" viewBox="0 0 200 200">
+              <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+              <path class="gauge-arc-active temp-arc" id="iat_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
+
+              <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
+              <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
+              <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
+              <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
+              <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+
+              <text x="30" y="162" fill="#9da7b4" font-size="10">0</text>
+              <text x="47" y="68" fill="#9da7b4" font-size="10">40</text>
+              <text x="92" y="22" fill="#9da7b4" font-size="10">80</text>
+              <text x="135" y="68" fill="#9da7b4" font-size="10">120</text>
+              <text x="154" y="162" fill="#ffb36b" font-size="10">140</text>
+
+              <line id="iat_needle" class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+              <circle class="gauge-hub" cx="100" cy="100" r="7" />
+            </svg>
+
+            <div class="gauge-value" id="cardash_iat">0</div>
+            <div class="gauge-unit">°C</div>
+          </div>
         </div>
 
-        <div class="mini-gauge-card" id="cardash_lambda_panel">
-          <div class="mini-gauge-label">LAMBDA</div>
-          <div class="mini-gauge-value" id="cardash_lambda">0.00</div>
-          <div class="gauge-unit" id="cardash_lambda_target">target 0.00</div>
-        </div>
+        <div class="cluster-volts">
+          <div class="voltage-card" id="cardash_3v3_panel">
+            <div class="voltage-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+                <path d="M9 3v3M12 3v3M15 3v3M9 18v3M12 18v3M15 18v3M3 9h3M3 12h3M3 15h3M18 9h3M18 12h3M18 15h3" />
+              </svg>
+            </div>
+            <div class="voltage-label">3.3V INTERNAL</div>
+            <div class="voltage-value" id="cardash_3v3">0.00</div>
+            <div class="gauge-unit">V</div>
+          </div>
 
-        <div class="mini-gauge-card" id="cardash_ect_panel">
-          <div class="mini-gauge-label">COOLANT</div>
-          <div class="mini-gauge-value" id="cardash_ect">0</div>
-          <div class="gauge-unit">°C</div>
-        </div>
+          <div class="voltage-card" id="cardash_12v_panel">
+            <div class="voltage-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13 2 6 13h5l-1 9 8-12h-5l1-8Z" />
+              </svg>
+            </div>
+            <div class="voltage-label">12V INTERNAL</div>
+            <div class="voltage-value" id="cardash_12v">0.0</div>
+            <div class="gauge-unit">V</div>
+          </div>
 
-        <div class="mini-gauge-card" id="cardash_oil_panel">
-          <div class="mini-gauge-label">OIL PRESSURE</div>
-          <div class="mini-gauge-value" id="cardash_oil">0</div>
-          <div class="gauge-unit">kPa</div>
-        </div>
-
-        <div class="mini-gauge-card" id="cardash_batt_panel">
-          <div class="mini-gauge-label">BATTERY</div>
-          <div class="mini-gauge-value" id="cardash_batt">0.0</div>
-          <div class="gauge-unit">V</div>
-        </div>
-
-        <div class="mini-gauge-card" id="cardash_tps_panel">
-          <div class="mini-gauge-label">TPS</div>
-          <div class="mini-gauge-value" id="cardash_tps">0</div>
-          <div class="gauge-unit">%</div>
+          <div class="voltage-card" id="cardash_batt_panel">
+            <div class="voltage-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="7" width="16" height="10" rx="2" />
+                <path d="M19 10h2v4h-2M8 10v4M6 12h4" />
+              </svg>
+            </div>
+            <div class="voltage-label">BATTERY</div>
+            <div class="voltage-value" id="cardash_batt">0.0</div>
+            <div class="gauge-unit">V</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1321,60 +1496,21 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function setPercentBar(id, value, min, max) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  const pct = ((value - min) / (max - min)) * 100;
-  el.style.width = clamp(pct, 0, 100) + '%';
-}
-
-function setPanelState(id, state) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  el.classList.remove('warn', 'danger');
-  if (state) el.classList.add(state);
-}
-
-function updateCarDash(d) {
-  setText('cardash_rpm', d.rpm, 0);
-  setText('cardash_mgp', d.mgp, 0);
-  setText('cardash_lambda', d.lambda1, 2);
-  setText('cardash_ect', d.ect, 0);
-  setText('cardash_oil', d.oil_pressure, 0);
-  setText('cardash_batt', d.battery_v, 1);
-  setText('cardash_tps', d.tps, 0);
-
-  document.getElementById('cardash_lambda_target').textContent =
-    'target ' + Number(d.lambda_target).toFixed(2);
-
-  // Adjust this max RPM to suit your engine/redline.
-  setPercentBar('cardash_rpm_bar', d.rpm, 0, 7000);
-
-  const oilDanger = d.rpm > 1500 && d.oil_pressure < 150;
-  const ectWarn = d.ect >= 100 && d.ect < 110;
-  const ectDanger = d.ect >= 110;
-  const battWarn = d.battery_v > 0 && d.battery_v < 12.2;
-  const lambdaDanger = d.map > 120 && d.lambda1 > d.lambda_target + 0.08;
-
-  setPanelState('cardash_oil_panel', oilDanger ? 'danger' : null);
-  setPanelState('cardash_ect_panel', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
-  setPanelState('cardash_batt_panel', battWarn ? 'warn' : null);
-  setPanelState('cardash_lambda_panel', lambdaDanger ? 'danger' : null);
-}
-
-
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
 function valueToNeedleAngle(value, min, max) {
   const pct = clamp((value - min) / (max - min), 0, 1);
 
   // Gauge sweep: -130° left to +130° right.
   return -130 + pct * 260;
+}
+
+function setGaugeArc(id, value, min, max) {
+  const arc = document.getElementById(id);
+  if (!arc) return;
+
+  const pct = clamp((value - min) / (max - min), 0, 1);
+  const length = arc.getTotalLength();
+  arc.style.strokeDasharray = length;
+  arc.style.strokeDashoffset = length * (1 - pct);
 }
 
 function setGaugeNeedle(id, value, min, max) {
@@ -1395,45 +1531,49 @@ function setMiniPanelState(id, state) {
 
 function updateCarDash(d) {
   const rpm = Number(d.rpm) || 0;
-
-  // Speed is not currently in your data stream.
-  // This will use d.speed_kph later if you add it to /data.
-  const hasSpeed = Number.isFinite(Number(d.speed_kph));
-  const speed = hasSpeed ? Number(d.speed_kph) : 0;
+  const mgp = Number(d.mgp) || 0;
+  const ect = Number(d.ect) || 0;
+  const iat = Number(d.iat) || 0;
+  const battery = Number(d.battery_v) || 0;
+  const internal3v3 = Number(d.internal_3v3) || 0;
+  const internal12v = Number(d.internal_12v) || 0;
 
   setText('cardash_rpm', rpm, 0);
   setGaugeNeedle('tach_needle', rpm, 0, 8000);
+  setGaugeArc('tach_arc', rpm, 0, 8000);
 
-  if (hasSpeed) {
-    setText('cardash_speed', speed, 0);
-    setGaugeNeedle('speed_needle', speed, 0, 240);
-  } else {
-    document.getElementById('cardash_speed').textContent = '--';
-    setGaugeNeedle('speed_needle', 0, 0, 240);
-  }
+  setText('cardash_mgp', mgp, 0);
+  setGaugeNeedle('boost_needle', mgp, -100, 250);
+  setGaugeArc('boost_arc', mgp, -100, 250);
 
-  setText('cardash_mgp', d.mgp, 0);
-  setText('cardash_lambda', d.lambda1, 2);
-  setText('cardash_ect', d.ect, 0);
-  setText('cardash_oil', d.oil_pressure, 0);
-  setText('cardash_batt', d.battery_v, 1);
-  setText('cardash_tps', d.tps, 0);
+  setText('cardash_ect', ect, 0);
+  setGaugeNeedle('ect_needle', ect, 0, 140);
+  setGaugeArc('ect_arc', ect, 0, 140);
 
-  const targetEl = document.getElementById('cardash_lambda_target');
-  if (targetEl) {
-    targetEl.textContent = 'target ' + Number(d.lambda_target).toFixed(2);
-  }
+  setText('cardash_iat', iat, 0);
+  setGaugeNeedle('iat_needle', iat, 0, 140);
+  setGaugeArc('iat_arc', iat, 0, 140);
 
-  const oilDanger = d.rpm > 1500 && d.oil_pressure < 150;
-  const ectWarn = d.ect >= 100 && d.ect < 110;
-  const ectDanger = d.ect >= 110;
-  const battWarn = d.battery_v > 0 && d.battery_v < 12.2;
-  const lambdaDanger = d.map > 120 && d.lambda1 > d.lambda_target + 0.08;
+  setText('cardash_3v3', internal3v3, 2);
+  setText('cardash_12v', internal12v, 1);
+  setText('cardash_batt', battery, 1);
 
-  setMiniPanelState('cardash_oil_panel', oilDanger ? 'danger' : null);
+  const ectWarn = ect >= 100 && ect < 110;
+  const ectDanger = ect >= 110;
+  const iatWarn = iat >= 60 && iat < 80;
+  const iatDanger = iat >= 80;
+  const battWarn = battery > 0 && battery < 12.2;
+  const battDanger = battery > 0 && battery < 11.5;
+  const rail3v3Warn = internal3v3 > 0 && (internal3v3 < 3.15 || internal3v3 > 3.45);
+  const rail3v3Danger = internal3v3 > 0 && (internal3v3 < 3.0 || internal3v3 > 3.6);
+  const rail12vWarn = internal12v > 0 && (internal12v < 11.5 || internal12v > 13.5);
+  const rail12vDanger = internal12v > 0 && (internal12v < 10.5 || internal12v > 14.5);
+
   setMiniPanelState('cardash_ect_panel', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
-  setMiniPanelState('cardash_batt_panel', battWarn ? 'warn' : null);
-  setMiniPanelState('cardash_lambda_panel', lambdaDanger ? 'danger' : null);
+  setMiniPanelState('cardash_iat_panel', iatDanger ? 'danger' : iatWarn ? 'warn' : null);
+  setMiniPanelState('cardash_batt_panel', battDanger ? 'danger' : battWarn ? 'warn' : null);
+  setMiniPanelState('cardash_3v3_panel', rail3v3Danger ? 'danger' : rail3v3Warn ? 'warn' : null);
+  setMiniPanelState('cardash_12v_panel', rail12vDanger ? 'danger' : rail12vWarn ? 'warn' : null);
 }
 
 
