@@ -799,6 +799,10 @@ String dashboardHtml() {
       letter-spacing: 0.05em;
     }
 
+    .gauge-scale-alert {
+      fill: #ffb38c;
+    }
+
     .gauge-center-label {
       fill: #6c7b8b;
       font-size: 9px;
@@ -1084,7 +1088,7 @@ String dashboardHtml() {
             <text class="gauge-scale" x="47" y="68">2</text>
             <text class="gauge-scale" x="96" y="22">4</text>
             <text class="gauge-scale" x="143" y="68">6</text>
-            <text class="gauge-scale" x="164" y="162" fill="#ff7f7f">8</text>
+            <text class="gauge-scale gauge-scale-alert" x="164" y="162">8</text>
 
             <line class="gauge-status-line" x1="66" y1="127" x2="134" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x1000</text>
@@ -1199,7 +1203,7 @@ String dashboardHtml() {
               <text class="gauge-scale" x="47" y="68">40</text>
               <text class="gauge-scale" x="92" y="22">80</text>
               <text class="gauge-scale" x="135" y="68">120</text>
-              <text class="gauge-scale" x="154" y="162">140</text>
+              <text class="gauge-scale gauge-scale-alert" x="154" y="162">140</text>
 
               <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
               <text class="gauge-center-label" x="100" y="119" text-anchor="middle">COOLANT</text>
@@ -1255,7 +1259,7 @@ String dashboardHtml() {
               <text class="gauge-scale" x="47" y="68">40</text>
               <text class="gauge-scale" x="92" y="22">80</text>
               <text class="gauge-scale" x="135" y="68">120</text>
-              <text class="gauge-scale" x="154" y="162">140</text>
+              <text class="gauge-scale gauge-scale-alert" x="154" y="162">140</text>
 
               <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
               <text class="gauge-center-label" x="100" y="119" text-anchor="middle">INTAKE</text>
