@@ -1777,10 +1777,14 @@ function updateCarDash(d) {
   setGaugeNeedle('boost_needle', mgp, -100, 250);
   setGaugeArc('boost_arc', mgp, -100, 250);
 
-  setText('cardash_ect_sub', ect, 0, '°C');
+  setText('cardash_ect_sub', ect, 0);
+  const ectSubReadout = document.getElementById('cardash_ect_sub');
+  if (ectSubReadout) ectSubReadout.textContent += '°C';
   setGaugeNeedle('ect_secondary_needle', ect, 0, 140);
 
-  setText('cardash_iat_sub', iat, 0, '°C');
+  setText('cardash_iat_sub', iat, 0);
+  const iatSubReadout = document.getElementById('cardash_iat_sub');
+  if (iatSubReadout) iatSubReadout.textContent += '°C';
   setGaugeNeedle('iat_secondary_needle', iat, 0, 140);
 
   setText('cardash_3v3', internal3v3, 2);
