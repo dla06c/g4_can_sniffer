@@ -1052,7 +1052,7 @@ String dashboardHtml() {
         <div class="gauge-card">
           <div class="gauge-title">TACHOMETER</div>
 
-          <svg class="gauge-svg" viewBox="0 0 200 200">
+          <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Tachometer gauge showing engine speed with warning and danger zones">
             <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
             <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
             <circle class="gauge-face" cx="100" cy="100" r="74" />
@@ -1108,7 +1108,7 @@ String dashboardHtml() {
         <div class="gauge-card">
           <div class="gauge-title">BOOST / MGP</div>
 
-          <svg class="gauge-svg" viewBox="0 0 200 200">
+          <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Boost gauge showing manifold gauge pressure with warning and danger zones">
             <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
             <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
             <circle class="gauge-face" cx="100" cy="100" r="74" />
@@ -1167,7 +1167,7 @@ String dashboardHtml() {
           <div class="gauge-card secondary" id="cardash_ect_panel">
             <div class="gauge-title">COOLANT TEMP</div>
 
-            <svg class="gauge-svg" viewBox="0 0 200 200">
+            <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Coolant temperature gauge with warning and danger zones">
               <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
               <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
               <circle class="gauge-face" cx="100" cy="100" r="74" />
@@ -1223,7 +1223,7 @@ String dashboardHtml() {
           <div class="gauge-card secondary" id="cardash_iat_panel">
             <div class="gauge-title">INTAKE AIR TEMP</div>
 
-            <svg class="gauge-svg" viewBox="0 0 200 200">
+            <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Intake air temperature gauge with warning and danger zones">
               <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
               <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
               <circle class="gauge-face" cx="100" cy="100" r="74" />
