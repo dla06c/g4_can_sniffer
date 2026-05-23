@@ -86,7 +86,7 @@ struct LinkEcuData {
 LinkEcuData ecuData;
 
 // ---------------------------------------------------------------------------
-// Rolling RAM log.  350 × 88 ≈ 31 KB.
+// Rolling RAM log.  350 x 88 ~= 31 KB.
 // Reduce LOG_CAPACITY if your build runs low on RAM.
 // ---------------------------------------------------------------------------
 const uint16_t LOG_CAPACITY = 350;
@@ -198,13 +198,13 @@ void formatFrameLine(const twai_message_t& msg, char* out, size_t outSize) {
         msg.data_length_code);
 
     for (int i = 0; i < 8; i++) {
-        if (pos < 0 || (size_t)pos >= outSize) break;
+        if (pos < 0 || (size_t)pos >= outSize - 1) break;
         if (i < msg.data_length_code && !msg.rtr)
-            pos += snprintf(out + pos, outSize - pos, ",%02X", msg.data[i]);
+            pos += snprintf(out + pos, outSize - (size_t)pos, ",%02X", msg.data[i]);
         else
-            pos += snprintf(out + pos, outSize - pos, ",");
+            pos += snprintf(out + pos, outSize - (size_t)pos, ",");
     }
-    if (pos < 0 || (size_t)pos >= outSize) out[outSize - 1] = '\0';
+    out[outSize - 1] = '\0';
 }
 
 // ---------------------------------------------------------------------------
@@ -581,11 +581,12 @@ void handleDecoded() {
     unsigned long now = millis();
     long lastAge = ecuData.lastUpdateMs > 0 ? (long)(now - ecuData.lastUpdateMs) : -1;
 
-    // Format batt_v with two decimal places without using dtostrf/sprintf floats
+    // Format batt_v with two decimal places (batt voltage is always non-negative)
     char battBuf[12];
+    float bv = ecuData.battV < 0.0f ? 0.0f : ecuData.battV;
     snprintf(battBuf, sizeof(battBuf), "%d.%02d",
-        (int)ecuData.battV,
-        (int)((ecuData.battV - (int)ecuData.battV) * 100 + 0.5f));
+        (int)bv,
+        (int)((bv - (int)bv) * 100.0f + 0.5f));
 
     String json = "{";
     json += "\"valid\":"       + String(ecuData.valid ? "true" : "false") + ",";
