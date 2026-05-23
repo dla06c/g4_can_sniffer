@@ -1151,7 +1151,7 @@ String dashboardHtml() {
               <line class="secondary-needle" x1="100" y1="161" x2="100" y2="169" />
             </g>
             <circle class="secondary-hub" cx="100" cy="160" r="2.6" />
-            <text class="secondary-value" id="cardash_ect_sub" x="100" y="178" text-anchor="middle">0°C</text>
+            <text class="secondary-value" id="cardash_ect_sub" x="100" y="178" text-anchor="middle">0</text>
 
             <g id="tach_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
@@ -1220,7 +1220,7 @@ String dashboardHtml() {
               <line class="secondary-needle" x1="100" y1="161" x2="100" y2="169" />
             </g>
             <circle class="secondary-hub" cx="100" cy="160" r="2.6" />
-            <text class="secondary-value" id="cardash_iat_sub" x="100" y="178" text-anchor="middle">0°C</text>
+            <text class="secondary-value" id="cardash_iat_sub" x="100" y="178" text-anchor="middle">0</text>
 
             <g id="boost_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
