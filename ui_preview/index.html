@@ -598,59 +598,32 @@
       stroke-linecap: round;
     }
 
-    .secondary-gauge-base {
-      fill: none;
-      stroke: rgba(115, 134, 156, 0.45);
-      stroke-width: 2.5;
-      stroke-linecap: round;
+    .embedded-secondary-gauge {
+      opacity: 0.95;
     }
 
-    .secondary-gauge-tick {
-      stroke: rgba(143, 158, 176, 0.7);
-      stroke-width: 1.6;
-      stroke-linecap: round;
+    .embedded-secondary-gauge .gauge-scale {
+      font-size: 13px;
+      letter-spacing: 0.03em;
     }
 
-    .secondary-needle-pack {
-      transform-origin: 100px 160px;
-      transition: transform 80ms linear;
+    .embedded-secondary-gauge .gauge-center-label {
+      font-size: 8px;
+      letter-spacing: 0.12em;
     }
 
-    .secondary-needle-shadow {
-      stroke: rgba(0, 0, 0, 0.38);
-      stroke-width: 3.5;
-      stroke-linecap: round;
-    }
-
-    .secondary-needle {
-      stroke: #ffd7a8;
-      stroke-width: 2.2;
-      stroke-linecap: round;
-    }
-
-    .secondary-hub {
-      fill: #f2f4f8;
-    }
-
-    .secondary-label {
-      fill: #6c7b8b;
-      font-size: 7px;
-      font-weight: bold;
-      letter-spacing: 0.2em;
-    }
-
-    .secondary-value {
+    .secondary-readout {
       fill: #cfd8e2;
-      font-size: 9px;
+      font-size: 10px;
       font-weight: bold;
       letter-spacing: 0.08em;
     }
 
-    .gauge-card.warn .secondary-value {
+    .gauge-card.warn .secondary-readout {
       fill: #ffd07f;
     }
 
-    .gauge-card.danger .secondary-value {
+    .gauge-card.danger .secondary-readout {
       fill: #ff8f8f;
     }
 
@@ -826,18 +799,43 @@
             <line class="gauge-status-line" x1="66" y1="127" x2="134" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x 1000</text>
 
-            <path class="secondary-gauge-base" d="M 68 160 A 32 32 0 0 1 132 160" />
-            <line class="secondary-gauge-tick" x1="68" y1="160" x2="73" y2="157" />
-            <line class="secondary-gauge-tick" x1="100" y1="128" x2="100" y2="134" />
-            <line class="secondary-gauge-tick" x1="132" y1="160" x2="127" y2="157" />
-            <text class="secondary-label" x="100" y="150" text-anchor="middle">COOLANT</text>
-            <g id="ect_secondary_needle" class="secondary-needle-pack">
-              <line class="secondary-needle-shadow" x1="100.8" y1="160.8" x2="100.8" y2="136.8" />
-              <line class="secondary-needle" x1="100" y1="160" x2="100" y2="136" />
-              <line class="secondary-needle" x1="100" y1="161" x2="100" y2="169" />
+            <g class="embedded-secondary-gauge" transform="translate(100 160) scale(0.38) translate(-100 -100)">
+              <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
+                <title>Danger zone for high coolant temperature</title>
+              </path>
+              <path class="gauge-arc-active temp-arc" id="ect_secondary_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
+
+              <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
+              <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
+              <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
+              <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
+              <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
+              <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
+              <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
+              <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+              <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
+              <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
+              <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
+
+              <text class="gauge-scale" x="30" y="162">0</text>
+              <text class="gauge-scale" x="47" y="68">40</text>
+              <text class="gauge-scale" x="92" y="22">80</text>
+              <text class="gauge-scale" x="135" y="68">120</text>
+              <text class="gauge-scale gauge-scale-alert" x="154" y="162">140</text>
+
+              <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
+              <text class="gauge-center-label" x="100" y="119" text-anchor="middle">COOLANT</text>
+
+              <g id="ect_secondary_needle" class="needle-pack">
+                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="50" />
+                <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+                <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
+              </g>
+              <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
+              <circle class="gauge-hub" cx="100" cy="100" r="7" />
             </g>
-            <circle class="secondary-hub" cx="100" cy="160" r="2.6" />
-            <text class="secondary-value" id="cardash_ect_sub" x="100" y="178" text-anchor="middle">0</text>
+            <text class="secondary-readout" id="cardash_ect_sub" x="100" y="185" text-anchor="middle">0</text>
 
             <g id="tach_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
@@ -895,18 +893,43 @@
             <line class="gauge-status-line" x1="62" y1="127" x2="138" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">BOOST PRESSURE</text>
 
-            <path class="secondary-gauge-base" d="M 68 160 A 32 32 0 0 1 132 160" />
-            <line class="secondary-gauge-tick" x1="68" y1="160" x2="73" y2="157" />
-            <line class="secondary-gauge-tick" x1="100" y1="128" x2="100" y2="134" />
-            <line class="secondary-gauge-tick" x1="132" y1="160" x2="127" y2="157" />
-            <text class="secondary-label" x="100" y="150" text-anchor="middle">INTAKE</text>
-            <g id="iat_secondary_needle" class="secondary-needle-pack">
-              <line class="secondary-needle-shadow" x1="100.8" y1="160.8" x2="100.8" y2="136.8" />
-              <line class="secondary-needle" x1="100" y1="160" x2="100" y2="136" />
-              <line class="secondary-needle" x1="100" y1="161" x2="100" y2="169" />
+            <g class="embedded-secondary-gauge" transform="translate(100 160) scale(0.38) translate(-100 -100)">
+              <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
+              <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
+                <title>Danger zone for high intake air temperature</title>
+              </path>
+              <path class="gauge-arc-active temp-arc" id="iat_secondary_arc" d="M 35 145 A 75 75 0 1 1 165 145" />
+
+              <line class="gauge-tick minor" x1="43" y1="116" x2="49" y2="113" />
+              <line class="gauge-tick minor" x1="61" y1="56" x2="65" y2="62" />
+              <line class="gauge-tick minor" x1="84" y1="31" x2="86" y2="38" />
+              <line class="gauge-tick" x1="35" y1="145" x2="43" y2="137" />
+              <line class="gauge-tick" x1="55" y1="70" x2="64" y2="77" />
+              <line class="gauge-tick" x1="100" y1="25" x2="100" y2="37" />
+              <line class="gauge-tick" x1="145" y1="70" x2="136" y2="77" />
+              <line class="gauge-tick" x1="165" y1="145" x2="157" y2="137" />
+              <line class="gauge-tick minor" x1="116" y1="31" x2="114" y2="38" />
+              <line class="gauge-tick minor" x1="139" y1="56" x2="135" y2="62" />
+              <line class="gauge-tick minor" x1="157" y1="116" x2="151" y2="113" />
+
+              <text class="gauge-scale" x="30" y="162">0</text>
+              <text class="gauge-scale" x="47" y="68">40</text>
+              <text class="gauge-scale" x="92" y="22">80</text>
+              <text class="gauge-scale" x="135" y="68">120</text>
+              <text class="gauge-scale gauge-scale-alert" x="154" y="162">140</text>
+
+              <line class="gauge-status-line" x1="68" y1="127" x2="132" y2="127" />
+              <text class="gauge-center-label" x="100" y="119" text-anchor="middle">INTAKE</text>
+
+              <g id="iat_secondary_needle" class="needle-pack">
+                <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="50" />
+                <line class="gauge-needle temp-needle" x1="100" y1="100" x2="100" y2="48" />
+                <line class="gauge-needle-tail" x1="100" y1="103" x2="100" y2="120" />
+              </g>
+              <circle class="gauge-hub-ring" cx="100" cy="100" r="12" />
+              <circle class="gauge-hub" cx="100" cy="100" r="7" />
             </g>
-            <circle class="secondary-hub" cx="100" cy="160" r="2.6" />
-            <text class="secondary-value" id="cardash_iat_sub" x="100" y="178" text-anchor="middle">0</text>
+            <text class="secondary-readout" id="cardash_iat_sub" x="100" y="185" text-anchor="middle">0</text>
 
             <g id="boost_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
@@ -1465,9 +1488,11 @@ function updateCarDash(d) {
 
   setText('cardash_ect_sub', ect, 0, '°C');
   setGaugeNeedle('ect_secondary_needle', ect, 0, 140);
+  setGaugeArc('ect_secondary_arc', ect, 0, 140);
 
   setText('cardash_iat_sub', iat, 0, '°C');
   setGaugeNeedle('iat_secondary_needle', iat, 0, 140);
+  setGaugeArc('iat_secondary_arc', iat, 0, 140);
 
   setText('cardash_3v3', internal3v3, 2);
   setText('cardash_12v', internal12v, 1);
