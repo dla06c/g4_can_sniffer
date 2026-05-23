@@ -913,7 +913,12 @@ String dashboardHtml() {
     }
 
     .embedded-secondary-gauge {
+      --sub-gauge-x: 100px;
+      --sub-gauge-y: 160px;
+      --sub-gauge-scale: 0.38;
       opacity: 0.95;
+      transform: translate(var(--sub-gauge-x), var(--sub-gauge-y)) scale(var(--sub-gauge-scale)) translate(-100px, -100px);
+      transform-origin: center;
     }
 
     .embedded-secondary-gauge .gauge-scale {
@@ -1113,7 +1118,7 @@ String dashboardHtml() {
             <line class="gauge-status-line" x1="66" y1="127" x2="134" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x 1000</text>
 
-            <g class="embedded-secondary-gauge" transform="translate(100 160) scale(0.38) translate(-100 -100)">
+            <g class="embedded-secondary-gauge">
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
               <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
                 <title>Danger zone for high coolant temperature</title>
@@ -1207,7 +1212,7 @@ String dashboardHtml() {
             <line class="gauge-status-line" x1="62" y1="127" x2="138" y2="127" />
             <text class="gauge-center-label" x="100" y="119" text-anchor="middle">BOOST PRESSURE</text>
 
-            <g class="embedded-secondary-gauge" transform="translate(100 160) scale(0.38) translate(-100 -100)">
+            <g class="embedded-secondary-gauge">
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
               <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
                 <title>Danger zone for high intake air temperature</title>
