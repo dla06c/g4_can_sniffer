@@ -1054,7 +1054,7 @@ String dashboardHtml() {
 
       <div class="cluster-main">
         <div class="gauge-card">
-          <div class="gauge-title">TACHOMETER</div>
+          <!-- <div class="gauge-title">TACHOMETER</div> -->
 
           <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Tachometer gauge showing engine speed with a warning zone and redline">
             <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
@@ -1064,7 +1064,7 @@ String dashboardHtml() {
             <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-            <path class="gauge-zone gauge-zone-warn" d="M 138 42 A 75 75 0 0 1 151 56">
+            <!--  <path class="gauge-zone gauge-zone-warn" d="M 138 42 A 75 75 0 0 1 151 56"> -->
               <title>Warning zone approaching engine redline</title>
             </path>
             <path class="gauge-redline" d="M 143 45 A 75 75 0 0 1 165 145">
@@ -1110,7 +1110,7 @@ String dashboardHtml() {
         </div>
 
         <div class="gauge-card">
-          <div class="gauge-title">BOOST / MGP</div>
+          <!-- <div class="gauge-title">BOOST / MGP</div> -->
 
           <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Boost gauge showing manifold gauge pressure with warning and danger zones">
             <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
@@ -1120,7 +1120,7 @@ String dashboardHtml() {
             <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
             <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-            <path class="gauge-zone gauge-zone-warn" d="M 132 38 A 75 75 0 0 1 149 54">
+            <!--  <path class="gauge-zone gauge-zone-warn" d="M 132 38 A 75 75 0 0 1 149 54"> -->
               <title>Warning zone for elevated boost pressure</title>
             </path>
             <path class="gauge-zone gauge-zone-danger" d="M 149 54 A 75 75 0 0 1 165 145">
@@ -1169,7 +1169,7 @@ String dashboardHtml() {
       <div class="cluster-footer">
         <div class="cluster-temps">
           <div class="gauge-card secondary" id="cardash_ect_panel">
-            <div class="gauge-title">COOLANT TEMP</div>
+            <!-- <div class="gauge-title">COOLANT TEMP</div> -->
 
             <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Coolant temperature gauge with warning and danger zones">
               <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
@@ -1179,7 +1179,7 @@ String dashboardHtml() {
               <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48">
+              <!--  <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48"> -->
                 <title>Warning zone for elevated coolant temperature</title>
               </path>
               <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
@@ -1225,7 +1225,7 @@ String dashboardHtml() {
           </div>
 
           <div class="gauge-card secondary" id="cardash_iat_panel">
-            <div class="gauge-title">INTAKE AIR TEMP</div>
+            <!-- <div class="gauge-title">INTAKE AIR TEMP</div> -->
 
             <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Intake air temperature gauge with warning and danger zones">
               <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
@@ -1235,7 +1235,7 @@ String dashboardHtml() {
               <ellipse class="gauge-glare" cx="100" cy="62" rx="46" ry="18" />
 
               <path class="gauge-arc-bg" d="M 35 145 A 75 75 0 1 1 165 145" />
-              <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48">
+              <!-- <path class="gauge-zone gauge-zone-warn" d="M 126 31 A 75 75 0 0 1 146 48"> -->
                 <title>Warning zone for elevated intake air temperature</title>
               </path>
               <path class="gauge-zone gauge-zone-danger" d="M 146 48 A 75 75 0 0 1 165 145">
