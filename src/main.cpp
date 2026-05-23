@@ -1056,7 +1056,7 @@ String dashboardHtml() {
         <div class="gauge-card">
           <div class="gauge-title">TACHOMETER</div>
 
-          <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Tachometer gauge showing engine speed with warning and danger zones">
+          <svg class="gauge-svg" viewBox="0 0 200 200" role="img" aria-label="Tachometer gauge showing engine speed with a warning zone and redline">
             <circle class="gauge-bezel-outer" cx="100" cy="100" r="88" />
             <circle class="gauge-bezel-inner" cx="100" cy="100" r="82" />
             <circle class="gauge-face" cx="100" cy="100" r="74" />
@@ -1091,7 +1091,7 @@ String dashboardHtml() {
             <text class="gauge-scale gauge-scale-alert" x="164" y="162">8</text>
 
             <line class="gauge-status-line" x1="66" y1="127" x2="134" y2="127" />
-            <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x1000</text>
+            <text class="gauge-center-label" x="100" y="119" text-anchor="middle">RPM x 1000</text>
 
             <g id="tach_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
@@ -1147,7 +1147,7 @@ String dashboardHtml() {
             <text class="gauge-scale" x="152" y="162">250</text>
 
             <line class="gauge-status-line" x1="62" y1="127" x2="138" y2="127" />
-            <text class="gauge-center-label" x="100" y="119" text-anchor="middle">BOOST PRESS</text>
+            <text class="gauge-center-label" x="100" y="119" text-anchor="middle">BOOST PRESSURE</text>
 
             <g id="boost_needle" class="needle-pack">
               <line class="gauge-needle-shadow" x1="101" y1="102" x2="101" y2="45" />
