@@ -2181,6 +2181,10 @@ function updateWarnings(d) {
 
   let alerts = [];
 
+  let dataRefreshInFlight = false;
+  let lightingRefreshInFlight = false;
+  let latestDataRequestId = 0;
+
   if (stale) alerts.push('DATA STALE');
   if (oilPressureDanger) alerts.push('LOW OIL PRESSURE');
   if (ectDanger) alerts.push('HIGH COOLANT TEMP');
@@ -2193,6 +2197,28 @@ function updateWarnings(d) {
     alertBox.style.display = 'block';
   } else {
     alertBox.style.display = 'none';
+  }
+}
+
+async function refreshData() {
+  if (dataRefreshInFlight) return;
+
+  dataRefreshInFlight = true;
+  const requestId = ++latestDataRequestId;
+
+  try {
+    const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
+    const d = await res.json();
+
+    // Ignore stale responses that arrive after a newer request.
+    if (requestId !== latestDataRequestId) return;
+
+    updateDashboard(d);
+    updateCarDash(d);
+  } catch (err) {
+    console.log('Data refresh failed', err);
+  } finally {
+    dataRefreshInFlight = false;
   }
 }
 
@@ -2387,11 +2413,52 @@ async function refreshData() {
   }
 }
 
+async function refreshLightingState() {
+  if (lightingRefreshInFlight) return;
+  lightingRefreshInFlight = true;
+
+  try {
+    const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
+    const s = await res.json();
+
+    const preview = document.getElementById('lighting_preview');
+    const text = document.getElementById('lighting_preview_text');
+    const mode = document.getElementById('lighting_preview_mode');
+
+    if (!preview || !text || !mode) return;
+
+    preview.style.backgroundColor =
+      'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
+
+    const carDashPage = document.getElementById('page_cardash');
+    if (carDashPage) {
+      carDashPage.style.setProperty(
+        '--dial-rgb',
+        Number(s.preview_r || 0) + ', ' +
+        Number(s.preview_g || 0) + ', ' +
+        Number(s.preview_b || 0)
+      );
+    }
+
+    text.textContent =
+      'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
+
+    mode.textContent =
+      'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
+      ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
+
+  } catch (err) {
+    console.log('Lighting state refresh failed', err);
+  } finally {
+    lightingRefreshInFlight = false;
+  }
+}
+
 buildCarDashGauges();
-setInterval(refreshData, 100);
+setInterval(refreshData, 50);
 refreshData();
 
-setInterval(refreshLightingState, 100);
+setInterval(refreshLightingState, 250);
 refreshLightingState();
 </script>
 
@@ -2676,6 +2743,12 @@ void handleData() {
   json += "\"can_last_decoded_age_ms\":" + String(lastCanDecodedMs > 0 ? (long)(now - lastCanDecodedMs) : -1);
   json += "}";
 
+  server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  server.sendHeader("Pragma", "no-cache");
+  server.sendHeader("Expires", "0");
+
+
+
   server.send(200, "application/json", json);
 }
 
@@ -2803,6 +2876,10 @@ void handleLightingState() {
   json += "\"rpm\":" + String(ecu.rpm, 0) + ",";
   json += "\"mgp\":" + String(ecu.mgp, 1);
   json += "}";
+
+  server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  server.sendHeader("Pragma", "no-cache");
+  server.sendHeader("Expires", "0");
 
   server.send(200, "application/json", json);
 }
