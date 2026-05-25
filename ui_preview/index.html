@@ -1672,6 +1672,37 @@ function buildCarDashGauges() {
   buildRpmGauge();
   buildTempSubGauge("iat");
   buildTempSubGauge("ect");
+  initDashNeedle("boostNeedle", 125, 204, 235);
+  initDashNeedle("rpmNeedle", 125, 204, 235);
+  initDashNeedle("iatNeedle", 126, 208, 202);
+  initDashNeedle("ectNeedle", 126, 208, 202);
+  initProgressArc("boostProgressArc", 235, 485);
+  initProgressArc("rpmProgressArc", 235, 485);
+}
+
+function initDashNeedle(id, innerRadius, outerRadius, baseAngle) {
+  const needle = document.getElementById(id);
+  if (!needle || needle.dataset.baseAngle) return;
+
+  const inner = dashPolar(DASH_CX, DASH_CY, innerRadius, baseAngle);
+  const outer = dashPolar(DASH_CX, DASH_CY, outerRadius, baseAngle);
+
+  needle.setAttribute("x1", inner.x);
+  needle.setAttribute("y1", inner.y);
+  needle.setAttribute("x2", outer.x);
+  needle.setAttribute("y2", outer.y);
+  needle.dataset.baseAngle = String(baseAngle);
+}
+
+function initProgressArc(id, startAngle, endAngle) {
+  const arc = document.getElementById(id);
+  if (!arc || arc.dataset.arcLength) return;
+
+  arc.setAttribute("d", dashDescribeArc(DASH_CX, DASH_CY, 225, startAngle, endAngle));
+  const length = arc.getTotalLength();
+  arc.style.strokeDasharray = String(length);
+  arc.style.strokeDashoffset = String(length);
+  arc.dataset.arcLength = String(length);
 }
 
 function setDashNeedle(id, value, min, max) {
@@ -1680,17 +1711,11 @@ function setDashNeedle(id, value, min, max) {
 
   const pct = clamp((value - min) / (max - min), 0, 1);
   const angle = 235 + (485 - 235) * pct;
-
-  // Short outer-ring pointer:
-  // starts just outside the inner rings and reaches the number/tick band.
-  // This prevents the needle from crossing the black inner dial.
-  const inner = dashPolar(DASH_CX, DASH_CY, 125, angle);
-  const outer = dashPolar(DASH_CX, DASH_CY, 204, angle);
-
-  needle.setAttribute("x1", inner.x);
-  needle.setAttribute("y1", inner.y);
-  needle.setAttribute("x2", outer.x);
-  needle.setAttribute("y2", outer.y);
+  const baseAngle = Number(needle.dataset.baseAngle || 235);
+  const rotation = (angle - baseAngle).toFixed(2);
+  if (needle.dataset.rotation === rotation) return;
+  needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
+  needle.dataset.rotation = rotation;
 }
 
 function setLowerArcNeedle(id, value, min, max) {
@@ -1699,14 +1724,11 @@ function setLowerArcNeedle(id, value, min, max) {
 
   const pct = clamp((value - min) / (max - min), 0, 1);
   const angle = 202 + (158 - 202) * pct;
-
-  const inner = dashPolar(DASH_CX, DASH_CY, 126, angle);
-  const outer = dashPolar(DASH_CX, DASH_CY, 208, angle);
-
-  needle.setAttribute("x1", inner.x);
-  needle.setAttribute("y1", inner.y);
-  needle.setAttribute("x2", outer.x);
-  needle.setAttribute("y2", outer.y);
+  const baseAngle = Number(needle.dataset.baseAngle || 202);
+  const rotation = (angle - baseAngle).toFixed(2);
+  if (needle.dataset.rotation === rotation) return;
+  needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
+  needle.dataset.rotation = rotation;
 }
 
 function setProgressArc(id, value, min, max) {
@@ -1714,15 +1736,12 @@ function setProgressArc(id, value, min, max) {
   if (!arc) return;
 
   const pct = clamp((value - min) / (max - min), 0, 1);
-
-  if (pct <= 0.001) {
-    arc.setAttribute("d", "");
-    return;
-  }
-
-  const startAngle = 235;
-  const endAngle = 235 + (485 - 235) * pct;
-  arc.setAttribute("d", dashDescribeArc(DASH_CX, DASH_CY, 225, startAngle, endAngle));
+  const length = Number(arc.dataset.arcLength || 0);
+  if (!length) return;
+  const offset = (length * (1 - pct)).toFixed(2);
+  if (arc.dataset.offset === offset) return;
+  arc.style.strokeDashoffset = offset;
+  arc.dataset.offset = offset;
 }
 
 function setSvgText(id, value, decimals = 0) {
@@ -2001,8 +2020,6 @@ function setMiniPanelState(id, state) {
 }
 
 function updateCarDash(d) {
-  buildCarDashGauges();
-
   const rpm = Number(d.rpm) || 0;
   const mgp = Number(d.mgp) || 0;
   const map = Number(d.map) || 0;
