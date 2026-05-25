@@ -1888,13 +1888,15 @@ function updateWarnings(d) {
   }
 }
 
-let dataRefreshInFlight = false;
-let lightingRefreshInFlight = false;
-let latestDataRequestId = 0;
+const refreshState = {
+  dataInFlight: false,
+  lightingInFlight: false,
+  latestDataRequestId: 0
+};
 
 async function refreshLightingState() {
-  if (lightingRefreshInFlight) return;
-  lightingRefreshInFlight = true;
+  if (refreshState.lightingInFlight) return;
+  refreshState.lightingInFlight = true;
 
   try {
     const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
@@ -1948,7 +1950,7 @@ async function refreshLightingState() {
     const text = document.getElementById('lighting_preview_text');
     if (text) text.textContent = 'Lighting preview fetch error';
   } finally {
-    lightingRefreshInFlight = false;
+    refreshState.lightingInFlight = false;
   }
 }
 
@@ -2035,82 +2037,81 @@ function updateCarDash(d) {
 }
 
 async function refreshData() {
-  if (dataRefreshInFlight) return;
+  if (refreshState.dataInFlight) return;
 
-  dataRefreshInFlight = true;
-  const requestId = ++latestDataRequestId;
+  refreshState.dataInFlight = true;
+  const requestId = ++refreshState.latestDataRequestId;
 
   try {
     const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
     const d = await res.json();
 
-    if (requestId !== latestDataRequestId) return;
+    if (requestId === refreshState.latestDataRequestId) {
+      updateCarDash(d);
 
-    updateCarDash(d);
+      setText('rpm', d.rpm, 0);
+      setText('mgp', d.mgp, 0);
+      setText('map', d.map, 0);
+      setText('lambda1', d.lambda1, 2);
+      setText('lambda_target', d.lambda_target, 2);
+      setText('ect', d.ect, 0);
+      setText('oil_pressure', d.oil_pressure, 0);
+      setText('battery_v', d.battery_v, 1);
+      setText('tps', d.tps, 0);
 
-    setText('rpm', d.rpm, 0);
-    setText('mgp', d.mgp, 0);
-    setText('map', d.map, 0);
-    setText('lambda1', d.lambda1, 2);
-    setText('lambda_target', d.lambda_target, 2);
-    setText('ect', d.ect, 0);
-    setText('oil_pressure', d.oil_pressure, 0);
-    setText('battery_v', d.battery_v, 1);
-    setText('tps', d.tps, 0);
+      setText('health_ect', d.ect, 0);
+      setText('iat', d.iat, 0);
+      setText('oil_temp', d.oil_temp, 0);
+      setText('health_oil_pressure', d.oil_pressure, 0);
+      setText('fuel_pressure', d.fuel_pressure, 0);
+      setText('health_battery_v', d.battery_v, 1);
+      setText('internal_3v3', d.internal_3v3, 2);
+      setText('internal_12v', d.internal_12v, 1);
+      setText('trig1_err', d.trig1_err, 0);
+      setText('lambda_status', d.lambda_status, 0);
+      setText('lambda_temp', d.lambda_temp, 0);
 
-    setText('health_ect', d.ect, 0);
-    setText('iat', d.iat, 0);
-    setText('oil_temp', d.oil_temp, 0);
-    setText('health_oil_pressure', d.oil_pressure, 0);
-    setText('fuel_pressure', d.fuel_pressure, 0);
-    setText('health_battery_v', d.battery_v, 1);
-    setText('internal_3v3', d.internal_3v3, 2);
-    setText('internal_12v', d.internal_12v, 1);
-    setText('trig1_err', d.trig1_err, 0);
-    setText('lambda_status', d.lambda_status, 0);
-    setText('lambda_temp', d.lambda_temp, 0);
+      setText('ignition_angle', d.ignition_angle, 1);
+      setText('injection_actual_pw', d.injection_actual_pw, 1);
+      setText('injection_effective_pw', d.injection_effective_pw, 1);
+      setText('lambda_error', d.lambda_error, 2);
+      setText('boost_target', d.boost_target, 0);
+      setText('boost_error', d.boost_error, 0);
+      setText('boost_p', d.boost_p, 1);
+      setText('boost_i', d.boost_i, 1);
+      setText('boost_d', d.boost_d, 1);
+      setText('boost_duty', d.boost_duty, 0);
+      setText('aps_main', d.aps_main, 0);
+      setText('throttle_target', d.throttle_target, 0);
+      setText('vvt_in_target', d.vvt_in_target, 0);
+      setText('vvt_in_pos', d.vvt_in_pos, 0);
 
-    setText('ignition_angle', d.ignition_angle, 1);
-    setText('injection_actual_pw', d.injection_actual_pw, 1);
-    setText('injection_effective_pw', d.injection_effective_pw, 1);
-    setText('lambda_error', d.lambda_error, 2);
-    setText('boost_target', d.boost_target, 0);
-    setText('boost_error', d.boost_error, 0);
-    setText('boost_p', d.boost_p, 1);
-    setText('boost_i', d.boost_i, 1);
-    setText('boost_d', d.boost_d, 1);
-    setText('boost_duty', d.boost_duty, 0);
-    setText('aps_main', d.aps_main, 0);
-    setText('throttle_target', d.throttle_target, 0);
-    setText('vvt_in_target', d.vvt_in_target, 0);
-    setText('vvt_in_pos', d.vvt_in_pos, 0);
+      const status = document.getElementById('status');
 
-    const status = document.getElementById('status');
+      if (d.age_ms > 1500) {
+        status.textContent = 'Data stale — last packet ' + d.age_ms + ' ms ago';
+        status.style.color = '#ff7777';
+      } else {
+        status.textContent = 'Live — last packet ' + d.age_ms + ' ms ago';
+        status.style.color = '#9da7b4';
+      }
 
-    if (d.age_ms > 1500) {
-      status.textContent = 'Data stale — last packet ' + d.age_ms + ' ms ago';
-      status.style.color = '#ff7777';
-    } else {
-      status.textContent = 'Live — last packet ' + d.age_ms + ' ms ago';
-      status.style.color = '#9da7b4';
+      const summary = document.getElementById('driving_summary');
+      summary.textContent =
+        'RPM ' + Math.round(d.rpm) +
+        ' | MAP ' + Math.round(d.map) + ' kPa' +
+        ' | Lambda ' + Number(d.lambda1).toFixed(2) +
+        ' / target ' + Number(d.lambda_target).toFixed(2) +
+        ' | Oil ' + Math.round(d.oil_pressure) + ' kPa';
+
+      updateWarnings(d);
     }
-
-    const summary = document.getElementById('driving_summary');
-    summary.textContent =
-      'RPM ' + Math.round(d.rpm) +
-      ' | MAP ' + Math.round(d.map) + ' kPa' +
-      ' | Lambda ' + Number(d.lambda1).toFixed(2) +
-      ' / target ' + Number(d.lambda_target).toFixed(2) +
-      ' | Oil ' + Math.round(d.oil_pressure) + ' kPa';
-
-    updateWarnings(d);
-
   } catch (err) {
     const status = document.getElementById('status');
     status.textContent = 'Dashboard fetch error';
     status.style.color = '#ff7777';
   } finally {
-    dataRefreshInFlight = false;
+    refreshState.dataInFlight = false;
   }
 }
 
