@@ -2257,81 +2257,6 @@ function updateWarnings(d) {
   }
 }
 
-async function refreshData() {
-  if (refreshState.dataInFlight) {
-    refreshState.dataPending = true;
-    return;
-  }
-
-  refreshState.dataInFlight = true;
-  do {
-    refreshState.dataPending = false;
-
-    try {
-      const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
-      const d = await res.json();
-
-      updateDashboard(d);
-      updateCarDash(d);
-    } catch (err) {
-      console.log('Data refresh failed', err);
-    }
-  } while (refreshState.dataPending);
-
-  refreshState.dataInFlight = false;
-}
-
-async function refreshLightingState() {
-  if (refreshState.lightingInFlight) {
-    refreshState.lightingPending = true;
-    return;
-  }
-
-  refreshState.lightingInFlight = true;
-
-  do {
-    refreshState.lightingPending = false;
-
-    try {
-      const res = await fetch('/lightingState');
-      const s = await res.json();
-
-      const preview = document.getElementById('lighting_preview');
-      const text = document.getElementById('lighting_preview_text');
-      const mode = document.getElementById('lighting_preview_mode');
-
-      if (!preview || !text || !mode) break;
-
-      preview.style.backgroundColor =
-        'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
-
-      const carDashPage = document.getElementById('page_cardash');
-      if (carDashPage) {
-        const dialR = Number(s.preview_r) || 0;
-        const dialG = Number(s.preview_g) || 0;
-        const dialB = Number(s.preview_b) || 0;
-        carDashPage.style.setProperty('--dial-rgb', dialR + ', ' + dialG + ', ' + dialB);
-      }
-
-      text.textContent =
-        'RGBW output: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w +
-        ' | Preview RGB: ' + s.preview_r + ', ' + s.preview_g + ', ' + s.preview_b;
-
-      mode.textContent =
-        'Enabled: ' + s.enabled +
-        ' | Mode: ' + s.mode +
-        ' | Pattern: ' + s.pattern +
-        ' | RPM: ' + Math.round(s.rpm) +
-        ' | MGP: ' + Number(s.mgp).toFixed(1);
-    } catch (err) {
-      const text = document.getElementById('lighting_preview_text');
-      if (text) text.textContent = 'Lighting preview fetch error';
-    }
-  } while (refreshState.lightingPending);
-
-  refreshState.lightingInFlight = false;
-}
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -2516,44 +2441,44 @@ async function refreshLightingState() {
       const text = document.getElementById('lighting_preview_text');
       const mode = document.getElementById('lighting_preview_mode');
 
-      if (!preview || !text || !mode) break;
+      if (preview && text && mode) {
+        preview.style.backgroundColor =
+          'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
 
-      preview.style.backgroundColor =
-        'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
+        const carDashPage = document.getElementById('page_cardash');
+        if (carDashPage) {
+          carDashPage.style.setProperty(
+            '--dial-rgb',
+            Number(s.preview_r || 0) + ', ' +
+            Number(s.preview_g || 0) + ', ' +
+            Number(s.preview_b || 0)
+          );
+        }
 
-      const carDashPage = document.getElementById('page_cardash');
-      if (carDashPage) {
-        carDashPage.style.setProperty(
-          '--dial-rgb',
-          Number(s.preview_r || 0) + ', ' +
-          Number(s.preview_g || 0) + ', ' +
-          Number(s.preview_b || 0)
-        );
+        text.textContent =
+          'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
+
+        mode.textContent =
+          'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
+          ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
+
+        const modeSelect = document.getElementById('lighting_mode');
+        if (modeSelect) modeSelect.value = s.mode;
+
+        const patternSelect = document.getElementById('lighting_pattern');
+        if (patternSelect) patternSelect.value = s.pattern;
+
+        const staticColor = document.getElementById('static_color');
+        if (staticColor) {
+          staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+        }
+
+        const brightness = document.getElementById('lighting_brightness');
+        const brightnessLabel = document.getElementById('brightness_label');
+        const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+        if (brightness) brightness.value = String(brightnessPct);
+        if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
       }
-
-      text.textContent =
-        'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
-
-      mode.textContent =
-        'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
-        ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
-
-      const modeSelect = document.getElementById('lighting_mode');
-      if (modeSelect) modeSelect.value = s.mode;
-
-      const patternSelect = document.getElementById('lighting_pattern');
-      if (patternSelect) patternSelect.value = s.pattern;
-
-      const staticColor = document.getElementById('static_color');
-      if (staticColor) {
-        staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
-      }
-
-      const brightness = document.getElementById('lighting_brightness');
-      const brightnessLabel = document.getElementById('brightness_label');
-      const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
-      if (brightness) brightness.value = String(brightnessPct);
-      if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
 
     } catch (err) {
       console.log('Lighting state refresh failed', err);

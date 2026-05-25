@@ -1914,46 +1914,46 @@ async function refreshLightingState() {
       const text = document.getElementById('lighting_preview_text');
       const mode = document.getElementById('lighting_preview_mode');
 
-      if (!preview || !text || !mode) break;
+      if (preview && text && mode) {
+        preview.style.backgroundColor =
+          'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
 
-      preview.style.backgroundColor =
-        'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
+        const carDashPage = document.getElementById('page_cardash');
+        if (carDashPage) {
+          const dialR = Number(s.preview_r) || 0;
+          const dialG = Number(s.preview_g) || 0;
+          const dialB = Number(s.preview_b) || 0;
+          carDashPage.style.setProperty('--dial-rgb', dialR + ', ' + dialG + ', ' + dialB);
+        }
 
-      const carDashPage = document.getElementById('page_cardash');
-      if (carDashPage) {
-        const dialR = Number(s.preview_r) || 0;
-        const dialG = Number(s.preview_g) || 0;
-        const dialB = Number(s.preview_b) || 0;
-        carDashPage.style.setProperty('--dial-rgb', dialR + ', ' + dialG + ', ' + dialB);
+        text.textContent =
+          'RGBW output: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w +
+          ' | Preview RGB: ' + s.preview_r + ', ' + s.preview_g + ', ' + s.preview_b;
+
+        mode.textContent =
+          'Enabled: ' + s.enabled +
+          ' | Mode: ' + s.mode +
+          ' | Pattern: ' + s.pattern +
+          ' | RPM: ' + Math.round(s.rpm) +
+          ' | MGP: ' + Number(s.mgp).toFixed(1);
+
+        const modeSelect = document.getElementById('lighting_mode');
+        if (modeSelect) modeSelect.value = s.mode;
+
+        const patternSelect = document.getElementById('lighting_pattern');
+        if (patternSelect) patternSelect.value = s.pattern;
+
+        const staticColor = document.getElementById('static_color');
+        if (staticColor) {
+          staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+        }
+
+        const brightness = document.getElementById('lighting_brightness');
+        const brightnessLabel = document.getElementById('brightness_label');
+        const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+        if (brightness) brightness.value = String(brightnessPct);
+        if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
       }
-
-      text.textContent =
-        'RGBW output: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w +
-        ' | Preview RGB: ' + s.preview_r + ', ' + s.preview_g + ', ' + s.preview_b;
-
-      mode.textContent =
-        'Enabled: ' + s.enabled +
-        ' | Mode: ' + s.mode +
-        ' | Pattern: ' + s.pattern +
-        ' | RPM: ' + Math.round(s.rpm) +
-        ' | MGP: ' + Number(s.mgp).toFixed(1);
-
-      const modeSelect = document.getElementById('lighting_mode');
-      if (modeSelect) modeSelect.value = s.mode;
-
-      const patternSelect = document.getElementById('lighting_pattern');
-      if (patternSelect) patternSelect.value = s.pattern;
-
-      const staticColor = document.getElementById('static_color');
-      if (staticColor) {
-        staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
-      }
-
-      const brightness = document.getElementById('lighting_brightness');
-      const brightnessLabel = document.getElementById('brightness_label');
-      const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
-      if (brightness) brightness.value = String(brightnessPct);
-      if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
     } catch (err) {
       const text = document.getElementById('lighting_preview_text');
       if (text) text.textContent = 'Lighting preview fetch error';
