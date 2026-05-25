@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WiFiUdp.h>
+#include <Preferences.h>
 #include <math.h>
 #include <Adafruit_NeoPixel.h>
 #include <driver/twai.h>
@@ -27,6 +28,7 @@ Adafruit_NeoPixel pixels(
 
 WebServer server(80);
 WiFiUDP udp;
+Preferences lightingPreferences;
 
 // ---------------------------------------------------------------------------
 // CAN / TWAI configuration for Link ECU CAN 1 User Stream 1
@@ -129,6 +131,10 @@ struct LightingConfig {
 };
 
 LightingConfig lighting;
+bool lightingPrefsReady = false;
+bool lightingSettingsDirty = false;
+unsigned long lightingSettingsLastChangeMs = 0;
+const unsigned long LIGHTING_SAVE_DEBOUNCE_MS = 500;
 
 struct RgbwColor {
   uint8_t r;
@@ -308,6 +314,48 @@ void updateLighting() {
     setRgbw({0, 0, 0, 0});
     return;
   }
+}
+
+void loadLightingSettings() {
+  if (!lightingPrefsReady) return;
+
+  lighting.enabled = lightingPreferences.getBool("enabled", lighting.enabled);
+
+  uint8_t storedMode = lightingPreferences.getUChar("mode", (uint8_t)lighting.mode);
+  lighting.mode = storedMode == LIGHT_PATTERN ? LIGHT_PATTERN : LIGHT_STATIC;
+
+  uint8_t storedPattern = lightingPreferences.getUChar("pattern", (uint8_t)lighting.pattern);
+  if (storedPattern <= PATTERN_OFF) {
+    lighting.pattern = (LightingPattern)storedPattern;
+  }
+
+  lighting.staticR = lightingPreferences.getUChar("static_r", lighting.staticR);
+  lighting.staticG = lightingPreferences.getUChar("static_g", lighting.staticG);
+  lighting.staticB = lightingPreferences.getUChar("static_b", lighting.staticB);
+  lighting.staticW = lightingPreferences.getUChar("static_w", lighting.staticW);
+  lighting.maxBrightness = constrain(
+    lightingPreferences.getFloat("bright", lighting.maxBrightness),
+    0.0f,
+    1.0f
+  );
+}
+
+void saveLightingSettings() {
+  if (!lightingPrefsReady) return;
+
+  lightingPreferences.putBool("enabled", lighting.enabled);
+  lightingPreferences.putUChar("mode", (uint8_t)lighting.mode);
+  lightingPreferences.putUChar("pattern", (uint8_t)lighting.pattern);
+  lightingPreferences.putUChar("static_r", lighting.staticR);
+  lightingPreferences.putUChar("static_g", lighting.staticG);
+  lightingPreferences.putUChar("static_b", lighting.staticB);
+  lightingPreferences.putUChar("static_w", lighting.staticW);
+  lightingPreferences.putFloat("bright", lighting.maxBrightness);
+}
+
+void markLightingSettingsDirty() {
+  lightingSettingsDirty = true;
+  lightingSettingsLastChangeMs = millis();
 }
 
 String dashboardHtml() {
@@ -2114,6 +2162,12 @@ async function setLightingEnabled(enabled) {
   await fetch('/setLighting?enabled=' + (enabled ? '1' : '0'));
 }
 
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b]
+    .map((value) => Number(value).toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function showPage(name) {
   const pages = ['cardash', 'driving', 'health', 'debug', 'lighting'];
 
@@ -2447,6 +2501,23 @@ async function refreshLightingState() {
       'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
       ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
 
+    const modeSelect = document.getElementById('lighting_mode');
+    if (modeSelect) modeSelect.value = s.mode;
+
+    const patternSelect = document.getElementById('lighting_pattern');
+    if (patternSelect) patternSelect.value = s.pattern;
+
+    const staticColor = document.getElementById('static_color');
+    if (staticColor) {
+      staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+    }
+
+    const brightness = document.getElementById('lighting_brightness');
+    const brightnessLabel = document.getElementById('brightness_label');
+    const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+    if (brightness) brightness.value = String(brightnessPct);
+    if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
+
   } catch (err) {
     console.log('Lighting state refresh failed', err);
   } finally {
@@ -2672,6 +2743,7 @@ void handleSetLighting() {
   }
 
   updateLighting();
+  markLightingSettingsDirty();
 
   Serial.print("Lighting update | enabled=");
   Serial.print(lighting.enabled);
@@ -2863,6 +2935,10 @@ void handleLightingState() {
   json += "\"mode\":\"" + String(lightingModeName()) + "\",";
   json += "\"pattern\":\"" + String(lightingPatternName()) + "\",";
   json += "\"max_brightness\":" + String(lighting.maxBrightness, 3) + ",";
+  json += "\"static_r\":" + String(lighting.staticR) + ",";
+  json += "\"static_g\":" + String(lighting.staticG) + ",";
+  json += "\"static_b\":" + String(lighting.staticB) + ",";
+  json += "\"static_w\":" + String(lighting.staticW) + ",";
 
   json += "\"r\":" + String(currentLightingOutput.r) + ",";
   json += "\"g\":" + String(currentLightingOutput.g) + ",";
@@ -2889,6 +2965,13 @@ void handleLightingState() {
 void setup() {
   Serial.begin(115200);
   delay(500);
+
+  lightingPrefsReady = lightingPreferences.begin("lighting", false);
+  if (lightingPrefsReady) {
+    loadLightingSettings();
+  } else {
+    Serial.println("Failed to open lighting preferences");
+  }
 
   setupLightingPwm();
   updateLighting();
@@ -2945,5 +3028,10 @@ void loop() {
   if (now - lastLightingUpdateMs >= 30) {
     lastLightingUpdateMs = now;
     updateLighting();
+  }
+
+  if (lightingSettingsDirty && now - lightingSettingsLastChangeMs >= LIGHTING_SAVE_DEBOUNCE_MS) {
+    saveLightingSettings();
+    lightingSettingsDirty = false;
   }
 }
