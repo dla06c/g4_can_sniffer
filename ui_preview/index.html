@@ -1498,6 +1498,15 @@
 const DASH_SVG_NS = "http://www.w3.org/2000/svg";
 const DASH_CX = 260;
 const DASH_CY = 260;
+const DASH_MAIN_NEEDLE_INNER_R = 125;
+const DASH_MAIN_NEEDLE_OUTER_R = 204;
+const DASH_MAIN_NEEDLE_BASE_ANGLE = 235;
+const DASH_SUB_NEEDLE_INNER_R = 126;
+const DASH_SUB_NEEDLE_OUTER_R = 208;
+const DASH_SUB_NEEDLE_BASE_ANGLE = 202;
+const DASH_PROGRESS_ARC_R = 225;
+const DASH_PROGRESS_START_ANGLE = 235;
+const DASH_PROGRESS_END_ANGLE = 485;
 
 function dashPolar(cx, cy, r, angleDeg) {
   const a = (angleDeg - 90) * Math.PI / 180;
@@ -1672,12 +1681,12 @@ function buildCarDashGauges() {
   buildRpmGauge();
   buildTempSubGauge("iat");
   buildTempSubGauge("ect");
-  initDashNeedle("boostNeedle", 125, 204, 235);
-  initDashNeedle("rpmNeedle", 125, 204, 235);
-  initDashNeedle("iatNeedle", 126, 208, 202);
-  initDashNeedle("ectNeedle", 126, 208, 202);
-  initProgressArc("boostProgressArc", 235, 485);
-  initProgressArc("rpmProgressArc", 235, 485);
+  initDashNeedle("boostNeedle", DASH_MAIN_NEEDLE_INNER_R, DASH_MAIN_NEEDLE_OUTER_R, DASH_MAIN_NEEDLE_BASE_ANGLE);
+  initDashNeedle("rpmNeedle", DASH_MAIN_NEEDLE_INNER_R, DASH_MAIN_NEEDLE_OUTER_R, DASH_MAIN_NEEDLE_BASE_ANGLE);
+  initDashNeedle("iatNeedle", DASH_SUB_NEEDLE_INNER_R, DASH_SUB_NEEDLE_OUTER_R, DASH_SUB_NEEDLE_BASE_ANGLE);
+  initDashNeedle("ectNeedle", DASH_SUB_NEEDLE_INNER_R, DASH_SUB_NEEDLE_OUTER_R, DASH_SUB_NEEDLE_BASE_ANGLE);
+  initProgressArc("boostProgressArc", DASH_PROGRESS_START_ANGLE, DASH_PROGRESS_END_ANGLE);
+  initProgressArc("rpmProgressArc", DASH_PROGRESS_START_ANGLE, DASH_PROGRESS_END_ANGLE);
 }
 
 function initDashNeedle(id, innerRadius, outerRadius, baseAngle) {
@@ -1698,7 +1707,7 @@ function initProgressArc(id, startAngle, endAngle) {
   const arc = document.getElementById(id);
   if (!arc || arc.dataset.arcLength) return;
 
-  arc.setAttribute("d", dashDescribeArc(DASH_CX, DASH_CY, 225, startAngle, endAngle));
+  arc.setAttribute("d", dashDescribeArc(DASH_CX, DASH_CY, DASH_PROGRESS_ARC_R, startAngle, endAngle));
   const length = arc.getTotalLength();
   arc.style.strokeDasharray = String(length);
   arc.style.strokeDashoffset = String(length);
@@ -1710,8 +1719,8 @@ function setDashNeedle(id, value, min, max) {
   if (!needle) return;
 
   const pct = clamp((value - min) / (max - min), 0, 1);
-  const angle = 235 + (485 - 235) * pct;
-  const baseAngle = Number(needle.dataset.baseAngle || 235);
+  const angle = DASH_MAIN_NEEDLE_BASE_ANGLE + (DASH_PROGRESS_END_ANGLE - DASH_PROGRESS_START_ANGLE) * pct;
+  const baseAngle = Number(needle.dataset.baseAngle || DASH_MAIN_NEEDLE_BASE_ANGLE);
   const rotation = (angle - baseAngle).toFixed(2);
   if (needle.dataset.rotation === rotation) return;
   needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
@@ -1723,8 +1732,8 @@ function setLowerArcNeedle(id, value, min, max) {
   if (!needle) return;
 
   const pct = clamp((value - min) / (max - min), 0, 1);
-  const angle = 202 + (158 - 202) * pct;
-  const baseAngle = Number(needle.dataset.baseAngle || 202);
+  const angle = DASH_SUB_NEEDLE_BASE_ANGLE + (158 - DASH_SUB_NEEDLE_BASE_ANGLE) * pct;
+  const baseAngle = Number(needle.dataset.baseAngle || DASH_SUB_NEEDLE_BASE_ANGLE);
   const rotation = (angle - baseAngle).toFixed(2);
   if (needle.dataset.rotation === rotation) return;
   needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
