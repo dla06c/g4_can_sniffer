@@ -1888,9 +1888,16 @@ function updateWarnings(d) {
   }
 }
 
+let dataRefreshInFlight = false;
+let lightingRefreshInFlight = false;
+let latestDataRequestId = 0;
+
 async function refreshLightingState() {
+  if (lightingRefreshInFlight) return;
+  lightingRefreshInFlight = true;
+
   try {
-    const res = await fetch('/lightingState');
+    const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
     const s = await res.json();
 
     const preview = document.getElementById('lighting_preview');
@@ -1940,6 +1947,8 @@ async function refreshLightingState() {
   } catch (err) {
     const text = document.getElementById('lighting_preview_text');
     if (text) text.textContent = 'Lighting preview fetch error';
+  } finally {
+    lightingRefreshInFlight = false;
   }
 }
 
@@ -2026,9 +2035,16 @@ function updateCarDash(d) {
 }
 
 async function refreshData() {
+  if (dataRefreshInFlight) return;
+
+  dataRefreshInFlight = true;
+  const requestId = ++latestDataRequestId;
+
   try {
-    const res = await fetch('/data');
+    const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
     const d = await res.json();
+
+    if (requestId !== latestDataRequestId) return;
 
     updateCarDash(d);
 
@@ -2093,6 +2109,8 @@ async function refreshData() {
     const status = document.getElementById('status');
     status.textContent = 'Dashboard fetch error';
     status.style.color = '#ff7777';
+  } finally {
+    dataRefreshInFlight = false;
   }
 }
 

@@ -2204,6 +2204,10 @@ function setCardState(id, state) {
   }
 }
 
+let dataRefreshInFlight = false;
+let lightingRefreshInFlight = false;
+let latestDataRequestId = 0;
+
 function updateWarnings(d) {
   const stale = d.age_ms > 1500;
 
@@ -2234,10 +2238,6 @@ function updateWarnings(d) {
   const alertBox = document.getElementById('main_alert');
 
   let alerts = [];
-
-  let dataRefreshInFlight = false;
-  let lightingRefreshInFlight = false;
-  let latestDataRequestId = 0;
 
   if (stale) alerts.push('DATA STALE');
   if (oilPressureDanger) alerts.push('LOW OIL PRESSURE');
@@ -2397,9 +2397,16 @@ function updateCarDash(d) {
 }
 
 async function refreshData() {
+  if (dataRefreshInFlight) return;
+
+  dataRefreshInFlight = true;
+  const requestId = ++latestDataRequestId;
+
   try {
-    const res = await fetch('/data');
+    const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
     const d = await res.json();
+
+    if (requestId !== latestDataRequestId) return;
 
     updateCarDash(d);
 
@@ -2464,6 +2471,8 @@ async function refreshData() {
     const status = document.getElementById('status');
     status.textContent = 'Dashboard fetch error';
     status.style.color = '#ff7777';
+  } finally {
+    dataRefreshInFlight = false;
   }
 }
 
