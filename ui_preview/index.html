@@ -1800,6 +1800,12 @@ async function setLightingEnabled(enabled) {
   await fetch('/setLighting?enabled=' + (enabled ? '1' : '0'));
 }
 
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b]
+    .map((value) => Number(value).toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function showPage(name) {
   const pages = ['cardash', 'driving', 'health', 'debug', 'lighting'];
 
@@ -1914,6 +1920,23 @@ async function refreshLightingState() {
       ' | Pattern: ' + s.pattern +
       ' | RPM: ' + Math.round(s.rpm) +
       ' | MGP: ' + Number(s.mgp).toFixed(1);
+
+    const modeSelect = document.getElementById('lighting_mode');
+    if (modeSelect) modeSelect.value = s.mode;
+
+    const patternSelect = document.getElementById('lighting_pattern');
+    if (patternSelect) patternSelect.value = s.pattern;
+
+    const staticColor = document.getElementById('static_color');
+    if (staticColor) {
+      staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+    }
+
+    const brightness = document.getElementById('lighting_brightness');
+    const brightnessLabel = document.getElementById('brightness_label');
+    const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+    if (brightness) brightness.value = String(brightnessPct);
+    if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
   } catch (err) {
     const text = document.getElementById('lighting_preview_text');
     if (text) text.textContent = 'Lighting preview fetch error';
