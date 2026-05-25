@@ -2479,7 +2479,6 @@ async function refreshLightingState() {
         if (brightness) brightness.value = String(brightnessPct);
         if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
       }
-
     } catch (err) {
       console.log('Lighting state refresh failed', err);
     }
