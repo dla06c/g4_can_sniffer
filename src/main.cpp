@@ -226,7 +226,7 @@ RgbwColor enginePlasmaColor() {
   float rpmBrightness = mapFloatClamped(ecu.rpm, 1100.0, 5000.0, 0.50, 1.00);
 
   // MGP is probably better than absolute MAP for this 15-60 range.
-  float loadFactor = mapFloatClamped(ecu.map, 15.0, 90.0, 0.0, 1.0);
+  float loadFactor = mapFloatClamped(ecu.mgp, -65.0, 90.0, 0.0, 1.0);
 
   RgbwColor c = plasmaPalette(loadFactor);
 
@@ -906,12 +906,10 @@ String dashboardHtml() {
 
     .boost-arc {
       stroke: #28d7ff;
-      filter: drop-shadow(0 0 8px var(--gauge-glow-cyan));
     }
 
     .temp-arc {
       stroke: #ff9d4d;
-      filter: drop-shadow(0 0 8px var(--gauge-glow-orange));
     }
 
     .needle-pack {
@@ -1108,7 +1106,7 @@ String dashboardHtml() {
       width: min(47vw, 520px);
       height: auto;
       overflow: visible;
-      filter: drop-shadow(0 0 2px rgba(0, 180, 255, 0.12));
+      /* removed expensive SVG filter causing massive layout lag */
     }
 
     #page_cardash .outer-ring {
@@ -1230,7 +1228,10 @@ String dashboardHtml() {
     #page_cardash .needle-blue,
     #page_cardash .needle-red {
       stroke-linecap: round;
-      filter: drop-shadow(0 0 3px rgba(0, 200, 255, .3));
+      /* offloaded layout rotation to GPU CSS transformations */
+      transform-origin: 260px 260px;
+      will-change: transform;
+      transition: transform 30ms linear;
     }
 
     #page_cardash .needle-blue {
@@ -1245,8 +1246,8 @@ String dashboardHtml() {
 
     #page_cardash .warning-light {
       fill: url(#redGlow);
-      filter: drop-shadow(0 0 9px rgba(255, 0, 0, .82));
       opacity: .25;
+      will-change: opacity;
     }
 
     #page_cardash .warning-light.active {
@@ -1318,7 +1319,6 @@ String dashboardHtml() {
       stroke-width: 12;
       stroke-linecap: butt;
       opacity: 0.92;
-      filter: drop-shadow(0 0 4px rgba(0, 174, 239, 0.28));
     }
 
     #page_cardash .temp-track-warn {
@@ -1335,12 +1335,13 @@ String dashboardHtml() {
       stroke-width: 12;
       stroke-linecap: butt;
       opacity: 0.94;
-      filter: drop-shadow(0 0 4px rgba(226, 11, 11, 0.35));
     }
 
     #page_cardash .temp-sub-needle {
       stroke-width: 3;
-      filter: drop-shadow(0 0 3px rgba(226, 11, 11, 0.45));
+      transform-origin: 260px 260px;
+      will-change: transform;
+      transition: transform 30ms linear;
     }
 
     #page_cardash .temp-readout-label {
@@ -1375,12 +1376,12 @@ String dashboardHtml() {
       stroke-width: 14;
       stroke-linecap: butt;
       opacity: 0.96;
-      filter: drop-shadow(0 0 5px rgba(0, 174, 239, 0.34));
+      will-change: stroke-dashoffset;
+      transition: stroke-dashoffset 30ms linear;
     }
 
     #page_cardash .boost-progress-arc {
       stroke: var(--teal);
-      filter: drop-shadow(0 0 5px rgba(143, 239, 255, 0.28));
     }
 
 
@@ -1876,10 +1877,12 @@ function dashPolar(cx, cy, r, angleDeg) {
 }
 
 function dashDescribeArc(cx, cy, r, startAngle, endAngle) {
-  const start = dashPolar(cx, cy, r, endAngle);
-  const end = dashPolar(cx, cy, r, startAngle);
+  // Swapped the points! The arc now natively draws left-to-right (from startAngle to endAngle).
+  // This causes stroke-dashoffset to correctly reveal the path from the starting edge.
+  const start = dashPolar(cx, cy, r, startAngle);
+  const end = dashPolar(cx, cy, r, endAngle);
   const largeArc = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
-  const sweep = endAngle >= startAngle ? "0" : "1";
+  const sweep = endAngle >= startAngle ? "1" : "0";
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`;
 }
 
@@ -2084,8 +2087,9 @@ function setDashNeedle(id, value, min, max) {
   const angle = DASH_MAIN_NEEDLE_BASE_ANGLE + (DASH_PROGRESS_END_ANGLE - DASH_PROGRESS_START_ANGLE) * pct;
   const baseAngle = Number(needle.dataset.baseAngle || DASH_MAIN_NEEDLE_BASE_ANGLE);
   const rotation = (angle - baseAngle).toFixed(2);
+  
   if (needle.dataset.rotation === rotation) return;
-  needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
+  needle.style.transform = `rotate(${rotation}deg)`;
   needle.dataset.rotation = rotation;
 }
 
@@ -2097,8 +2101,9 @@ function setLowerArcNeedle(id, value, min, max) {
   const angle = DASH_SUB_NEEDLE_BASE_ANGLE + (158 - DASH_SUB_NEEDLE_BASE_ANGLE) * pct;
   const baseAngle = Number(needle.dataset.baseAngle || DASH_SUB_NEEDLE_BASE_ANGLE);
   const rotation = (angle - baseAngle).toFixed(2);
+  
   if (needle.dataset.rotation === rotation) return;
-  needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
+  needle.style.transform = `rotate(${rotation}deg)`;
   needle.dataset.rotation = rotation;
 }
 
@@ -2111,6 +2116,7 @@ function setProgressArc(id, value, min, max) {
   if (!length) return;
   const offset = (length * (1 - pct)).toFixed(2);
   if (arc.dataset.offset === offset) return;
+  
   arc.style.strokeDashoffset = offset;
   arc.dataset.offset = offset;
 }
@@ -2118,7 +2124,24 @@ function setProgressArc(id, value, min, max) {
 function setSvgText(id, value, decimals = 0) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = Number(value).toFixed(decimals);
+  
+  // Checking before assignment prevents destructive DOM layout thrashing
+  const strVal = Number(value).toFixed(decimals);
+  if (el.textContent !== strVal) {
+    el.textContent = strVal;
+  }
+}
+
+function setText(id, value, decimals = 0) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  const n = Number(value);
+  const strVal = Number.isFinite(n) ? n.toFixed(decimals) : '--';
+  
+  if (el.textContent !== strVal) {
+    el.textContent = strVal;
+  }
 }
 
 function updateBatteryLevel(voltage) {
@@ -2206,19 +2229,6 @@ function showPage(name) {
 
   document.getElementById('page_' + name).classList.add('active');
   document.getElementById('btn_' + name).classList.add('active');
-}
-
-function setText(id, value, decimals = 0) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  const n = Number(value);
-  if (!Number.isFinite(n)) {
-    el.textContent = '--';
-    return;
-  }
-
-  el.textContent = n.toFixed(decimals);
 }
 
 function setCardState(id, state) {
@@ -2379,6 +2389,15 @@ async function refreshData() {
       const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
       const d = await res.json();
 
+      // Apply dialed lighting state synchronously with data update
+      const carDashPage = document.getElementById('page_cardash');
+      if (carDashPage) {
+        carDashPage.style.setProperty(
+          '--dial-rgb',
+          (d.led_r || 0) + ', ' + (d.led_g || 0) + ', ' + (d.led_b || 0)
+        );
+      }
+
       updateCarDash(d);
 
       setText('rpm', d.rpm, 0);
@@ -2429,12 +2448,16 @@ async function refreshData() {
       }
 
       const summary = document.getElementById('driving_summary');
-      summary.textContent =
+      const summaryText =
         'RPM ' + Math.round(d.rpm) +
         ' | MAP ' + Math.round(d.map) + ' kPa' +
         ' | Lambda ' + Number(d.lambda1).toFixed(2) +
         ' / target ' + Number(d.lambda_target).toFixed(2) +
         ' | Oil ' + Math.round(d.oil_pressure) + ' kPa';
+        
+      if (summary.textContent !== summaryText) {
+          summary.textContent = summaryText;
+      }
 
       updateWarnings(d);
 
@@ -2448,6 +2471,8 @@ async function refreshData() {
   refreshState.dataInFlight = false;
 }
 
+// Lighting endpoint is now pulled much less frequently just for the UI form data
+// since LED data is merged directly into the fast data payload above.
 async function refreshLightingState() {
   if (refreshState.lightingInFlight) {
     refreshState.lightingPending = true;
@@ -2471,22 +2496,12 @@ async function refreshLightingState() {
         preview.style.backgroundColor =
           'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
 
-        const carDashPage = document.getElementById('page_cardash');
-        if (carDashPage) {
-          carDashPage.style.setProperty(
-            '--dial-rgb',
-            Number(s.preview_r || 0) + ', ' +
-            Number(s.preview_g || 0) + ', ' +
-            Number(s.preview_b || 0)
-          );
-        }
+        const previewTextStr = 'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
+        if (text.textContent !== previewTextStr) text.textContent = previewTextStr;
 
-        text.textContent =
-          'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
-
-        mode.textContent =
-          'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
-          ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
+        const modeTextStr = 'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
+                            ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
+        if (mode.textContent !== modeTextStr) mode.textContent = modeTextStr;
 
         const modeSelect = document.getElementById('lighting_mode');
         if (modeSelect) modeSelect.value = s.mode;
@@ -2503,7 +2518,9 @@ async function refreshLightingState() {
         const brightnessLabel = document.getElementById('brightness_label');
         const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
         if (brightness) brightness.value = String(brightnessPct);
-        if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
+        if (brightnessLabel && brightnessLabel.textContent !== String(brightnessPct)) {
+          brightnessLabel.textContent = brightnessPct;
+        }
       }
     } catch (err) {
       console.log('Lighting state refresh failed', err);
@@ -2517,7 +2534,7 @@ buildCarDashGauges();
 setInterval(refreshData, 50);
 refreshData();
 
-setInterval(refreshLightingState, 250);
+setInterval(refreshLightingState, 2000); // Backed off 800% to unchoke the ESP32 network stack
 refreshLightingState();
 </script>
 
@@ -2668,15 +2685,14 @@ void handleCanStatus() {
   twai_status_info_t twaiStatus;
   bool hasStatus = canStarted && twai_get_status_info(&twaiStatus) == ESP_OK;
 
-  long lastFrameAge = lastCanFrameMs > 0 ? (long)(now - lastCanFrameMs) : -1;
-  long lastDecodedAge = lastCanDecodedMs > 0 ? (long)(now - lastCanDecodedMs) : -1;
-
-  String json = "{";
+  String json;
+  json.reserve(300);
+  json += "{";
   json += "\"started\":" + String(canStarted ? "true" : "false") + ",";
   json += "\"frames\":" + String(canFrameCount) + ",";
   json += "\"decoded_frames\":" + String(canDecodedFrameCount) + ",";
-  json += "\"last_frame_age_ms\":" + String(lastFrameAge) + ",";
-  json += "\"last_decoded_age_ms\":" + String(lastDecodedAge) + ",";
+  json += "\"last_frame_age_ms\":" + String(lastCanFrameMs > 0 ? (long)(now - lastCanFrameMs) : -1) + ",";
+  json += "\"last_decoded_age_ms\":" + String(lastCanDecodedMs > 0 ? (long)(now - lastCanDecodedMs) : -1) + ",";
   json += "\"can_state\":\"" + String(hasStatus ? twaiStateName(twaiStatus.state) : "NOT_STARTED") + "\",";
   json += "\"tx_err\":" + String(hasStatus ? twaiStatus.tx_error_counter : 0) + ",";
   json += "\"rx_err\":" + String(hasStatus ? twaiStatus.rx_error_counter : 0) + ",";
@@ -2753,11 +2769,20 @@ void handleSetLighting() {
   server.send(200, "application/json", "{\"ok\":true}");
 }
 
+uint8_t addClamp255(uint8_t a, uint8_t b) {
+  int value = a + b;
+  if (value > 255) return 255;
+  return value;
+}
+
 void handleData() {
   unsigned long now = millis();
   unsigned long age = ecu.last_update_ms == 0 ? 999999 : now - ecu.last_update_ms;
 
-  String json = "{";
+  String json;
+  json.reserve(900); // Helps prevent minor memory fragmentation delay on ESP32
+
+  json += "{";
   json += "\"rpm\":" + String(ecu.rpm, 0) + ",";
   json += "\"ect\":" + String(ecu.ect, 1) + ",";
   json += "\"iat\":" + String(ecu.iat, 1) + ",";
@@ -2796,6 +2821,15 @@ void handleData() {
   json += "\"vvt_in_target\":" + String(ecu.vvt_in_target, 1) + ",";
   json += "\"vvt_in_pos\":" + String(ecu.vvt_in_pos, 1) + ",";
 
+  // Feed lighting directly through fast data path so we don't have to poll separately
+  uint8_t previewR = addClamp255(currentLightingOutput.r, currentLightingOutput.w);
+  uint8_t previewG = addClamp255(currentLightingOutput.g, currentLightingOutput.w);
+  uint8_t previewB = addClamp255(currentLightingOutput.b, currentLightingOutput.w);
+
+  json += "\"led_r\":" + String(previewR) + ",";
+  json += "\"led_g\":" + String(previewG) + ",";
+  json += "\"led_b\":" + String(previewB) + ",";
+
   json += "\"age_ms\":" + String(age) + ",";
   json += "\"can_frames\":" + String(canFrameCount) + ",";
   json += "\"can_decoded_frames\":" + String(canDecodedFrameCount) + ",";
@@ -2806,8 +2840,6 @@ void handleData() {
   server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   server.sendHeader("Pragma", "no-cache");
   server.sendHeader("Expires", "0");
-
-
 
   server.send(200, "application/json", json);
 }
@@ -2891,12 +2923,6 @@ void readUdpPackets() {
   }
 }
 
-uint8_t addClamp255(uint8_t a, uint8_t b) {
-  int value = a + b;
-  if (value > 255) return 255;
-  return value;
-}
-
 const char* lightingModeName() {
   if (lighting.mode == LIGHT_STATIC) return "static";
   if (lighting.mode == LIGHT_PATTERN) return "pattern";
@@ -2918,7 +2944,9 @@ void handleLightingState() {
   uint8_t previewG = addClamp255(currentLightingOutput.g, currentLightingOutput.w);
   uint8_t previewB = addClamp255(currentLightingOutput.b, currentLightingOutput.w);
 
-  String json = "{";
+  String json;
+  json.reserve(450);
+  json += "{";
   json += "\"enabled\":" + String(lighting.enabled ? "true" : "false") + ",";
   json += "\"mode\":\"" + String(lightingModeName()) + "\",";
   json += "\"pattern\":\"" + String(lightingPatternName()) + "\",";
