@@ -16,14 +16,14 @@ const uint16_t UDP_PORT = 4210;
 // For bench testing with one NeoPixel RGBW Mini Button, leave count as 1.
 // For a strip later, change NEOPIXEL_COUNT to the number of RGBW pixels.
 const int NEOPIXEL_PIN = 13;
-const uint16_t NEOPIXEL_COUNT = 10;
+const uint16_t NEOPIXEL_COUNT = 200;
 
 // Most RGBW NeoPixel / SK6812 parts use GRBW byte order.
 // If red/green/blue/white appear wrong, try NEO_RGBW instead of NEO_GRBW.
 Adafruit_NeoPixel pixels(
   NEOPIXEL_COUNT,
   NEOPIXEL_PIN,
-  NEO_GRBW + NEO_KHZ800
+  NEO_RGBW + NEO_KHZ800
 );
 
 WebServer server(80);
@@ -128,6 +128,10 @@ struct LightingConfig {
 
   float maxBrightness = 1.0;
   bool enabled = true;
+
+  // Minutes to wait after the last ECU packet before turning lights off.
+  // 0 disables the auto-off timer.
+  uint32_t autoOffMinutes = 0;
 };
 
 LightingConfig lighting;
@@ -277,8 +281,30 @@ void setRgbw(RgbwColor c) {
   pixels.show();
 }
 
+bool lightingAutoOffExpired() {
+  if (lighting.autoOffMinutes == 0) {
+    return false;
+  }
+
+  // If no valid ECU packet has ever been decoded, treat the timer as expired.
+  if (ecu.last_update_ms == 0) {
+    return true;
+  }
+
+  unsigned long now = millis();
+  unsigned long ageMs = now - ecu.last_update_ms;
+  unsigned long timeoutMs = lighting.autoOffMinutes * 60000UL;
+
+  return ageMs >= timeoutMs;
+}
+
 void updateLighting() {
   if (!lighting.enabled) {
+    setRgbw({0, 0, 0, 0});
+    return;
+  }
+
+  if (lightingAutoOffExpired()) {
     setRgbw({0, 0, 0, 0});
     return;
   }
@@ -338,6 +364,11 @@ void loadLightingSettings() {
     0.0f,
     1.0f
   );
+
+  lighting.autoOffMinutes = lightingPreferences.getUInt(
+    "auto_off_min",
+    lighting.autoOffMinutes
+  );
 }
 
 void saveLightingSettings() {
@@ -351,6 +382,7 @@ void saveLightingSettings() {
   lightingPreferences.putUChar("static_b", lighting.staticB);
   lightingPreferences.putUChar("static_w", lighting.staticW);
   lightingPreferences.putFloat("bright", lighting.maxBrightness);
+  lightingPreferences.putUInt("auto_off_min", lighting.autoOffMinutes);
 }
 
 void markLightingSettingsDirty() {
@@ -423,9 +455,18 @@ String dashboardHtml() {
       z-index: 5;
     }
 
-    button, select, input[type="color"], input[type="range"] {
+    button, select, input[type="color"], input[type="range"], input[type="number"] {
       width: 100%;
       box-sizing: border-box;
+    }
+    
+    input[type="number"] {
+      border: 1px solid #303642;
+      border-radius: 10px;
+      padding: 12px;
+      background: #111722;
+      color: var(--text);
+      font-size: 16px;
     }
 
     button {
@@ -1811,6 +1852,20 @@ String dashboardHtml() {
       </div>
 
       <div class="card wide">
+        <div class="label">Auto-off Timer</div>
+        <input
+          type="number"
+          id="lighting_auto_off_minutes"
+          min="0"
+          max="1440"
+          step="1"
+          value="0"
+          onchange="applyLighting()"
+        >
+        <div class="unit">Minutes after last ECU packet before lights turn off. Use 0 to disable.</div>
+      </div>
+
+      <div class="card wide">
         <div class="label">Mode</div>
         <select id="lighting_mode" onchange="applyLighting()">
           <option value="static">Static Colour</option>
@@ -2192,19 +2247,20 @@ async function applyLighting() {
   const color = hexToRgb(document.getElementById('static_color').value);
   const brightnessPct = Number(document.getElementById('lighting_brightness').value);
   const brightness = brightnessPct / 100.0;
+  const autoOffMinutes = Number(document.getElementById('lighting_auto_off_minutes').value) || 0;
 
   document.getElementById('brightness_label').textContent = brightnessPct;
 
   const url =
     '/setLighting?' +
-    'enabled=1' +
-    '&mode=' + encodeURIComponent(mode) +
+    'mode=' + encodeURIComponent(mode) +
     '&pattern=' + encodeURIComponent(pattern) +
     '&r=' + color.r +
     '&g=' + color.g +
     '&b=' + color.b +
     '&w=0' +
-    '&brightness=' + brightness;
+    '&brightness=' + brightness +
+    '&auto_off_minutes=' + autoOffMinutes;
 
   await fetch(url);
 }
@@ -2499,8 +2555,14 @@ async function refreshLightingState() {
         const previewTextStr = 'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
         if (text.textContent !== previewTextStr) text.textContent = previewTextStr;
 
+        const autoOffText =
+          Number(s.auto_off_minutes) > 0
+            ? ' / Auto-off: ' + s.auto_off_minutes + ' min' + (s.auto_off_expired ? ' active' : '')
+            : ' / Auto-off: disabled';
+
         const modeTextStr = 'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
-                            ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%';
+                            ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%' +
+                            autoOffText;
         if (mode.textContent !== modeTextStr) mode.textContent = modeTextStr;
 
         const modeSelect = document.getElementById('lighting_mode');
@@ -2520,6 +2582,11 @@ async function refreshLightingState() {
         if (brightness) brightness.value = String(brightnessPct);
         if (brightnessLabel && brightnessLabel.textContent !== String(brightnessPct)) {
           brightnessLabel.textContent = brightnessPct;
+        }
+        
+        const autoOffInput = document.getElementById('lighting_auto_off_minutes');
+        if (autoOffInput && document.activeElement !== autoOffInput) {
+          autoOffInput.value = String(s.auto_off_minutes || 0);
         }
       }
     } catch (err) {
@@ -2746,6 +2813,11 @@ void handleSetLighting() {
     lighting.maxBrightness = constrain(server.arg("brightness").toFloat(), 0.0, 1.0);
   }
 
+  if (server.hasArg("auto_off_minutes")) {
+    int minutes = server.arg("auto_off_minutes").toInt();
+    lighting.autoOffMinutes = (uint32_t)constrain(minutes, 0, 1440);
+  }
+
   updateLighting();
   markLightingSettingsDirty();
 
@@ -2944,6 +3016,9 @@ void handleLightingState() {
   uint8_t previewG = addClamp255(currentLightingOutput.g, currentLightingOutput.w);
   uint8_t previewB = addClamp255(currentLightingOutput.b, currentLightingOutput.w);
 
+  unsigned long now = millis();
+  unsigned long packetAgeMs = ecu.last_update_ms == 0 ? 999999UL : now - ecu.last_update_ms;
+
   String json;
   json.reserve(450);
   json += "{";
@@ -2951,6 +3026,9 @@ void handleLightingState() {
   json += "\"mode\":\"" + String(lightingModeName()) + "\",";
   json += "\"pattern\":\"" + String(lightingPatternName()) + "\",";
   json += "\"max_brightness\":" + String(lighting.maxBrightness, 3) + ",";
+  json += "\"auto_off_minutes\":" + String(lighting.autoOffMinutes) + ",";
+  json += "\"auto_off_expired\":" + String(lightingAutoOffExpired() ? "true" : "false") + ",";
+  json += "\"last_packet_age_ms\":" + String(packetAgeMs) + ",";
   json += "\"static_r\":" + String(lighting.staticR) + ",";
   json += "\"static_g\":" + String(lighting.staticG) + ",";
   json += "\"static_b\":" + String(lighting.staticB) + ",";
