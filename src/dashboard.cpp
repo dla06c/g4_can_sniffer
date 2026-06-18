@@ -1,0 +1,2221 @@
+#include "dashboard.h"
+
+String dashboardHtml() {
+  return R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Link ECU Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #1c2028;
+      --panel2: #252b36;
+      --text: #f2f4f8;
+      --muted: #9da7b4;
+      --warn: #6b3e00;
+      --danger: #6b1515;
+      --ok: #163f2a;
+      --accent: #4da3ff;
+      --cardash-voltage-label-height: 30px;
+      --gauge-glow-blue: rgba(77, 163, 255, 0.5);
+      --gauge-glow-cyan: rgba(40, 215, 255, 0.55);
+      --gauge-glow-orange: rgba(255, 157, 77, 0.5);
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 12px 16px;
+      background: #171a21;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid #303642;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .status {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 8px;
+      padding: 10px;
+      background: #14171d;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    button, select, input[type="color"], input[type="range"], input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    input[type="number"] {
+      border: 1px solid #303642;
+      border-radius: 10px;
+      padding: 12px;
+      background: #111722;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 8px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #07111d;
+    }
+
+    select {
+      border: 1px solid #303642;
+      border-radius: 10px;
+      padding: 12px;
+      background: #111722;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    input[type="color"] {
+      height: 52px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--panel2);
+      padding: 4px;
+    }
+
+    input[type="range"] {
+      margin-top: 12px;
+    }
+
+    .page {
+      display: none;
+      padding: 12px;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      border: 1px solid #303642;
+      min-height: 92px;
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+
+    .value {
+      font-size: 34px;
+      font-weight: bold;
+      line-height: 1.05;
+    }
+
+    .smallvalue {
+      font-size: 24px;
+      font-weight: bold;
+      line-height: 1.1;
+    }
+
+    .unit {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    .ok {
+      background: var(--ok);
+    }
+
+    .warn {
+      background: var(--warn);
+    }
+
+    .danger {
+      background: var(--danger);
+    }
+
+    .summary {
+      background: var(--panel2);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid #303642;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .alert {
+      background: var(--danger);
+      color: white;
+      padding: 14px;
+      margin: 12px;
+      border-radius: 14px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 20px;
+      display: none;
+    }
+
+    .lighting-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .cardash-wrap {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 12px;
+    }
+
+    .cardash-hero {
+      background: radial-gradient(circle at top, #2b3545, #111722);
+      border: 1px solid #303642;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .cardash-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .cardash-rpm {
+      font-size: 58px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .cardash-speed {
+      font-size: 46px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .cardash-sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .cardash-bar-bg {
+      height: 18px;
+      border-radius: 999px;
+      background: #0b0d11;
+      overflow: hidden;
+      border: 1px solid #303642;
+      margin-top: 12px;
+    }
+
+    .cardash-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4da3ff, #a855f7, #f97316);
+      border-radius: 999px;
+    }
+
+    .cardash-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .cardash-mini {
+      background: var(--panel);
+      border: 1px solid #303642;
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .cardash-mini .big {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .cardash-mini.warn {
+      background: var(--warn);
+    }
+
+    .cardash-mini.danger {
+      background: var(--danger);
+    }
+
+    @media (max-width: 720px) {
+      .cardash-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .cardash-rpm {
+        font-size: 44px;
+      }
+
+      .cardash-speed {
+        font-size: 38px;
+      }
+    }
+
+    
+
+    .cluster-wrap {
+      padding: 10px;
+    }
+
+    .cluster-main {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .cluster-footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .cluster-temps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .cluster-volts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .gauge-card {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(139, 205, 255, 0.22), transparent 34%),
+        linear-gradient(180deg, #364251 0%, #161d28 10%, #0b0f15 100%);
+      border: 1px solid #465364;
+      border-radius: 26px;
+      padding: 18px 16px 14px;
+      text-align: center;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -18px 30px rgba(0, 0, 0, 0.35),
+        0 18px 28px rgba(0, 0, 0, 0.22);
+    }
+
+    .gauge-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 26%, rgba(0,0,0,0.16));
+      pointer-events: none;
+    }
+
+    .gauge-card::before {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border-radius: 22px;
+      border: 1px solid rgba(124, 144, 165, 0.14);
+      box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.38);
+      pointer-events: none;
+    }
+
+    .gauge-card.secondary {
+      padding-top: 14px;
+    }
+
+    .gauge-title {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 108px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(111, 129, 149, 0.45);
+      background: linear-gradient(180deg, rgba(29, 39, 52, 0.95), rgba(10, 14, 20, 0.95));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      color: #ced6df;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.18em;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-svg {
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+      margin-top: 2px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-card.secondary .gauge-svg {
+      max-width: 250px;
+    }
+
+    .gauge-value {
+      font-size: 40px;
+      font-weight: bold;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.12);
+    }
+
+    .gauge-card.secondary .gauge-value {
+      font-size: 30px;
+    }
+
+    .gauge-unit {
+      color: #97a6b7;
+      font-size: 11px;
+      margin-top: 4px;
+      position: relative;
+      z-index: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+    }
+
+    .gauge-readout {
+      width: min(150px, 72%);
+      margin: -14px auto 0;
+      padding: 10px 12px 11px;
+      border-radius: 16px;
+      border: 1px solid #45556a;
+      background:
+        linear-gradient(180deg, rgba(33, 46, 61, 0.98), rgba(8, 12, 18, 0.98)),
+        linear-gradient(90deg, rgba(77, 163, 255, 0.18), transparent 55%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 0 26px rgba(0, 0, 0, 0.4),
+        0 10px 18px rgba(0, 0, 0, 0.22);
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-card.secondary .gauge-readout {
+      width: min(128px, 76%);
+      margin-top: -10px;
+      padding-top: 9px;
+      padding-bottom: 9px;
+    }
+
+    .gauge-caption {
+      color: #677789;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-top: 9px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gauge-bezel-outer {
+      fill: #45505d;
+      stroke: #718095;
+      stroke-width: 2;
+    }
+
+    .gauge-bezel-inner {
+      fill: #1c242f;
+      stroke: #0d1117;
+      stroke-width: 6;
+    }
+
+    .gauge-face {
+      fill: #0c121a;
+      stroke: #2e3948;
+      stroke-width: 2;
+    }
+
+    .gauge-face-ring {
+      fill: none;
+      stroke: rgba(159, 181, 204, 0.08);
+      stroke-width: 1.5;
+    }
+
+    .gauge-glare {
+      fill: rgba(159, 209, 255, 0.06);
+    }
+
+    .gauge-scale {
+      fill: #93a1b1;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+    }
+
+    .gauge-scale-alert {
+      fill: #ffb38c;
+    }
+
+    .gauge-center-label {
+      fill: #6c7b8b;
+      font-size: 9px;
+      font-weight: bold;
+      letter-spacing: 0.18em;
+    }
+
+    .gauge-status-line {
+      stroke: rgba(115, 134, 156, 0.32);
+      stroke-width: 1;
+    }
+
+    .gauge-tick {
+      stroke: #8f9eb0;
+      stroke-width: 2.2;
+    }
+
+    .gauge-tick.minor {
+      stroke-width: 1.3;
+      opacity: 0.55;
+    }
+
+    .gauge-arc-bg {
+      fill: none;
+      stroke: #28323e;
+      stroke-width: 10;
+      stroke-linecap: round;
+    }
+
+    .gauge-arc-active {
+      fill: none;
+      stroke: #4da3ff;
+      stroke-width: 10;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 7px var(--gauge-glow-blue));
+    }
+
+    .gauge-zone {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.92;
+    }
+
+    .gauge-zone-warn {
+      stroke: #ffb14d;
+      stroke-width: 8;
+    }
+
+    .gauge-zone-danger {
+      stroke: #ff5a5a;
+      stroke-width: 8;
+    }
+
+    .boost-arc {
+      stroke: #28d7ff;
+    }
+
+    .temp-arc {
+      stroke: #ff9d4d;
+    }
+
+    .needle-pack {
+      transform-origin: 100px 100px;
+      transition: transform 80ms linear;
+    }
+
+    .gauge-needle-shadow {
+      stroke: rgba(0, 0, 0, 0.42);
+      stroke-width: 7;
+      stroke-linecap: round;
+    }
+
+    .gauge-needle {
+      stroke: #f2f4f8;
+      stroke-width: 4.4;
+      stroke-linecap: round;
+    }
+
+    .gauge-needle-tail {
+      stroke: rgba(242, 244, 248, 0.4);
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+
+    .boost-needle {
+      stroke: #8ef2ff;
+    }
+
+    .temp-needle {
+      stroke: #ffd7a8;
+      stroke-width: 3.5;
+    }
+
+    .gauge-hub {
+      fill: #f2f4f8;
+    }
+
+    .gauge-hub-ring {
+      fill: none;
+      stroke: rgba(242, 244, 248, 0.4);
+      stroke-width: 2.5;
+    }
+
+    .gauge-redline {
+      fill: none;
+      stroke: #ff4d4d;
+      stroke-width: 7;
+      stroke-linecap: round;
+    }
+
+    .voltage-card {
+      background: linear-gradient(180deg, #1b2230, #10151d);
+      border: 1px solid #303642;
+      border-radius: 18px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+
+    .voltage-card.warn {
+      background: linear-gradient(180deg, #5f4311, #31210a);
+    }
+
+    .voltage-card.danger {
+      background: linear-gradient(180deg, #5d1b1b, #2d0d0d);
+    }
+
+    .voltage-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      margin-top: 8px;
+      min-height: var(--cardash-voltage-label-height);
+    }
+
+    .voltage-value {
+      font-size: 28px;
+      font-weight: bold;
+      line-height: 1.1;
+      margin-top: 6px;
+    }
+
+    .voltage-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 11, 17, 0.9);
+      border: 1px solid #303642;
+      color: #8bd5ff;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .voltage-icon svg {
+      width: 30px;
+      height: 30px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    @media (max-width: 960px) {
+      .cluster-footer {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .cluster-main,
+      .cluster-temps {
+        grid-template-columns: 1fr;
+      }
+
+      .cluster-volts {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .gauge-value {
+        font-size: 34px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .cluster-volts {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+    .lighting-row button {
+      flex: 1;
+    }
+
+    @media (max-width: 480px) {
+      .value {
+        font-size: 28px;
+      }
+
+      .wide {
+        grid-column: span 1;
+      }
+
+      header {
+        display: block;
+      }
+
+      .status {
+        text-align: left;
+        margin-top: 4px;
+      }
+        
+      .fullscreen_btn {
+         width: auto;
+         padding: 8px 12px;
+         font-size: 13px;
+      }       
+    }
+
+    /* ==================================================================
+       CarDash: Example-style SVG gauge cluster
+       ================================================================== */
+    #page_cardash {
+      --dash-bg: #000;
+      --ring: #9a9a9a;
+      --dash-text: #b9b9b9;
+      --blue: #00aeef;
+      --cyan: #8fefff;
+      --teal: #008e95;
+      --red: #e20b0b;
+      --yellow: #e7d000;
+      --dial-rgb: 0, 174, 239;
+      background: #000;
+      padding: 0;
+      min-height: calc(100vh - 120px);
+    }
+
+    #page_cardash .dash {
+      min-height: calc(100vh - 190px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(22px, 4vw, 52px);
+      padding: 24px 24px 8px;
+      box-sizing: border-box;
+    }
+
+    #page_cardash svg.gauge {
+      width: min(47vw, 520px);
+      height: auto;
+      overflow: visible;
+      /* removed expensive SVG filter causing massive layout lag */
+    }
+
+    #page_cardash .outer-ring {
+      fill: none;
+      stroke: var(--ring);
+      stroke-width: 4;
+      opacity: .95;
+    }
+
+    #page_cardash .inner-dial {
+      fill: url(#dialGradientBoost);
+    }
+
+    #page_cardash .black-mask {
+      fill: #020202;
+    }
+
+    #page_cardash .blue-track {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 24;
+      stroke-linecap: butt;
+    }
+
+    #page_cardash .teal-track {
+      fill: none;
+      stroke: var(--teal);
+      stroke-width: 24;
+      stroke-linecap: butt;
+      opacity: .96;
+    }
+
+    #page_cardash .red-track {
+      fill: none;
+      stroke: var(--red);
+      stroke-width: 18;
+      stroke-linecap: butt;
+    }
+
+    #page_cardash .white-track {
+      fill: none;
+      stroke: #f4f4f4;
+      stroke-width: 18;
+      stroke-linecap: butt;
+    }
+
+    #page_cardash .small-blue-track {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 18;
+      stroke-linecap: butt;
+    }
+
+    #page_cardash .tick-major,
+    #page_cardash .tick-minor,
+    #page_cardash .tick-thin {
+      stroke: #fff;
+      stroke-linecap: square;
+      opacity: .92;
+    }
+
+    #page_cardash .tick-major { stroke-width: 3; }
+    #page_cardash .tick-minor { stroke-width: 1.2; opacity: .82; }
+    #page_cardash .tick-thin  { stroke-width: .7; opacity: .38; }
+
+    #page_cardash .blue-tick { stroke: #67dcff; opacity: .45; }
+    #page_cardash .teal-tick { stroke: #7bf4f4; opacity: .35; }
+    #page_cardash .red-tick { stroke: var(--red); }
+    #page_cardash .yellow-tick { stroke: var(--yellow); }
+
+    #page_cardash .label {
+      fill: var(--dash-text);
+      font-weight: 700;
+      font-size: 27px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    #page_cardash .small-label {
+      fill: var(--dash-text);
+      font-weight: 700;
+      font-size: 15px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    #page_cardash .center-value {
+      fill: #f7f7f7;
+      font-weight: 800;
+      font-size: 30px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    #page_cardash .unit {
+      fill: var(--dash-text);
+      color: var(--dash-text);
+      font-weight: 800;
+      font-size: 27px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      margin-top: 0;
+    }
+
+    #page_cardash .subtitle {
+      fill: var(--dash-text);
+      font-size: 18px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    #page_cardash .inner-ring {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 2.5;
+    }
+
+    #page_cardash .needle-blue,
+    #page_cardash .needle-red {
+      stroke-linecap: round;
+      /* offloaded layout rotation to GPU CSS transformations */
+      transform-origin: 260px 260px;
+      will-change: transform;
+      transition: transform 30ms linear;
+    }
+
+    #page_cardash .needle-blue {
+      stroke: var(--cyan);
+      stroke-width: 3.2;
+    }
+
+    #page_cardash .needle-red {
+      stroke: var(--red);
+      stroke-width: 3;
+    }
+
+    #page_cardash .warning-light {
+      fill: url(#redGlow);
+      opacity: .25;
+      will-change: opacity;
+    }
+
+    #page_cardash .warning-light.active {
+      opacity: 1;
+    }
+
+    #page_cardash .dash-aux {
+      width: min(880px, calc(100% - 32px));
+      margin: 0 auto 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    #page_cardash .dash-pill {
+      border: 1px solid rgba(154, 154, 154, .42);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--dash-text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(255, 255, 255, .035);
+      box-shadow: inset 0 0 18px rgba(0,174,239,.07);
+      letter-spacing: .08em;
+    }
+
+    #page_cardash .dash-pill span {
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    #page_cardash .dash-pill strong {
+      color: #fff;
+      font-size: 20px;
+      letter-spacing: .02em;
+    }
+
+    #page_cardash .dash-pill.warn {
+      border-color: var(--yellow);
+      background: rgba(231, 208, 0, .08);
+    }
+
+    #page_cardash .dash-pill.danger {
+      border-color: var(--red);
+      background: rgba(226, 11, 11, .12);
+    }
+
+    @media (max-width: 760px) {
+      #page_cardash .dash {
+        flex-direction: column;
+        min-height: auto;
+      }
+
+      #page_cardash svg.gauge {
+        width: min(92vw, 520px);
+      }
+
+      #page_cardash .dash-aux {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+    #page_cardash .temp-track {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 12;
+      stroke-linecap: butt;
+      opacity: 0.92;
+    }
+
+    #page_cardash .temp-track-warn {
+      fill: none;
+      stroke: var(--yellow);
+      stroke-width: 12;
+      stroke-linecap: butt;
+      opacity: 0.92;
+    }
+
+    #page_cardash .temp-track-danger {
+      fill: none;
+      stroke: var(--red);
+      stroke-width: 12;
+      stroke-linecap: butt;
+      opacity: 0.94;
+    }
+
+    #page_cardash .temp-sub-needle {
+      stroke-width: 3;
+      transform-origin: 260px 260px;
+      will-change: transform;
+      transition: transform 30ms linear;
+    }
+
+    #page_cardash .temp-readout-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    #page_cardash .temp-readout-value {
+      fill: #f7f7f7;
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    #page_cardash .temp-readout-unit {
+      font-size: 11px;
+      opacity: 0.82;
+    }
+
+    #page_cardash .temp-scale-label {
+      fill: var(--dash-text);
+      font-size: 13px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      opacity: 0.9;
+    }
+
+
+    #page_cardash .progress-arc {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 14;
+      stroke-linecap: butt;
+      opacity: 0.96;
+      will-change: stroke-dashoffset;
+      transition: stroke-dashoffset 30ms linear;
+    }
+
+    #page_cardash .boost-progress-arc {
+      stroke: var(--teal);
+    }
+
+
+    /* Battery charge-level indicator inside CarDash battery pill */
+    #page_cardash .battery-pill {
+      align-items: center;
+    }
+
+    #page_cardash .battery-pill-main {
+      min-width: 126px;
+      display: grid;
+      grid-template-columns: auto 62px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #page_cardash .battery-level {
+      position: relative;
+      width: 62px;
+      height: 18px;
+      border: 1px solid rgba(185, 185, 185, .82);
+      border-radius: 4px;
+      padding: 2px;
+      box-sizing: border-box;
+      background: rgba(0, 0, 0, .65);
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, .65);
+    }
+
+    #page_cardash .battery-level::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      right: -6px;
+      width: 5px;
+      height: 8px;
+      border-radius: 0 2px 2px 0;
+      background: rgba(185, 185, 185, .82);
+    }
+
+    #page_cardash .battery-level-fill {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: 2px;
+      background: var(--blue);
+      box-shadow: 0 0 8px rgba(0, 174, 239, .55);
+      transition: width 120ms linear, background-color 120ms linear;
+    }
+
+    #page_cardash .battery-level-fill.warn {
+      background: var(--yellow);
+      box-shadow: 0 0 8px rgba(231, 208, 0, .5);
+    }
+
+    #page_cardash .battery-level-fill.danger {
+      background: var(--red);
+      box-shadow: 0 0 8px rgba(226, 11, 11, .65);
+    }
+
+    @media (max-width: 760px) {
+      #page_cardash .battery-pill-main {
+        grid-template-columns: auto 72px;
+      }
+
+      #page_cardash .battery-level {
+        width: 72px;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="title">Link ECU Dashboard</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="fullscreen_btn" onclick="goFullscreen()">Fullscreen</button>
+      <div class="status" id="status">Waiting for data...</div>
+    </div>
+  </header>
+
+  <div class="alert" id="main_alert"></div>
+
+  <nav>
+    <button id="btn_cardash" class="active" onclick="showPage('cardash')">CarDash</button>
+    <button id="btn_driving" onclick="showPage('driving')">Driving</button>
+    <button id="btn_health" onclick="showPage('health')">Health</button>
+    <button id="btn_debug" onclick="showPage('debug')">Debug</button>
+    <button id="btn_lighting" onclick="showPage('lighting')">Lighting</button>
+  </nav>
+
+  
+  <section id="page_cardash" class="page active">
+    <main class="dash">
+      <svg id="boostGauge" class="gauge" viewBox="0 0 520 520" role="img" aria-label="Boost gauge">
+        <defs>
+          <radialGradient id="dialGradientBoost" cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="#000" />
+            <stop offset="54%" stop-color="rgb(var(--dial-rgb))" stop-opacity="0.22" />
+            <stop offset="100%" stop-color="rgb(var(--dial-rgb))" stop-opacity="0.48" />
+          </radialGradient>
+        </defs>
+
+        <circle class="outer-ring" cx="260" cy="260" r="252" />
+        <circle class="inner-dial" cx="260" cy="260" r="205" style="fill:url(#dialGradientBoost)" />
+        <circle class="black-mask" cx="260" cy="260" r="116" />
+        <circle class="inner-ring" cx="260" cy="260" r="119" />
+        <circle class="inner-ring" cx="260" cy="260" r="109" />
+
+        <g id="boost-blue-arc"></g>
+        <g id="boost-red-arc"></g>
+        <g id="boost-ticks"></g>
+        <g id="boost-labels"></g>
+        <g id="iat-temp-arc"></g>
+        <g id="iat-temp-ticks"></g>
+        <g id="iat-temp-labels"></g>
+
+        <line id="boostNeedle" class="needle-blue" x1="202.3" y1="149.0" x2="166.0" y2="79.0" />
+        <line id="iatNeedle" class="needle-red temp-sub-needle" x1="260" y1="385" x2="260" y2="455" />
+
+        <text class="center-value" id="cardash_mgp" x="260" y="252">0</text>
+        <text class="unit" x="260" y="289">KPA</text>
+        <text class="subtitle" x="260" y="330">MGP / BOOST</text>
+
+        <text class="small-label temp-readout-label" x="260" y="410">IAT</text>
+        <text class="small-label temp-readout-value" id="cardash_iat" x="260" y="435">0</text>
+        <text class="small-label temp-readout-unit" x="260" y="458">°C</text>
+      </svg>
+
+      <svg id="rpmGauge" class="gauge" viewBox="0 0 520 520" role="img" aria-label="RPM gauge">
+        <defs>
+          <radialGradient id="dialGradientRpm" cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="#000" />
+            <stop offset="55%" stop-color="rgb(var(--dial-rgb))" stop-opacity="0.22" />
+            <stop offset="100%" stop-color="rgb(var(--dial-rgb))" stop-opacity="0.48" />
+          </radialGradient>
+          <radialGradient id="redGlow" cx="35%" cy="30%" r="72%">
+            <stop offset="0%" stop-color="#ff2a2a" />
+            <stop offset="55%" stop-color="#d00000" />
+            <stop offset="100%" stop-color="#700000" />
+          </radialGradient>
+        </defs>
+
+        <circle class="outer-ring" cx="260" cy="260" r="252" />
+        <circle class="inner-dial" cx="260" cy="260" r="205" style="fill:url(#dialGradientRpm)" />
+        <circle class="black-mask" cx="260" cy="260" r="116" />
+        <circle class="inner-ring" cx="260" cy="260" r="119" />
+        <circle class="inner-ring" cx="260" cy="260" r="109" />
+
+        <g id="rpm-left-arc"></g>
+        <g id="rpm-top-track"></g>
+        <g id="rpm-red-arc"></g>
+        <g id="rpm-ticks"></g>
+        <g id="rpm-labels"></g>
+        <g id="ect-temp-arc"></g>
+        <g id="ect-temp-ticks"></g>
+        <g id="ect-temp-labels"></g>
+
+        <line id="rpmNeedle" class="needle-blue" x1="202.3" y1="149.0" x2="166.0" y2="79.0" />
+        <line id="ectNeedle" class="needle-red temp-sub-needle" x1="260" y1="385" x2="260" y2="455" />
+
+        <text class="center-value" id="cardash_rpm" x="260" y="252">0</text>
+        <text class="unit" x="260" y="289">RPM</text>
+        <text class="subtitle" x="260" y="116">RPM x 1000</text>
+
+        <circle class="warning-light" id="rpmWarningLight" cx="212" cy="419" r="19" />
+
+        <text class="small-label temp-readout-label" x="260" y="410">ECT</text>
+        <text class="small-label temp-readout-value" id="cardash_ect" x="260" y="435">0</text>
+        <text class="small-label temp-readout-unit" x="260" y="458">°C</text>
+      </svg>
+    </main>
+
+    <div class="dash-aux">
+      <div class="dash-pill" id="cardash_3v3_panel">
+        <span>3.3V INTERNAL</span>
+        <strong id="cardash_3v3">0.00</strong>
+      </div>
+      <div class="dash-pill" id="cardash_12v_panel">
+        <span>12V INTERNAL</span>
+        <strong id="cardash_12v">0.0</strong>
+      </div>
+      <div class="dash-pill battery-pill" id="cardash_batt_panel">
+        <span>BATTERY</span>
+        <div class="battery-pill-main">
+          <strong id="cardash_batt_aux">0.0</strong>
+          <div class="battery-level" aria-label="Battery level indicator">
+            <div class="battery-level-fill" id="batteryLevelFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<section id="page_driving" class="page">
+    <div class="summary" id="driving_summary">Main live driving values.</div>
+
+    <div class="grid">
+      <div class="card wide" id="card_rpm">
+        <div class="label">Engine Speed</div>
+        <div class="value" id="rpm">0</div>
+        <div class="unit">rpm</div>
+      </div>
+
+      <div class="card" id="card_mgp">
+        <div class="label">MGP / Boost</div>
+        <div class="value" id="mgp">0</div>
+        <div class="unit">kPa gauge</div>
+      </div>
+
+      <div class="card" id="card_map">
+        <div class="label">MAP</div>
+        <div class="value" id="map">0</div>
+        <div class="unit">kPa absolute</div>
+      </div>
+
+      <div class="card" id="card_lambda">
+        <div class="label">Lambda</div>
+        <div class="value" id="lambda1">0.00</div>
+        <div class="unit">actual</div>
+      </div>
+
+      <div class="card" id="card_lambda_target">
+        <div class="label">Lambda Target</div>
+        <div class="value" id="lambda_target">0.00</div>
+        <div class="unit">target</div>
+      </div>
+
+      <div class="card" id="card_ect">
+        <div class="label">Coolant</div>
+        <div class="value" id="ect">0</div>
+        <div class="unit">°C</div>
+      </div>
+
+      <div class="card" id="card_oil_pressure">
+        <div class="label">Oil Pressure</div>
+        <div class="value" id="oil_pressure">0</div>
+        <div class="unit">kPa</div>
+      </div>
+
+      <div class="card" id="card_battery">
+        <div class="label">Battery</div>
+        <div class="value" id="battery_v">0.0</div>
+        <div class="unit">V</div>
+      </div>
+
+      <div class="card" id="card_tps">
+        <div class="label">TPS Main</div>
+        <div class="value" id="tps">0</div>
+        <div class="unit">%</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="page_health" class="page">
+    <div class="summary">Engine health, sensor sanity, voltage rails, and trigger/lambda status.</div>
+
+    <div class="grid">
+      <div class="card" id="card_health_ect">
+        <div class="label">Coolant</div>
+        <div class="value" id="health_ect">0</div>
+        <div class="unit">°C</div>
+      </div>
+
+      <div class="card" id="card_iat">
+        <div class="label">Intake Air Temp</div>
+        <div class="value" id="iat">0</div>
+        <div class="unit">°C</div>
+      </div>
+
+      <div class="card" id="card_oil_temp">
+        <div class="label">Oil Temp</div>
+        <div class="value" id="oil_temp">0</div>
+        <div class="unit">°C</div>
+      </div>
+
+      <div class="card" id="card_health_oil_pressure">
+        <div class="label">Oil Pressure</div>
+        <div class="value" id="health_oil_pressure">0</div>
+        <div class="unit">kPa</div>
+      </div>
+
+      <div class="card" id="card_fuel_pressure">
+        <div class="label">Fuel Pressure</div>
+        <div class="value" id="fuel_pressure">0</div>
+        <div class="unit">kPa</div>
+      </div>
+
+      <div class="card" id="card_health_battery">
+        <div class="label">Battery</div>
+        <div class="value" id="health_battery_v">0.0</div>
+        <div class="unit">V</div>
+      </div>
+
+      <div class="card" id="card_3v3">
+        <div class="label">3.3V Internal</div>
+        <div class="value" id="internal_3v3">0.00</div>
+        <div class="unit">V</div>
+      </div>
+
+      <div class="card" id="card_12v">
+        <div class="label">12V Internal</div>
+        <div class="value" id="internal_12v">0.0</div>
+        <div class="unit">V</div>
+      </div>
+
+      <div class="card" id="card_trig">
+        <div class="label">Trig1 Err Counter</div>
+        <div class="value" id="trig1_err">0</div>
+        <div class="unit">count</div>
+      </div>
+
+      <div class="card" id="card_lambda_status">
+        <div class="label">Lambda Status</div>
+        <div class="value" id="lambda_status">0</div>
+        <div class="unit">status code</div>
+      </div>
+
+      <div class="card" id="card_lambda_temp">
+        <div class="label">Lambda Temp</div>
+        <div class="value" id="lambda_temp">0</div>
+        <div class="unit">°C</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="page_debug" class="page">
+    <div class="summary">Tuning and control-loop debug values.</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Ignition Angle</div>
+        <div class="value" id="ignition_angle">0.0</div>
+        <div class="unit">deg</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Injection Actual PW</div>
+        <div class="value" id="injection_actual_pw">0.0</div>
+        <div class="unit">ms</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Injection Effective PW</div>
+        <div class="value" id="injection_effective_pw">0.0</div>
+        <div class="unit">ms</div>
+      </div>
+
+      <div class="card" id="card_lambda_error">
+        <div class="label">Lambda Error</div>
+        <div class="value" id="lambda_error">0.00</div>
+        <div class="unit">λ</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Boost Target</div>
+        <div class="value" id="boost_target">0</div>
+        <div class="unit">kPa</div>
+      </div>
+
+      <div class="card" id="card_boost_error">
+        <div class="label">Boost Target Error</div>
+        <div class="value" id="boost_error">0</div>
+        <div class="unit">kPa</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Boost P</div>
+        <div class="smallvalue" id="boost_p">0.0</div>
+        <div class="unit">proportional</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Boost I</div>
+        <div class="smallvalue" id="boost_i">0.0</div>
+        <div class="unit">integral</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Boost D</div>
+        <div class="smallvalue" id="boost_d">0.0</div>
+        <div class="unit">derivative</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Boost Duty</div>
+        <div class="value" id="boost_duty">0</div>
+        <div class="unit">%</div>
+      </div>
+
+      <div class="card">
+        <div class="label">APS Main</div>
+        <div class="value" id="aps_main">0</div>
+        <div class="unit">%</div>
+      </div>
+
+      <div class="card">
+        <div class="label">E-Throttle Target</div>
+        <div class="value" id="throttle_target">0</div>
+        <div class="unit">%</div>
+      </div>
+
+      <div class="card">
+        <div class="label">VVT Inlet Target</div>
+        <div class="value" id="vvt_in_target">0</div>
+        <div class="unit">deg</div>
+      </div>
+
+      <div class="card">
+        <div class="label">VVT Inlet Position</div>
+        <div class="value" id="vvt_in_pos">0</div>
+        <div class="unit">deg</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="page_lighting" class="page">
+    <div class="summary">Cabin RGBW lighting controls.</div>
+
+    <div class="grid">
+      <div class="card wide">
+        <div class="label">Lighting Enabled</div>
+        <div class="lighting-row">
+          <button onclick="setLightingEnabled(true)">On</button>
+          <button onclick="setLightingEnabled(false)">Off</button>
+        </div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Auto-off Timer</div>
+        <input
+          type="number"
+          id="lighting_auto_off_minutes"
+          min="0"
+          max="1440"
+          step="1"
+          value="0"
+          onchange="applyLighting()"
+        >
+        <div class="unit">Minutes after last ECU packet before lights turn off. Use 0 to disable.</div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Mode</div>
+        <select id="lighting_mode" onchange="applyLighting()">
+          <option value="static">Static Colour</option>
+          <option value="pattern">Pattern / Theme</option>
+        </select>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Static Colour</div>
+        <input type="color" id="static_color" value="#0050ff" onchange="applyLighting()">
+      </div>
+
+      <div class="card wide">
+        <div class="label">Pattern / Theme</div>
+        <select id="lighting_pattern" onchange="applyLighting()">
+          <option value="engine_plasma">Engine Plasma</option>
+          <option value="breathing">Breathing</option>
+          <option value="rainbow">Rainbow</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Live Lighting Output</div>
+        <div id="lighting_preview"
+            style="height:80px;border-radius:14px;border:1px solid #555;background:#000;margin-bottom:10px;">
+        </div>
+        <div class="unit" id="lighting_preview_text">RGBW: 0, 0, 0, 0</div>
+        <div class="unit" id="lighting_preview_mode">Mode: --</div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Max Brightness</div>
+        <input type="range" id="lighting_brightness" min="0" max="100" value="100" oninput="applyLighting()">
+        <div class="unit"><span id="brightness_label">100</span>%</div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Engine Plasma Mapping</div>
+        <div class="unit">Brightness: 1000 rpm = 50%, 4800 rpm = 100%</div>
+        <div class="unit">Colour: MGP &lt;15 = cold, MGP &gt;60 = hot</div>
+      </div>
+    </div>
+  </section>
+
+<script>
+
+const DASH_SVG_NS = "http://www.w3.org/2000/svg";
+const DASH_CX = 260;
+const DASH_CY = 260;
+const DASH_MAIN_NEEDLE_INNER_R = 125;
+const DASH_MAIN_NEEDLE_OUTER_R = 204;
+const DASH_MAIN_NEEDLE_BASE_ANGLE = 235;
+const DASH_SUB_NEEDLE_INNER_R = 126;
+const DASH_SUB_NEEDLE_OUTER_R = 208;
+const DASH_SUB_NEEDLE_BASE_ANGLE = 202;
+const DASH_PROGRESS_ARC_R = 225;
+const DASH_PROGRESS_START_ANGLE = 235;
+const DASH_PROGRESS_END_ANGLE = 485;
+
+function dashPolar(cx, cy, r, angleDeg) {
+  const a = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+}
+
+function dashDescribeArc(cx, cy, r, startAngle, endAngle) {
+  // Swapped the points! The arc now natively draws left-to-right (from startAngle to endAngle).
+  // This causes stroke-dashoffset to correctly reveal the path from the starting edge.
+  const start = dashPolar(cx, cy, r, startAngle);
+  const end = dashPolar(cx, cy, r, endAngle);
+  const largeArc = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+  const sweep = endAngle >= startAngle ? "1" : "0";
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`;
+}
+
+function dashAddPath(group, d, className, extra = {}) {
+  if (!group) return null;
+  const p = document.createElementNS(DASH_SVG_NS, "path");
+  p.setAttribute("d", d);
+  p.setAttribute("class", className);
+  Object.entries(extra).forEach(([k, v]) => p.setAttribute(k, v));
+  group.appendChild(p);
+  return p;
+}
+
+function dashAddLine(group, p1, p2, className) {
+  if (!group) return null;
+  const line = document.createElementNS(DASH_SVG_NS, "line");
+  line.setAttribute("x1", p1.x);
+  line.setAttribute("y1", p1.y);
+  line.setAttribute("x2", p2.x);
+  line.setAttribute("y2", p2.y);
+  line.setAttribute("class", className);
+  group.appendChild(line);
+  return line;
+}
+
+function dashAddText(group, x, y, text, className) {
+  if (!group) return null;
+  const t = document.createElementNS(DASH_SVG_NS, "text");
+  t.setAttribute("x", x);
+  t.setAttribute("y", y);
+  t.setAttribute("class", className);
+  t.textContent = text;
+  group.appendChild(t);
+  return t;
+}
+
+function dashTick(group, angle, outerR, innerR, className) {
+  dashAddLine(group, dashPolar(DASH_CX, DASH_CY, outerR, angle), dashPolar(DASH_CX, DASH_CY, innerR, angle), className);
+}
+
+function buildBoostGauge() {
+  if (document.getElementById("boost-blue-arc-built")) return;
+
+  const arcGroup = document.getElementById("boost-blue-arc");
+  const redGroup = document.getElementById("boost-red-arc");
+  const tickGroup = document.getElementById("boost-ticks");
+  const labelGroup = document.getElementById("boost-labels");
+
+  // Dynamic arc starts empty and is updated from live MGP.
+  dashAddPath(arcGroup, "", "progress-arc boost-progress-arc", { id: "boostProgressArc" });
+  dashAddPath(arcGroup, "", "tick-thin", { id: "boost-blue-arc-built", opacity: "0" });
+
+  // Keep only the red/danger static arc.
+  dashAddPath(redGroup, dashDescribeArc(DASH_CX, DASH_CY, 225, 92, 128), "red-track");
+
+  const startAngle = 235;
+  const endAngle = 485;
+  const min = -100;
+  const max = 250;
+  const values = [-100, -50, 0, 50, 100, 150, 200, 250];
+
+  values.forEach((v) => {
+    const angle = startAngle + (endAngle - startAngle) * ((v - min) / (max - min));
+    dashTick(tickGroup, angle, 240, 219, "tick-major");
+    const pos = dashPolar(DASH_CX, DASH_CY, 199, angle);
+    dashAddText(labelGroup, pos.x, pos.y, String(v), v >= 200 ? "label red-tick" : "label");
+  });
+
+  for (let v = min; v <= max; v += 10) {
+    if (values.includes(v)) continue;
+    const angle = startAngle + (endAngle - startAngle) * ((v - min) / (max - min));
+    let cls = "tick-minor";
+    if (v >= 200) cls = "tick-minor red-tick";
+    dashTick(tickGroup, angle, 230, 218, cls);
+  }
+}
+
+function buildRpmGauge() {
+  if (document.getElementById("rpm-left-arc-built")) return;
+
+  const leftArc = document.getElementById("rpm-left-arc");
+  const redArc = document.getElementById("rpm-red-arc");
+  const tickGroup = document.getElementById("rpm-ticks");
+  const labelGroup = document.getElementById("rpm-labels");
+
+  // Dynamic arc starts empty and is updated from live RPM.
+  dashAddPath(leftArc, "", "progress-arc", { id: "rpmProgressArc" });
+  dashAddPath(leftArc, "", "tick-thin", { id: "rpm-left-arc-built", opacity: "0" });
+
+  // Keep only the red/danger static arc.
+  dashAddPath(redArc, dashDescribeArc(DASH_CX, DASH_CY, 225, 80, 128), "red-track");
+
+  const startAngle = 235;
+  const endAngle = 485;
+  const max = 8;
+
+  for (let v = 0; v <= max; v++) {
+    const angle = startAngle + (endAngle - startAngle) * (v / max);
+    dashTick(tickGroup, angle, 240, 219, "tick-major");
+    const pos = dashPolar(DASH_CX, DASH_CY, 201, angle);
+    dashAddText(labelGroup, pos.x, pos.y, String(v), v >= 7 ? "label red-tick" : "label");
+  }
+
+  for (let v = 0; v <= max; v += 0.2) {
+    const rounded = Math.round(v * 10) / 10;
+    if (Math.abs(rounded - Math.round(rounded)) < 0.001) continue;
+    const angle = startAngle + (endAngle - startAngle) * (v / max);
+    let cls = "tick-minor";
+    if (v >= 6.5 && v < 7.2) cls = "tick-minor yellow-tick";
+    if (v >= 7.2) cls = "tick-minor red-tick";
+    dashTick(tickGroup, angle, 230, 218, cls);
+  }
+}
+
+function buildTempSubGauge(prefix) {
+  if (document.getElementById(prefix + "-temp-built")) return;
+
+  const arcGroup = document.getElementById(prefix + "-temp-arc");
+  const tickGroup = document.getElementById(prefix + "-temp-ticks");
+  const labelGroup = document.getElementById(prefix + "-temp-labels");
+
+  // Lower centre arch, separate from the main gauge sweep.
+  // Min is lower-left and max is lower-right.
+  const startAngle = 202;
+  const endAngle = 158;
+  const isIat = prefix === "iat";
+
+  const min = 0;
+  const max = isIat ? 60 : 140;
+  const majorValues = isIat ? [0, 20, 40, 60] : [0, 40, 80, 110, 140];
+
+  // Hidden marker so the gauge only builds once.
+  dashAddPath(arcGroup, "", "tick-thin", { id: prefix + "-temp-built", opacity: "0" });
+
+  // IAT intentionally has no red arc. ECT red arc covers 110-140 only.
+  if (!isIat) {
+    const redStartValue = 110;
+    const redStartAngle = startAngle + (endAngle - startAngle) * ((redStartValue - min) / (max - min));
+    dashAddPath(arcGroup, dashDescribeArc(DASH_CX, DASH_CY, 225, redStartAngle, endAngle), "temp-track-danger");
+  }
+
+  majorValues.forEach((v) => {
+    const angle = startAngle + (endAngle - startAngle) * ((v - min) / (max - min));
+    const danger = !isIat && v >= 110;
+    dashTick(tickGroup, angle, 236, 217, danger ? "tick-major red-tick" : "tick-major");
+    const pos = dashPolar(DASH_CX, DASH_CY, 199, angle);
+    dashAddText(labelGroup, pos.x, pos.y, String(v), danger ? "temp-scale-label red-tick" : "temp-scale-label");
+  });
+
+  const minorStep = isIat ? 5 : 10;
+  for (let v = min; v <= max; v += minorStep) {
+    if (majorValues.includes(v)) continue;
+    const angle = startAngle + (endAngle - startAngle) * ((v - min) / (max - min));
+    const danger = !isIat && v >= 110;
+    dashTick(tickGroup, angle, 232, 222, danger ? "tick-minor red-tick" : "tick-minor");
+  }
+}
+
+function buildCarDashGauges() {
+  buildBoostGauge();
+  buildRpmGauge();
+  buildTempSubGauge("iat");
+  buildTempSubGauge("ect");
+  initDashNeedle("boostNeedle", DASH_MAIN_NEEDLE_INNER_R, DASH_MAIN_NEEDLE_OUTER_R, DASH_MAIN_NEEDLE_BASE_ANGLE);
+  initDashNeedle("rpmNeedle", DASH_MAIN_NEEDLE_INNER_R, DASH_MAIN_NEEDLE_OUTER_R, DASH_MAIN_NEEDLE_BASE_ANGLE);
+  initDashNeedle("iatNeedle", DASH_SUB_NEEDLE_INNER_R, DASH_SUB_NEEDLE_OUTER_R, DASH_SUB_NEEDLE_BASE_ANGLE);
+  initDashNeedle("ectNeedle", DASH_SUB_NEEDLE_INNER_R, DASH_SUB_NEEDLE_OUTER_R, DASH_SUB_NEEDLE_BASE_ANGLE);
+  initProgressArc("boostProgressArc", DASH_PROGRESS_START_ANGLE, DASH_PROGRESS_END_ANGLE);
+  initProgressArc("rpmProgressArc", DASH_PROGRESS_START_ANGLE, DASH_PROGRESS_END_ANGLE);
+}
+
+function initDashNeedle(id, innerRadius, outerRadius, baseAngle) {
+  const needle = document.getElementById(id);
+  if (!needle || needle.dataset.baseAngle) return;
+
+  const inner = dashPolar(DASH_CX, DASH_CY, innerRadius, baseAngle);
+  const outer = dashPolar(DASH_CX, DASH_CY, outerRadius, baseAngle);
+
+  needle.setAttribute("x1", inner.x);
+  needle.setAttribute("y1", inner.y);
+  needle.setAttribute("x2", outer.x);
+  needle.setAttribute("y2", outer.y);
+  needle.dataset.baseAngle = String(baseAngle);
+}
+
+function initProgressArc(id, startAngle, endAngle) {
+  const arc = document.getElementById(id);
+  if (!arc || arc.dataset.arcLength) return;
+
+  arc.setAttribute("d", dashDescribeArc(DASH_CX, DASH_CY, DASH_PROGRESS_ARC_R, startAngle, endAngle));
+  const length = arc.getTotalLength();
+  arc.style.strokeDasharray = String(length);
+  arc.style.strokeDashoffset = String(length);
+  arc.dataset.arcLength = String(length);
+}
+
+function setDashNeedle(id, value, min, max) {
+  const needle = document.getElementById(id);
+  if (!needle) return;
+
+  const pct = clamp((value - min) / (max - min), 0, 1);
+  const angle = DASH_MAIN_NEEDLE_BASE_ANGLE + (DASH_PROGRESS_END_ANGLE - DASH_PROGRESS_START_ANGLE) * pct;
+  const baseAngle = Number(needle.dataset.baseAngle || DASH_MAIN_NEEDLE_BASE_ANGLE);
+  const rotation = (angle - baseAngle).toFixed(2);
+  
+  if (needle.dataset.rotation === rotation) return;
+  needle.style.transform = `rotate(${rotation}deg)`;
+  needle.dataset.rotation = rotation;
+}
+
+function setLowerArcNeedle(id, value, min, max) {
+  const needle = document.getElementById(id);
+  if (!needle) return;
+
+  const pct = clamp((value - min) / (max - min), 0, 1);
+  const angle = DASH_SUB_NEEDLE_BASE_ANGLE + (158 - DASH_SUB_NEEDLE_BASE_ANGLE) * pct;
+  const baseAngle = Number(needle.dataset.baseAngle || DASH_SUB_NEEDLE_BASE_ANGLE);
+  const rotation = (angle - baseAngle).toFixed(2);
+  
+  if (needle.dataset.rotation === rotation) return;
+  needle.style.transform = `rotate(${rotation}deg)`;
+  needle.dataset.rotation = rotation;
+}
+
+function setProgressArc(id, value, min, max) {
+  const arc = document.getElementById(id);
+  if (!arc) return;
+
+  const pct = clamp((value - min) / (max - min), 0, 1);
+  const length = Number(arc.dataset.arcLength || 0);
+  if (!length) return;
+  const offset = (length * (1 - pct)).toFixed(2);
+  if (arc.dataset.offset === offset) return;
+  
+  arc.style.strokeDashoffset = offset;
+  arc.dataset.offset = offset;
+}
+
+function setSvgText(id, value, decimals = 0) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  
+  // Checking before assignment prevents destructive DOM layout thrashing
+  const strVal = Number(value).toFixed(decimals);
+  if (el.textContent !== strVal) {
+    el.textContent = strVal;
+  }
+}
+
+function setText(id, value, decimals = 0) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  const n = Number(value);
+  const strVal = Number.isFinite(n) ? n.toFixed(decimals) : '--';
+  
+  if (el.textContent !== strVal) {
+    el.textContent = strVal;
+  }
+}
+
+function updateBatteryLevel(voltage) {
+  const fill = document.getElementById('batteryLevelFill');
+  if (!fill) return;
+
+  // UI indicator only:
+  // 11.5V = empty/critical, 12.7V = full resting battery.
+  // Alternator/charging voltage is capped at full.
+  const pct = clamp((voltage - 11.5) / (12.7 - 11.5), 0, 1) * 100;
+
+  fill.style.width = pct.toFixed(0) + '%';
+
+  const isDanger = voltage > 0 && voltage < 11.5;
+  const isWarn = voltage >= 11.5 && voltage < 12.2;
+
+  fill.classList.toggle('danger', isDanger);
+  fill.classList.toggle('warn', !isDanger && isWarn);
+}
+
+
+function hexToRgb(hex) {
+  const clean = hex.replace('#', '');
+  return {
+    r: parseInt(clean.substring(0, 2), 16),
+    g: parseInt(clean.substring(2, 4), 16),
+    b: parseInt(clean.substring(4, 6), 16)
+  };
+}
+
+async function goFullscreen() {
+  const el = document.documentElement;
+
+  try {
+    if (el.requestFullscreen) {
+      await el.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      await el.webkitRequestFullscreen();
+    }
+  } catch (err) {
+    console.log('Fullscreen request failed', err);
+  }
+}
+
+async function applyLighting() {
+  const mode = document.getElementById('lighting_mode').value;
+  const pattern = document.getElementById('lighting_pattern').value;
+  const color = hexToRgb(document.getElementById('static_color').value);
+  const brightnessPct = Number(document.getElementById('lighting_brightness').value);
+  const brightness = brightnessPct / 100.0;
+  const autoOffMinutes = Number(document.getElementById('lighting_auto_off_minutes').value) || 0;
+
+  document.getElementById('brightness_label').textContent = brightnessPct;
+
+  const url =
+    '/setLighting?' +
+    'mode=' + encodeURIComponent(mode) +
+    '&pattern=' + encodeURIComponent(pattern) +
+    '&r=' + color.r +
+    '&g=' + color.g +
+    '&b=' + color.b +
+    '&w=0' +
+    '&brightness=' + brightness +
+    '&auto_off_minutes=' + autoOffMinutes;
+
+  await fetch(url);
+}
+
+async function setLightingEnabled(enabled) {
+  await fetch('/setLighting?enabled=' + (enabled ? '1' : '0'));
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b]
+    .map((value) => Number(value).toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function showPage(name) {
+  const pages = ['cardash', 'driving', 'health', 'debug', 'lighting'];
+
+  for (const p of pages) {
+    document.getElementById('page_' + p).classList.remove('active');
+    document.getElementById('btn_' + p).classList.remove('active');
+  }
+
+  document.getElementById('page_' + name).classList.add('active');
+  document.getElementById('btn_' + name).classList.add('active');
+}
+
+function setCardState(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.classList.remove('ok', 'warn', 'danger');
+
+  if (state) {
+    el.classList.add(state);
+  }
+}
+
+const refreshState = {
+  dataInFlight: false,
+  lightingInFlight: false,
+  dataPending: false,
+  lightingPending: false
+};
+
+function updateWarnings(d) {
+  const stale = d.age_ms > 1500;
+
+  const oilPressureDanger = d.rpm > 1500 && d.oil_pressure < 150;
+  const ectWarn = d.ect >= 100 && d.ect < 110;
+  const ectDanger = d.ect >= 110;
+  const battWarn = d.battery_v > 0 && d.battery_v < 12.2;
+  const lambdaDanger = d.map > 120 && d.lambda1 > d.lambda_target + 0.08;
+  const fuelPressureDanger = d.rpm > 1500 && d.fuel_pressure > 0 && d.fuel_pressure < 250;
+  const trigDanger = d.trig1_err > 0;
+
+  setCardState('card_ect', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
+  setCardState('card_health_ect', ectDanger ? 'danger' : ectWarn ? 'warn' : null);
+
+  setCardState('card_oil_pressure', oilPressureDanger ? 'danger' : null);
+  setCardState('card_health_oil_pressure', oilPressureDanger ? 'danger' : null);
+
+  setCardState('card_battery', battWarn ? 'warn' : null);
+  setCardState('card_health_battery', battWarn ? 'warn' : null);
+
+  setCardState('card_lambda', lambdaDanger ? 'danger' : null);
+  setCardState('card_fuel_pressure', fuelPressureDanger ? 'danger' : null);
+  setCardState('card_trig', trigDanger ? 'danger' : null);
+
+  setCardState('card_lambda_error', Math.abs(d.lambda_error) > 0.08 ? 'warn' : null);
+  setCardState('card_boost_error', Math.abs(d.boost_error) > 20 ? 'warn' : null);
+
+  const alertBox = document.getElementById('main_alert');
+
+  let alerts = [];
+
+  if (stale) alerts.push('DATA STALE');
+  if (oilPressureDanger) alerts.push('LOW OIL PRESSURE');
+  if (ectDanger) alerts.push('HIGH COOLANT TEMP');
+  if (lambdaDanger) alerts.push('LEAN ON BOOST');
+  if (fuelPressureDanger) alerts.push('LOW FUEL PRESSURE');
+  if (trigDanger) alerts.push('TRIGGER ERROR');
+
+  if (alerts.length > 0) {
+    alertBox.textContent = alerts.join(' | ');
+    alertBox.style.display = 'block';
+  } else {
+    alertBox.style.display = 'none';
+  }
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function valueToNeedleAngle(value, min, max) {
+  const pct = clamp((value - min) / (max - min), 0, 1);
+
+  // Gauge sweep: -130° left to +130° right.
+  return -130 + pct * 260;
+}
+
+function setGaugeArc(id, value, min, max) {
+  const arc = document.getElementById(id);
+  if (!arc) return;
+
+  const pct = clamp((value - min) / (max - min), 0, 1);
+  const length = arc.getTotalLength();
+  arc.style.strokeDasharray = length;
+  arc.style.strokeDashoffset = length * (1 - pct);
+}
+
+function setGaugeNeedle(id, value, min, max) {
+  const needle = document.getElementById(id);
+  if (!needle) return;
+
+  const angle = valueToNeedleAngle(value, min, max);
+  needle.style.transform = 'rotate(' + angle + 'deg)';
+}
+
+function setMiniPanelState(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.classList.remove('warn', 'danger');
+  if (state) el.classList.add(state);
+}
+
+function updateCarDash(d) {
+  const rpm = Number(d.rpm) || 0;
+  const mgp = Number(d.mgp) || 0;
+  const map = Number(d.map) || 0;
+  const ect = Number(d.ect) || 0;
+  const iat = Number(d.iat) || 0;
+  const battery = Number(d.battery_v) || 0;
+  const internal3v3 = Number(d.internal_3v3) || 0;
+  const internal12v = Number(d.internal_12v) || 0;
+
+  setSvgText('cardash_rpm', Math.round(rpm), 0);
+  setSvgText('cardash_mgp', Math.round(mgp), 0);
+  setSvgText('cardash_map', Math.round(map), 0);
+  setSvgText('cardash_batt', battery, 1);
+  setSvgText('cardash_batt_aux', battery, 1);
+  setSvgText('cardash_ect', Math.round(ect), 0);
+  setSvgText('cardash_iat', Math.round(iat), 0);
+  setSvgText('cardash_3v3', internal3v3, 2);
+  setSvgText('cardash_12v', internal12v, 1);
+  updateBatteryLevel(battery);
+
+  setDashNeedle('rpmNeedle', rpm, 0, 8000);
+  setDashNeedle('boostNeedle', mgp, -100, 250);
+  setProgressArc('rpmProgressArc', rpm, 0, 8000);
+  setProgressArc('boostProgressArc', mgp, 0, 250);
+  setLowerArcNeedle('iatNeedle', iat, 0, 60);
+  setLowerArcNeedle('ectNeedle', ect, 0, 140);
+
+  const rpmWarning = document.getElementById('rpmWarningLight');
+  if (rpmWarning) rpmWarning.classList.toggle('active', rpm >= 6500);
+
+  const battWarn = battery > 0 && battery < 12.2;
+  const battDanger = battery > 0 && battery < 11.5;
+  const rail3v3Warn = internal3v3 > 0 && (internal3v3 < 3.15 || internal3v3 > 3.45);
+  const rail3v3Danger = internal3v3 > 0 && (internal3v3 < 3.0 || internal3v3 > 3.6);
+  const rail12vWarn = internal12v > 0 && (internal12v < 11.5 || internal12v > 13.5);
+  const rail12vDanger = internal12v > 0 && (internal12v < 10.5 || internal12v > 14.5);
+
+  setMiniPanelState('cardash_batt_panel', battDanger ? 'danger' : battWarn ? 'warn' : null);
+  setMiniPanelState('cardash_3v3_panel', rail3v3Danger ? 'danger' : rail3v3Warn ? 'warn' : null);
+  setMiniPanelState('cardash_12v_panel', rail12vDanger ? 'danger' : rail12vWarn ? 'warn' : null);
+}
+
+async function refreshData() {
+  if (refreshState.dataInFlight) {
+    refreshState.dataPending = true;
+    return;
+  }
+
+  refreshState.dataInFlight = true;
+  do {
+    refreshState.dataPending = false;
+
+    try {
+      const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
+      const d = await res.json();
+
+      // Apply dialed lighting state synchronously with data update
+      const carDashPage = document.getElementById('page_cardash');
+      if (carDashPage) {
+        carDashPage.style.setProperty(
+          '--dial-rgb',
+          (d.led_r || 0) + ', ' + (d.led_g || 0) + ', ' + (d.led_b || 0)
+        );
+      }
+
+      updateCarDash(d);
+
+      setText('rpm', d.rpm, 0);
+      setText('mgp', d.mgp, 0);
+      setText('map', d.map, 0);
+      setText('lambda1', d.lambda1, 2);
+      setText('lambda_target', d.lambda_target, 2);
+      setText('ect', d.ect, 0);
+      setText('oil_pressure', d.oil_pressure, 0);
+      setText('battery_v', d.battery_v, 1);
+      setText('tps', d.tps, 0);
+
+      setText('health_ect', d.ect, 0);
+      setText('iat', d.iat, 0);
+      setText('oil_temp', d.oil_temp, 0);
+      setText('health_oil_pressure', d.oil_pressure, 0);
+      setText('fuel_pressure', d.fuel_pressure, 0);
+      setText('health_battery_v', d.battery_v, 1);
+      setText('internal_3v3', d.internal_3v3, 2);
+      setText('internal_12v', d.internal_12v, 1);
+      setText('trig1_err', d.trig1_err, 0);
+      setText('lambda_status', d.lambda_status, 0);
+      setText('lambda_temp', d.lambda_temp, 0);
+
+      setText('ignition_angle', d.ignition_angle, 1);
+      setText('injection_actual_pw', d.injection_actual_pw, 1);
+      setText('injection_effective_pw', d.injection_effective_pw, 1);
+      setText('lambda_error', d.lambda_error, 2);
+      setText('boost_target', d.boost_target, 0);
+      setText('boost_error', d.boost_error, 0);
+      setText('boost_p', d.boost_p, 1);
+      setText('boost_i', d.boost_i, 1);
+      setText('boost_d', d.boost_d, 1);
+      setText('boost_duty', d.boost_duty, 0);
+      setText('aps_main', d.aps_main, 0);
+      setText('throttle_target', d.throttle_target, 0);
+      setText('vvt_in_target', d.vvt_in_target, 0);
+      setText('vvt_in_pos', d.vvt_in_pos, 0);
+
+      const status = document.getElementById('status');
+
+      if (d.age_ms > 1500) {
+        status.textContent = 'Data stale — last packet ' + d.age_ms + ' ms ago';
+        status.style.color = '#ff7777';
+      } else {
+        status.textContent = 'Live — last packet ' + d.age_ms + ' ms ago';
+        status.style.color = '#9da7b4';
+      }
+
+      const summary = document.getElementById('driving_summary');
+      const summaryText =
+        'RPM ' + Math.round(d.rpm) +
+        ' | MAP ' + Math.round(d.map) + ' kPa' +
+        ' | Lambda ' + Number(d.lambda1).toFixed(2) +
+        ' / target ' + Number(d.lambda_target).toFixed(2) +
+        ' | Oil ' + Math.round(d.oil_pressure) + ' kPa';
+        
+      if (summary.textContent !== summaryText) {
+          summary.textContent = summaryText;
+      }
+
+      updateWarnings(d);
+
+    } catch (err) {
+      const status = document.getElementById('status');
+      status.textContent = 'Dashboard fetch error';
+      status.style.color = '#ff7777';
+    }
+  } while (refreshState.dataPending);
+
+  refreshState.dataInFlight = false;
+}
+
+// Lighting endpoint is now pulled much less frequently just for the UI form data
+// since LED data is merged directly into the fast data payload above.
+async function refreshLightingState() {
+  if (refreshState.lightingInFlight) {
+    refreshState.lightingPending = true;
+    return;
+  }
+
+  refreshState.lightingInFlight = true;
+
+  do {
+    refreshState.lightingPending = false;
+
+    try {
+      const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
+      const s = await res.json();
+
+      const preview = document.getElementById('lighting_preview');
+      const text = document.getElementById('lighting_preview_text');
+      const mode = document.getElementById('lighting_preview_mode');
+
+      if (preview && text && mode) {
+        preview.style.backgroundColor =
+          'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
+
+        const previewTextStr = 'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
+        if (text.textContent !== previewTextStr) text.textContent = previewTextStr;
+
+        const autoOffText =
+          Number(s.auto_off_minutes) > 0
+            ? ' / Auto-off: ' + s.auto_off_minutes + ' min' + (s.auto_off_expired ? ' active' : '')
+            : ' / Auto-off: disabled';
+
+        const modeTextStr = 'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
+                            ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%' +
+                            autoOffText;
+        if (mode.textContent !== modeTextStr) mode.textContent = modeTextStr;
+
+        const modeSelect = document.getElementById('lighting_mode');
+        if (modeSelect) modeSelect.value = s.mode;
+
+        const patternSelect = document.getElementById('lighting_pattern');
+        if (patternSelect) patternSelect.value = s.pattern;
+
+        const staticColor = document.getElementById('static_color');
+        if (staticColor) {
+          staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+        }
+
+        const brightness = document.getElementById('lighting_brightness');
+        const brightnessLabel = document.getElementById('brightness_label');
+        const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+        if (brightness) brightness.value = String(brightnessPct);
+        if (brightnessLabel && brightnessLabel.textContent !== String(brightnessPct)) {
+          brightnessLabel.textContent = brightnessPct;
+        }
+        
+        const autoOffInput = document.getElementById('lighting_auto_off_minutes');
+        if (autoOffInput && document.activeElement !== autoOffInput) {
+          autoOffInput.value = String(s.auto_off_minutes || 0);
+        }
+      }
+    } catch (err) {
+      console.log('Lighting state refresh failed', err);
+    }
+  } while (refreshState.lightingPending);
+
+  refreshState.lightingInFlight = false;
+}
+
+buildCarDashGauges();
+setInterval(refreshData, 50);
+refreshData();
+
+setInterval(refreshLightingState, 2000); // Backed off 800% to unchoke the ESP32 network stack
+refreshLightingState();
+</script>
+
+</body>
+</html>
+)rawliteral";
+}
