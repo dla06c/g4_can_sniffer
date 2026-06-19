@@ -4,7 +4,7 @@
 #include <WiFiUdp.h>
 
 extern WebServer server;
-extern WiFiUdp udp;
+extern WiFiUDP udp;
 
 void setupRoutes();
 void handleRoot();

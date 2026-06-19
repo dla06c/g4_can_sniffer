@@ -5,7 +5,7 @@
 #include "dashboard.h"
 
 WebServer server(80);
-WiFiUdp udp;
+WiFiUDP udp;
 
 void handleRoot() {
   server.send(200, "text/html", dashboardHtml());
