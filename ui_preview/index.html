@@ -689,6 +689,45 @@
       flex: 1;
     }
 
+    .zone-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .zone-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .zone-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .zone-row span {
+      flex: 0 0 110px;
+      color: var(--muted);
+    }
+
+    .zone-row input[type="text"] {
+      flex: 1;
+      border: 1px solid #303642;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #111722;
+      color: var(--text);
+      font-size: 14px;
+      width: auto;
+    }
+
     @media (max-width: 480px) {
       .value {
         font-size: 28px;
@@ -1441,26 +1480,23 @@
     <div class="grid">
       <div class="card wide">
         <div class="label">Lighting Enabled</div>
-        <div class="lighting-row">
-          <button onclick="setLightingEnabled(true)">On</button>
-          <button onclick="setLightingEnabled(false)">Off</button>
-        </div>
+        <button id="lighting_enabled_btn" class="active" onclick="toggleLightingEnabled()">On</button>
       </div>
 
       <div class="card wide">
         <div class="label">Mode</div>
-        <select id="lighting_mode" onchange="applyLighting()">
+        <select id="lighting_mode" onchange="applyLighting(); updateLightingCardVisibility()">
           <option value="static">Static Colour</option>
           <option value="pattern">Pattern / Theme</option>
         </select>
       </div>
 
-      <div class="card wide">
+      <div class="card wide" id="card_static_colour">
         <div class="label">Static Colour</div>
         <input type="color" id="static_color" value="#0050ff" onchange="applyLighting()">
       </div>
 
-      <div class="card wide">
+      <div class="card wide" id="card_pattern_theme" style="display:none">
         <div class="label">Pattern / Theme</div>
         <select id="lighting_pattern" onchange="applyLighting()">
           <option value="engine_plasma">Engine Plasma</option>
@@ -1470,7 +1506,7 @@
         </select>
       </div>
 
-      <div class="card wide">
+      <div class="card wide" id="card_live_lighting" style="display:none">
         <div class="label">Live Lighting Output</div>
         <div id="lighting_preview"
             style="height:80px;border-radius:14px;border:1px solid #555;background:#000;margin-bottom:10px;">
@@ -1489,6 +1525,26 @@
         <div class="label">Engine Plasma Mapping</div>
         <div class="unit">Brightness: 1000 rpm = 50%, 4800 rpm = 100%</div>
         <div class="unit">Colour: MGP &lt;15 = cold, MGP &gt;60 = hot</div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Outside Zones (D13 – Exterior)</div>
+        <div class="zone-grid">
+          <label class="zone-row"><input type="checkbox" id="ext_z1_en" onchange="applyLighting()"><span>Outside Zone 1</span><input type="text" id="ext_z1_range" placeholder="e.g. 0-49" onchange="applyLighting()"></label>
+          <label class="zone-row"><input type="checkbox" id="ext_z2_en" onchange="applyLighting()"><span>Outside Zone 2</span><input type="text" id="ext_z2_range" placeholder="e.g. 50-99" onchange="applyLighting()"></label>
+          <label class="zone-row"><input type="checkbox" id="ext_z3_en" onchange="applyLighting()"><span>Outside Zone 3</span><input type="text" id="ext_z3_range" placeholder="e.g. 100-149" onchange="applyLighting()"></label>
+          <label class="zone-row"><input type="checkbox" id="ext_z4_en" onchange="applyLighting()"><span>Outside Zone 4</span><input type="text" id="ext_z4_range" placeholder="e.g. 150-199" onchange="applyLighting()"></label>
+        </div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Interior Zones (D12 – Interior)</div>
+        <div class="zone-grid">
+          <label class="zone-row"><input type="checkbox" id="int_z1_en" onchange="applyLighting()"><span>Interior Zone 1</span><input type="text" id="int_z1_range" placeholder="e.g. 0-49" onchange="applyLighting()"></label>
+          <label class="zone-row"><input type="checkbox" id="int_z2_en" onchange="applyLighting()"><span>Interior Zone 2</span><input type="text" id="int_z2_range" placeholder="e.g. 50-99" onchange="applyLighting()"></label>
+          <label class="zone-row"><input type="checkbox" id="int_z3_en" onchange="applyLighting()"><span>Interior Zone 3</span><input type="text" id="int_z3_range" placeholder="e.g. 100-149" onchange="applyLighting()"></label>
+          <label class="zone-row"><input type="checkbox" id="int_z4_en" onchange="applyLighting()"><span>Interior Zone 4</span><input type="text" id="int_z4_range" placeholder="e.g. 150-199" onchange="applyLighting()"></label>
+        </div>
       </div>
     </div>
   </section>
@@ -1810,6 +1866,25 @@ async function applyLighting() {
 
   document.getElementById('brightness_label').textContent = brightnessPct;
 
+  const zoneIds = [
+    { rangeId: 'ext_z1_range', enId: 'ext_z1_en', rangeParam: 'ext_z1_range', enParam: 'ext_z1_en' },
+    { rangeId: 'ext_z2_range', enId: 'ext_z2_en', rangeParam: 'ext_z2_range', enParam: 'ext_z2_en' },
+    { rangeId: 'ext_z3_range', enId: 'ext_z3_en', rangeParam: 'ext_z3_range', enParam: 'ext_z3_en' },
+    { rangeId: 'ext_z4_range', enId: 'ext_z4_en', rangeParam: 'ext_z4_range', enParam: 'ext_z4_en' },
+    { rangeId: 'int_z1_range', enId: 'int_z1_en', rangeParam: 'int_z1_range', enParam: 'int_z1_en' },
+    { rangeId: 'int_z2_range', enId: 'int_z2_en', rangeParam: 'int_z2_range', enParam: 'int_z2_en' },
+    { rangeId: 'int_z3_range', enId: 'int_z3_en', rangeParam: 'int_z3_range', enParam: 'int_z3_en' },
+    { rangeId: 'int_z4_range', enId: 'int_z4_en', rangeParam: 'int_z4_range', enParam: 'int_z4_en' },
+  ];
+
+  let zonePart = '';
+  for (const z of zoneIds) {
+    const rangeEl = document.getElementById(z.rangeId);
+    const enEl    = document.getElementById(z.enId);
+    if (rangeEl) zonePart += '&' + z.rangeParam + '=' + encodeURIComponent(rangeEl.value);
+    if (enEl)    zonePart += '&' + z.enParam    + '=' + (enEl.checked ? '1' : '0');
+  }
+
   const url =
     '/setLighting?' +
     'enabled=1' +
@@ -1819,13 +1894,37 @@ async function applyLighting() {
     '&g=' + color.g +
     '&b=' + color.b +
     '&w=0' +
-    '&brightness=' + brightness;
+    '&brightness=' + brightness +
+    zonePart;
 
   await fetch(url);
 }
 
-async function setLightingEnabled(enabled) {
-  await fetch('/setLighting?enabled=' + (enabled ? '1' : '0'));
+async function toggleLightingEnabled() {
+  const btn = document.getElementById('lighting_enabled_btn');
+  const isOn = btn && btn.classList.contains('active');
+  const newState = !isOn;
+  await fetch('/setLighting?enabled=' + (newState ? '1' : '0'));
+  updateLightingEnabledButton(newState);
+}
+
+function updateLightingEnabledButton(enabled) {
+  const btn = document.getElementById('lighting_enabled_btn');
+  if (!btn) return;
+  btn.textContent = enabled ? 'On' : 'Off';
+  btn.classList.toggle('active', enabled);
+}
+
+function updateLightingCardVisibility() {
+  const modeEl = document.getElementById('lighting_mode');
+  if (!modeEl) return;
+  const mode = modeEl.value;
+  const staticCard  = document.getElementById('card_static_colour');
+  const patternCard = document.getElementById('card_pattern_theme');
+  const liveCard    = document.getElementById('card_live_lighting');
+  if (staticCard)  staticCard.style.display  = (mode === 'static')  ? '' : 'none';
+  if (patternCard) patternCard.style.display = (mode === 'pattern') ? '' : 'none';
+  if (liveCard)    liveCard.style.display    = (mode === 'pattern') ? '' : 'none';
 }
 
 function rgbToHex(r, g, b) {
@@ -1966,7 +2065,10 @@ async function refreshLightingState() {
           ' | MGP: ' + Number(s.mgp).toFixed(1);
 
         const modeSelect = document.getElementById('lighting_mode');
-        if (modeSelect) modeSelect.value = s.mode;
+        if (modeSelect) {
+          modeSelect.value = s.mode;
+          updateLightingCardVisibility();
+        }
 
         const patternSelect = document.getElementById('lighting_pattern');
         if (patternSelect) patternSelect.value = s.pattern;
@@ -1981,6 +2083,27 @@ async function refreshLightingState() {
         const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
         if (brightness) brightness.value = String(brightnessPct);
         if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
+
+        updateLightingEnabledButton(s.enabled);
+
+        // Populate zone inputs.
+        const zoneMap = [
+          { zones: s.exterior_zones, rangePrefix: 'ext_z', enPrefix: 'ext_z' },
+          { zones: s.interior_zones, rangePrefix: 'int_z', enPrefix: 'int_z' },
+        ];
+        for (const group of zoneMap) {
+          if (!Array.isArray(group.zones)) continue;
+          for (let i = 0; i < group.zones.length && i < 4; i++) {
+            const z = group.zones[i];
+            const idx = i + 1;
+            const rangeEl = document.getElementById(group.rangePrefix + idx + '_range');
+            const enEl    = document.getElementById(group.enPrefix   + idx + '_en');
+            if (rangeEl && document.activeElement !== rangeEl) {
+              rangeEl.value = z.start + '-' + z.end;
+            }
+            if (enEl) enEl.checked = z.enabled;
+          }
+        }
       }
     } catch (err) {
       const text = document.getElementById('lighting_preview_text');
@@ -2154,6 +2277,7 @@ async function refreshData() {
 }
 
 buildCarDashGauges();
+updateLightingCardVisibility();
 setInterval(refreshData, 100);
 refreshData();
 

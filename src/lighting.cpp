@@ -13,6 +13,13 @@ Adafruit_NeoPixel pixels(
   NEO_RGBW + NEO_KHZ800
 );
 
+// Second addressable strip on D12 for interior lighting.
+Adafruit_NeoPixel pixelsInterior(
+  NEOPIXEL_COUNT,
+  NEOPIXEL_PIN_INTERIOR,
+  NEO_RGBW + NEO_KHZ800
+);
+
 Preferences lightingPreferences;
 LightingConfig lighting;
 bool lightingPrefsReady = false;
@@ -141,21 +148,43 @@ void setupLightingPwm() {
   pixels.setBrightness(255);  // Brightness is already handled by scaleColor().
   pixels.clear();
   pixels.show();
+
+  pixelsInterior.begin();
+  pixelsInterior.setBrightness(255);
+  pixelsInterior.clear();
+  pixelsInterior.show();
 }
 
 void setRgbw(RgbwColor c) {
   currentLightingOutput = c;
 
-  // Addressable RGBW output.
-  // For now every pixel receives the same colour. Later this can be extended
-  // to zones, gradients, chases, warning flashes, etc.
   uint32_t packed = pixels.Color(c.r, c.g, c.b, c.w);
 
-  for (uint16_t i = 0; i < NEOPIXEL_COUNT; i++) {
-    pixels.setPixelColor(i, packed);
+  // Exterior strip (D13): apply enabled zones; all other pixels are off.
+  pixels.clear();
+  for (int z = 0; z < 4; z++) {
+    if (!lighting.exteriorZones[z].enabled) continue;
+    uint16_t s = lighting.exteriorZones[z].start;
+    uint16_t e = lighting.exteriorZones[z].end;
+    if (e >= NEOPIXEL_COUNT) e = NEOPIXEL_COUNT - 1;
+    for (uint16_t i = s; i <= e; i++) {
+      pixels.setPixelColor(i, packed);
+    }
   }
-
   pixels.show();
+
+  // Interior strip (D12): apply enabled zones; all other pixels are off.
+  pixelsInterior.clear();
+  for (int z = 0; z < 4; z++) {
+    if (!lighting.interiorZones[z].enabled) continue;
+    uint16_t s = lighting.interiorZones[z].start;
+    uint16_t e = lighting.interiorZones[z].end;
+    if (e >= NEOPIXEL_COUNT) e = NEOPIXEL_COUNT - 1;
+    for (uint16_t i = s; i <= e; i++) {
+      pixelsInterior.setPixelColor(i, packed);
+    }
+  }
+  pixelsInterior.show();
 }
 
 bool lightingAutoOffExpired() {
@@ -246,6 +275,23 @@ void loadLightingSettings() {
     "auto_off_min",
     lighting.autoOffMinutes
   );
+
+  // Load zone config.
+  const char* extStartKeys[4] = { "ez1s", "ez2s", "ez3s", "ez4s" };
+  const char* extEndKeys[4]   = { "ez1e", "ez2e", "ez3e", "ez4e" };
+  const char* extEnKeys[4]    = { "ez1en", "ez2en", "ez3en", "ez4en" };
+  const char* intStartKeys[4] = { "iz1s", "iz2s", "iz3s", "iz4s" };
+  const char* intEndKeys[4]   = { "iz1e", "iz2e", "iz3e", "iz4e" };
+  const char* intEnKeys[4]    = { "iz1en", "iz2en", "iz3en", "iz4en" };
+
+  for (int z = 0; z < 4; z++) {
+    lighting.exteriorZones[z].start   = lightingPreferences.getUShort(extStartKeys[z], 0);
+    lighting.exteriorZones[z].end     = lightingPreferences.getUShort(extEndKeys[z], 0);
+    lighting.exteriorZones[z].enabled = lightingPreferences.getBool(extEnKeys[z], false);
+    lighting.interiorZones[z].start   = lightingPreferences.getUShort(intStartKeys[z], 0);
+    lighting.interiorZones[z].end     = lightingPreferences.getUShort(intEndKeys[z], 0);
+    lighting.interiorZones[z].enabled = lightingPreferences.getBool(intEnKeys[z], false);
+  }
 }
 
 void saveLightingSettings() {
@@ -260,11 +306,39 @@ void saveLightingSettings() {
   lightingPreferences.putUChar("static_w", lighting.staticW);
   lightingPreferences.putFloat("bright", lighting.maxBrightness);
   lightingPreferences.putUInt("auto_off_min", lighting.autoOffMinutes);
+
+  const char* extStartKeys[4] = { "ez1s", "ez2s", "ez3s", "ez4s" };
+  const char* extEndKeys[4]   = { "ez1e", "ez2e", "ez3e", "ez4e" };
+  const char* extEnKeys[4]    = { "ez1en", "ez2en", "ez3en", "ez4en" };
+  const char* intStartKeys[4] = { "iz1s", "iz2s", "iz3s", "iz4s" };
+  const char* intEndKeys[4]   = { "iz1e", "iz2e", "iz3e", "iz4e" };
+  const char* intEnKeys[4]    = { "iz1en", "iz2en", "iz3en", "iz4en" };
+
+  for (int z = 0; z < 4; z++) {
+    lightingPreferences.putUShort(extStartKeys[z], lighting.exteriorZones[z].start);
+    lightingPreferences.putUShort(extEndKeys[z],   lighting.exteriorZones[z].end);
+    lightingPreferences.putBool(extEnKeys[z],      lighting.exteriorZones[z].enabled);
+    lightingPreferences.putUShort(intStartKeys[z], lighting.interiorZones[z].start);
+    lightingPreferences.putUShort(intEndKeys[z],   lighting.interiorZones[z].end);
+    lightingPreferences.putBool(intEnKeys[z],      lighting.interiorZones[z].enabled);
+  }
 }
 
 void markLightingSettingsDirty() {
   lightingSettingsDirty = true;
   lightingSettingsLastChangeMs = millis();
+}
+
+// Parse "start-end" range string (e.g. "35-120") into start/end integers.
+// If the format is invalid the values are left unchanged.
+void parseZoneRange(const String& s, uint16_t& start, uint16_t& end) {
+  int dash = s.indexOf('-');
+  if (dash <= 0) return;
+  int a = s.substring(0, dash).toInt();
+  int b = s.substring(dash + 1).toInt();
+  if (a < 0 || b < 0 || a > b) return;
+  start = (uint16_t)a;
+  end   = (uint16_t)b;
 }
 
 const char* lightingModeName() {
@@ -324,6 +398,31 @@ void handleSetLighting() {
     lighting.autoOffMinutes = (uint32_t)constrain(minutes, 0, 1440);
   }
 
+  // Zone parameters: ext_z1_range, ext_z1_en, ..., int_z1_range, int_z1_en, ...
+  const char* extRangeArgs[4] = { "ext_z1_range", "ext_z2_range", "ext_z3_range", "ext_z4_range" };
+  const char* extEnArgs[4]    = { "ext_z1_en",    "ext_z2_en",    "ext_z3_en",    "ext_z4_en"    };
+  const char* intRangeArgs[4] = { "int_z1_range", "int_z2_range", "int_z3_range", "int_z4_range" };
+  const char* intEnArgs[4]    = { "int_z1_en",    "int_z2_en",    "int_z3_en",    "int_z4_en"    };
+
+  for (int z = 0; z < 4; z++) {
+    if (server.hasArg(extRangeArgs[z])) {
+      parseZoneRange(server.arg(extRangeArgs[z]),
+                     lighting.exteriorZones[z].start,
+                     lighting.exteriorZones[z].end);
+    }
+    if (server.hasArg(extEnArgs[z])) {
+      lighting.exteriorZones[z].enabled = server.arg(extEnArgs[z]).toInt() == 1;
+    }
+    if (server.hasArg(intRangeArgs[z])) {
+      parseZoneRange(server.arg(intRangeArgs[z]),
+                     lighting.interiorZones[z].start,
+                     lighting.interiorZones[z].end);
+    }
+    if (server.hasArg(intEnArgs[z])) {
+      lighting.interiorZones[z].enabled = server.arg(intEnArgs[z]).toInt() == 1;
+    }
+  }
+
   updateLighting();
   markLightingSettingsDirty();
 
@@ -358,7 +457,7 @@ void handleLightingState() {
   unsigned long packetAgeMs = ecu.last_update_ms == 0 ? 999999UL : now - ecu.last_update_ms;
 
   String json;
-  json.reserve(450);
+  json.reserve(900);
   json += "{";
   json += "\"enabled\":" + String(lighting.enabled ? "true" : "false") + ",";
   json += "\"mode\":\"" + String(lightingModeName()) + "\",";
@@ -382,7 +481,25 @@ void handleLightingState() {
   json += "\"preview_b\":" + String(previewB) + ",";
 
   json += "\"rpm\":" + String(ecu.rpm, 0) + ",";
-  json += "\"mgp\":" + String(ecu.mgp, 1);
+  json += "\"mgp\":" + String(ecu.mgp, 1) + ",";
+
+  // Zone configuration arrays.
+  auto appendZones = [&](const LightingZone zones[4], const char* key) {
+    json += "\"";
+    json += key;
+    json += "\":[";
+    for (int z = 0; z < 4; z++) {
+      if (z > 0) json += ",";
+      json += "{\"start\":" + String(zones[z].start) +
+              ",\"end\":"   + String(zones[z].end)   +
+              ",\"enabled\":" + String(zones[z].enabled ? "true" : "false") + "}";
+    }
+    json += "]";
+  };
+
+  appendZones(lighting.exteriorZones, "exterior_zones");
+  json += ",";
+  appendZones(lighting.interiorZones, "interior_zones");
   json += "}";
 
   server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");

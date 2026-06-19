@@ -4,7 +4,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <Preferences.h>
 
-const int NEOPIXEL_PIN = 13;
+const int NEOPIXEL_PIN = 13;           // D13 – exterior lighting
+const int NEOPIXEL_PIN_INTERIOR = 12;  // D12 – interior lighting
 const uint16_t NEOPIXEL_COUNT = 200;
 const unsigned long LIGHTING_SAVE_DEBOUNCE_MS = 500;
 
@@ -18,6 +19,13 @@ enum LightingPattern {
   PATTERN_BREATHING,
   PATTERN_RAINBOW,
   PATTERN_OFF
+};
+
+// A named LED index range on a strip with an on/off flag.
+struct LightingZone {
+  uint16_t start = 0;
+  uint16_t end = 0;
+  bool enabled = false;
 };
 
 struct LightingConfig {
@@ -35,6 +43,12 @@ struct LightingConfig {
   // Minutes to wait after the last ECU packet before turning lights off.
   // 0 disables the auto-off timer.
   uint32_t autoOffMinutes = 0;
+
+  // Zone configuration – 4 zones per strip.
+  // Exterior (D13): Outside Zones 1-4.
+  // Interior (D12): Interior Zones 1-4.
+  LightingZone exteriorZones[4];
+  LightingZone interiorZones[4];
 };
 
 struct RgbwColor {
@@ -45,6 +59,7 @@ struct RgbwColor {
 };
 
 extern Adafruit_NeoPixel pixels;
+extern Adafruit_NeoPixel pixelsInterior;
 extern Preferences lightingPreferences;
 extern LightingConfig lighting;
 extern bool lightingPrefsReady;
@@ -72,5 +87,6 @@ void saveLightingSettings();
 void markLightingSettingsDirty();
 const char* lightingModeName();
 const char* lightingPatternName();
+void parseZoneRange(const String& s, uint16_t& start, uint16_t& end);
 void handleSetLighting();
 void handleLightingState();
