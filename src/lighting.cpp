@@ -333,6 +333,8 @@ void markLightingSettingsDirty() {
 // If the format is invalid the values are left unchanged.
 void parseZoneRange(const String& s, uint16_t& start, uint16_t& end) {
   int dash = s.indexOf('-');
+  // dash <= 0 rejects both "not found" (-1) and a leading dash like "-49" (pos 0).
+  // It does NOT reject "0-49" where the digit 0 is at pos 0 and '-' is at pos 1.
   if (dash <= 0) return;
   int a = s.substring(0, dash).toInt();
   int b = s.substring(dash + 1).toInt();
