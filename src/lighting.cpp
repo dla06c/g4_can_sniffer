@@ -110,11 +110,11 @@ RgbwColor rainbowPalette(float t) {
 }
 
 RgbwColor enginePlasmaColor() {
-  // <1000 rpm = 50% brightness, 4200+ rpm = 100% brightness.
-  float rpmBrightness = mapFloatClamped(ecu.rpm, 1100.0, 4200.0, 0.60, 1.00);
+  float rpmBrightness = mapFloatClamped(ecu.rpm,
+    lighting.plasmaRpmMin, lighting.plasmaRpmMax, 0.60, 1.00);
 
-  // MAP is probably better than absolute MGP for this 30-70 range.
-  float loadFactor = mapFloatClamped(ecu.map, 30.0, 70.0, 0.0, 1.0);
+  float loadFactor = mapFloatClamped(ecu.map,
+    lighting.plasmaMapMin, lighting.plasmaMapMax, 0.0, 1.0);
 
   RgbwColor c = plasmaPalette(loadFactor);
 
@@ -123,7 +123,8 @@ RgbwColor enginePlasmaColor() {
 }
 
 RgbwColor breathingColor() {
-  float phase = (sin(millis() / 700.0) + 1.0) / 2.0;
+  float halfPeriod = 700.0f / lighting.breathingSpeed;
+  float phase = (sin(millis() / halfPeriod) + 1.0) / 2.0;
   float brightness = phase * lighting.maxBrightness;
 
   RgbwColor c = {
@@ -137,8 +138,99 @@ RgbwColor breathingColor() {
 }
 
 RgbwColor rainbowColor() {
-  float t = fmod(millis() / 5000.0, 1.0);
+  float cyclePeriod = 5000.0f / lighting.rainbowSpeed;
+  float t = fmod(millis() / cyclePeriod, 1.0);
   return scaleColor(rainbowPalette(t), lighting.maxBrightness);
+}
+
+// Helper: write per-pixel colors to a strip respecting enabled zones.
+static void applyPixelColors(
+    Adafruit_NeoPixel& strip,
+    LightingZone zones[4],
+    uint8_t r[], uint8_t g[], uint8_t b[])
+{
+  strip.clear();
+  for (int z = 0; z < 4; z++) {
+    if (!zones[z].enabled) continue;
+    uint16_t s = zones[z].start;
+    uint16_t e = zones[z].end;
+    if (e >= NEOPIXEL_COUNT) e = NEOPIXEL_COUNT - 1;
+    for (uint16_t i = s; i <= e; i++) {
+      strip.setPixelColor(i, strip.Color(r[i], g[i], b[i], 0));
+    }
+  }
+  strip.show();
+}
+
+void updateColorChase() {
+  RgbwColor colors[4] = {
+    {lighting.chaseC1R, lighting.chaseC1G, lighting.chaseC1B, 0},
+    {lighting.chaseC2R, lighting.chaseC2G, lighting.chaseC2B, 0},
+    {lighting.chaseC3R, lighting.chaseC3G, lighting.chaseC3B, 0},
+    {lighting.chaseC4R, lighting.chaseC4G, lighting.chaseC4B, 0},
+  };
+
+  // Default: 40 pixels per second at speed 1.0.
+  float pps = 40.0f * lighting.chaseSpeed;
+  int offset = (int)fmod((millis() / 1000.0f) * pps, (float)NEOPIXEL_COUNT);
+
+  int segLen = NEOPIXEL_COUNT / 4;  // 50 pixels per color band
+
+  uint8_t pr[NEOPIXEL_COUNT], pg[NEOPIXEL_COUNT], pb[NEOPIXEL_COUNT];
+  for (uint16_t i = 0; i < NEOPIXEL_COUNT; i++) {
+    int pos = (i + offset) % NEOPIXEL_COUNT;
+    int idx = (pos / segLen) % 4;
+    RgbwColor c = scaleColor(colors[idx], lighting.maxBrightness);
+    pr[i] = c.r;
+    pg[i] = c.g;
+    pb[i] = c.b;
+  }
+
+  applyPixelColors(pixels, lighting.exteriorZones, pr, pg, pb);
+  applyPixelColors(pixelsInterior, lighting.interiorZones, pr, pg, pb);
+
+  // Use first chase colour as representative output for the preview swatch.
+  currentLightingOutput = scaleColor(colors[0], lighting.maxBrightness);
+}
+
+void updateLightning() {
+  static uint8_t fade[NEOPIXEL_COUNT] = {0};
+  static unsigned long nextStrikeMs = 0;
+
+  unsigned long now = millis();
+
+  // Trigger a new lightning strike when the interval elapses.
+  if (now >= nextStrikeMs) {
+    int count = random(1, max(2, NEOPIXEL_COUNT / 20));
+    for (int f = 0; f < count; f++) {
+      fade[random(NEOPIXEL_COUNT)] = 255;
+    }
+    float intervalMs = 1000.0f / max(0.1f, lighting.lightningFrequency);
+    nextStrikeMs = now + (unsigned long)intervalMs;
+  }
+
+  // Fade all pixels toward zero.
+  for (int i = 0; i < NEOPIXEL_COUNT; i++) {
+    if (fade[i] > 20) fade[i] -= 20;
+    else              fade[i] = 0;
+  }
+
+  RgbwColor base = {lighting.lightningR, lighting.lightningG, lighting.lightningB, 0};
+
+  uint8_t pr[NEOPIXEL_COUNT], pg[NEOPIXEL_COUNT], pb[NEOPIXEL_COUNT];
+  for (uint16_t i = 0; i < NEOPIXEL_COUNT; i++) {
+    float brightness = (fade[i] / 255.0f) * lighting.maxBrightness;
+    RgbwColor c = scaleColor(base, brightness);
+    pr[i] = c.r;
+    pg[i] = c.g;
+    pb[i] = c.b;
+  }
+
+  applyPixelColors(pixels, lighting.exteriorZones, pr, pg, pb);
+  applyPixelColors(pixelsInterior, lighting.interiorZones, pr, pg, pb);
+
+  // Use the flash colour scaled to max brightness for the preview swatch.
+  currentLightingOutput = scaleColor(base, lighting.maxBrightness);
 }
 
 void setupLightingPwm() {
@@ -242,6 +334,16 @@ void updateLighting() {
     return;
   }
 
+  if (lighting.pattern == PATTERN_COLOR_CHASE) {
+    updateColorChase();
+    return;
+  }
+
+  if (lighting.pattern == PATTERN_LIGHTNING) {
+    updateLightning();
+    return;
+  }
+
   if (lighting.pattern == PATTERN_OFF) {
     setRgbw({0, 0, 0, 0});
     return;
@@ -276,6 +378,37 @@ void loadLightingSettings() {
     lighting.autoOffMinutes
   );
 
+  lighting.breathingSpeed = constrain(
+    lightingPreferences.getFloat("breath_spd", lighting.breathingSpeed), 0.1f, 10.0f);
+  lighting.rainbowSpeed = constrain(
+    lightingPreferences.getFloat("rainbow_spd", lighting.rainbowSpeed), 0.1f, 10.0f);
+
+  lighting.plasmaRpmMin = lightingPreferences.getFloat("pl_rpm_min", lighting.plasmaRpmMin);
+  lighting.plasmaRpmMax = lightingPreferences.getFloat("pl_rpm_max", lighting.plasmaRpmMax);
+  lighting.plasmaMapMin = lightingPreferences.getFloat("pl_map_min", lighting.plasmaMapMin);
+  lighting.plasmaMapMax = lightingPreferences.getFloat("pl_map_max", lighting.plasmaMapMax);
+
+  lighting.chaseC1R = lightingPreferences.getUChar("cc1r", lighting.chaseC1R);
+  lighting.chaseC1G = lightingPreferences.getUChar("cc1g", lighting.chaseC1G);
+  lighting.chaseC1B = lightingPreferences.getUChar("cc1b", lighting.chaseC1B);
+  lighting.chaseC2R = lightingPreferences.getUChar("cc2r", lighting.chaseC2R);
+  lighting.chaseC2G = lightingPreferences.getUChar("cc2g", lighting.chaseC2G);
+  lighting.chaseC2B = lightingPreferences.getUChar("cc2b", lighting.chaseC2B);
+  lighting.chaseC3R = lightingPreferences.getUChar("cc3r", lighting.chaseC3R);
+  lighting.chaseC3G = lightingPreferences.getUChar("cc3g", lighting.chaseC3G);
+  lighting.chaseC3B = lightingPreferences.getUChar("cc3b", lighting.chaseC3B);
+  lighting.chaseC4R = lightingPreferences.getUChar("cc4r", lighting.chaseC4R);
+  lighting.chaseC4G = lightingPreferences.getUChar("cc4g", lighting.chaseC4G);
+  lighting.chaseC4B = lightingPreferences.getUChar("cc4b", lighting.chaseC4B);
+  lighting.chaseSpeed = constrain(
+    lightingPreferences.getFloat("chase_speed", lighting.chaseSpeed), 0.1f, 10.0f);
+
+  lighting.lightningR = lightingPreferences.getUChar("lt_r", lighting.lightningR);
+  lighting.lightningG = lightingPreferences.getUChar("lt_g", lighting.lightningG);
+  lighting.lightningB = lightingPreferences.getUChar("lt_b", lighting.lightningB);
+  lighting.lightningFrequency = constrain(
+    lightingPreferences.getFloat("lt_freq", lighting.lightningFrequency), 0.1f, 20.0f);
+
   // Load zone config.
   const char* extStartKeys[4] = { "ez1s", "ez2s", "ez3s", "ez4s" };
   const char* extEndKeys[4]   = { "ez1e", "ez2e", "ez3e", "ez4e" };
@@ -306,6 +439,32 @@ void saveLightingSettings() {
   lightingPreferences.putUChar("static_w", lighting.staticW);
   lightingPreferences.putFloat("bright", lighting.maxBrightness);
   lightingPreferences.putUInt("auto_off_min", lighting.autoOffMinutes);
+
+  lightingPreferences.putFloat("breath_spd",  lighting.breathingSpeed);
+  lightingPreferences.putFloat("rainbow_spd", lighting.rainbowSpeed);
+  lightingPreferences.putFloat("pl_rpm_min",  lighting.plasmaRpmMin);
+  lightingPreferences.putFloat("pl_rpm_max",  lighting.plasmaRpmMax);
+  lightingPreferences.putFloat("pl_map_min",  lighting.plasmaMapMin);
+  lightingPreferences.putFloat("pl_map_max",  lighting.plasmaMapMax);
+
+  lightingPreferences.putUChar("cc1r", lighting.chaseC1R);
+  lightingPreferences.putUChar("cc1g", lighting.chaseC1G);
+  lightingPreferences.putUChar("cc1b", lighting.chaseC1B);
+  lightingPreferences.putUChar("cc2r", lighting.chaseC2R);
+  lightingPreferences.putUChar("cc2g", lighting.chaseC2G);
+  lightingPreferences.putUChar("cc2b", lighting.chaseC2B);
+  lightingPreferences.putUChar("cc3r", lighting.chaseC3R);
+  lightingPreferences.putUChar("cc3g", lighting.chaseC3G);
+  lightingPreferences.putUChar("cc3b", lighting.chaseC3B);
+  lightingPreferences.putUChar("cc4r", lighting.chaseC4R);
+  lightingPreferences.putUChar("cc4g", lighting.chaseC4G);
+  lightingPreferences.putUChar("cc4b", lighting.chaseC4B);
+  lightingPreferences.putFloat("chase_speed", lighting.chaseSpeed);
+
+  lightingPreferences.putUChar("lt_r",    lighting.lightningR);
+  lightingPreferences.putUChar("lt_g",    lighting.lightningG);
+  lightingPreferences.putUChar("lt_b",    lighting.lightningB);
+  lightingPreferences.putFloat("lt_freq", lighting.lightningFrequency);
 
   const char* extStartKeys[4] = { "ez1s", "ez2s", "ez3s", "ez4s" };
   const char* extEndKeys[4]   = { "ez1e", "ez2e", "ez3e", "ez4e" };
@@ -351,9 +510,11 @@ const char* lightingModeName() {
 
 const char* lightingPatternName() {
   if (lighting.pattern == PATTERN_ENGINE_PLASMA) return "engine_plasma";
-  if (lighting.pattern == PATTERN_BREATHING) return "breathing";
-  if (lighting.pattern == PATTERN_RAINBOW) return "rainbow";
-  if (lighting.pattern == PATTERN_OFF) return "off";
+  if (lighting.pattern == PATTERN_BREATHING)    return "breathing";
+  if (lighting.pattern == PATTERN_RAINBOW)      return "rainbow";
+  if (lighting.pattern == PATTERN_COLOR_CHASE)  return "color_chase";
+  if (lighting.pattern == PATTERN_LIGHTNING)    return "lightning";
+  if (lighting.pattern == PATTERN_OFF)          return "off";
   return "unknown";
 }
 
@@ -381,6 +542,10 @@ void handleSetLighting() {
       lighting.pattern = PATTERN_BREATHING;
     } else if (pattern == "rainbow") {
       lighting.pattern = PATTERN_RAINBOW;
+    } else if (pattern == "color_chase") {
+      lighting.pattern = PATTERN_COLOR_CHASE;
+    } else if (pattern == "lightning") {
+      lighting.pattern = PATTERN_LIGHTNING;
     } else if (pattern == "off") {
       lighting.pattern = PATTERN_OFF;
     }
@@ -425,6 +590,47 @@ void handleSetLighting() {
     }
   }
 
+  // Per-pattern parameters.
+  if (server.hasArg("breathing_speed")) {
+    lighting.breathingSpeed = constrain(server.arg("breathing_speed").toFloat(), 0.1, 10.0);
+  }
+  if (server.hasArg("rainbow_speed")) {
+    lighting.rainbowSpeed = constrain(server.arg("rainbow_speed").toFloat(), 0.1, 10.0);
+  }
+  if (server.hasArg("plasma_rpm_min")) {
+    lighting.plasmaRpmMin = constrain(server.arg("plasma_rpm_min").toFloat(), 0.0, 9000.0);
+  }
+  if (server.hasArg("plasma_rpm_max")) {
+    lighting.plasmaRpmMax = constrain(server.arg("plasma_rpm_max").toFloat(), 0.0, 9000.0);
+  }
+  if (server.hasArg("plasma_map_min")) {
+    lighting.plasmaMapMin = constrain(server.arg("plasma_map_min").toFloat(), 0.0, 300.0);
+  }
+  if (server.hasArg("plasma_map_max")) {
+    lighting.plasmaMapMax = constrain(server.arg("plasma_map_max").toFloat(), 0.0, 300.0);
+  }
+  if (server.hasArg("chase_c1_r")) lighting.chaseC1R = constrain(server.arg("chase_c1_r").toInt(), 0, 255);
+  if (server.hasArg("chase_c1_g")) lighting.chaseC1G = constrain(server.arg("chase_c1_g").toInt(), 0, 255);
+  if (server.hasArg("chase_c1_b")) lighting.chaseC1B = constrain(server.arg("chase_c1_b").toInt(), 0, 255);
+  if (server.hasArg("chase_c2_r")) lighting.chaseC2R = constrain(server.arg("chase_c2_r").toInt(), 0, 255);
+  if (server.hasArg("chase_c2_g")) lighting.chaseC2G = constrain(server.arg("chase_c2_g").toInt(), 0, 255);
+  if (server.hasArg("chase_c2_b")) lighting.chaseC2B = constrain(server.arg("chase_c2_b").toInt(), 0, 255);
+  if (server.hasArg("chase_c3_r")) lighting.chaseC3R = constrain(server.arg("chase_c3_r").toInt(), 0, 255);
+  if (server.hasArg("chase_c3_g")) lighting.chaseC3G = constrain(server.arg("chase_c3_g").toInt(), 0, 255);
+  if (server.hasArg("chase_c3_b")) lighting.chaseC3B = constrain(server.arg("chase_c3_b").toInt(), 0, 255);
+  if (server.hasArg("chase_c4_r")) lighting.chaseC4R = constrain(server.arg("chase_c4_r").toInt(), 0, 255);
+  if (server.hasArg("chase_c4_g")) lighting.chaseC4G = constrain(server.arg("chase_c4_g").toInt(), 0, 255);
+  if (server.hasArg("chase_c4_b")) lighting.chaseC4B = constrain(server.arg("chase_c4_b").toInt(), 0, 255);
+  if (server.hasArg("chase_speed")) {
+    lighting.chaseSpeed = constrain(server.arg("chase_speed").toFloat(), 0.1, 10.0);
+  }
+  if (server.hasArg("lightning_r")) lighting.lightningR = constrain(server.arg("lightning_r").toInt(), 0, 255);
+  if (server.hasArg("lightning_g")) lighting.lightningG = constrain(server.arg("lightning_g").toInt(), 0, 255);
+  if (server.hasArg("lightning_b")) lighting.lightningB = constrain(server.arg("lightning_b").toInt(), 0, 255);
+  if (server.hasArg("lightning_freq")) {
+    lighting.lightningFrequency = constrain(server.arg("lightning_freq").toFloat(), 0.1, 20.0);
+  }
+
   updateLighting();
   markLightingSettingsDirty();
 
@@ -459,7 +665,7 @@ void handleLightingState() {
   unsigned long packetAgeMs = ecu.last_update_ms == 0 ? 999999UL : now - ecu.last_update_ms;
 
   String json;
-  json.reserve(900);
+  json.reserve(1800);
   json += "{";
   json += "\"enabled\":" + String(lighting.enabled ? "true" : "false") + ",";
   json += "\"mode\":\"" + String(lightingModeName()) + "\",";
@@ -502,6 +708,32 @@ void handleLightingState() {
   appendZones(lighting.exteriorZones, "exterior_zones");
   json += ",";
   appendZones(lighting.interiorZones, "interior_zones");
+
+  // Per-pattern parameters.
+  json += ",\"breathing_speed\":"    + String(lighting.breathingSpeed, 2);
+  json += ",\"rainbow_speed\":"      + String(lighting.rainbowSpeed, 2);
+  json += ",\"plasma_rpm_min\":"     + String(lighting.plasmaRpmMin, 0);
+  json += ",\"plasma_rpm_max\":"     + String(lighting.plasmaRpmMax, 0);
+  json += ",\"plasma_map_min\":"     + String(lighting.plasmaMapMin, 0);
+  json += ",\"plasma_map_max\":"     + String(lighting.plasmaMapMax, 0);
+  json += ",\"chase_c1_r\":"  + String(lighting.chaseC1R);
+  json += ",\"chase_c1_g\":"  + String(lighting.chaseC1G);
+  json += ",\"chase_c1_b\":"  + String(lighting.chaseC1B);
+  json += ",\"chase_c2_r\":"  + String(lighting.chaseC2R);
+  json += ",\"chase_c2_g\":"  + String(lighting.chaseC2G);
+  json += ",\"chase_c2_b\":"  + String(lighting.chaseC2B);
+  json += ",\"chase_c3_r\":"  + String(lighting.chaseC3R);
+  json += ",\"chase_c3_g\":"  + String(lighting.chaseC3G);
+  json += ",\"chase_c3_b\":"  + String(lighting.chaseC3B);
+  json += ",\"chase_c4_r\":"  + String(lighting.chaseC4R);
+  json += ",\"chase_c4_g\":"  + String(lighting.chaseC4G);
+  json += ",\"chase_c4_b\":"  + String(lighting.chaseC4B);
+  json += ",\"chase_speed\":"       + String(lighting.chaseSpeed, 2);
+  json += ",\"lightning_r\":"  + String(lighting.lightningR);
+  json += ",\"lightning_g\":"  + String(lighting.lightningG);
+  json += ",\"lightning_b\":"  + String(lighting.lightningB);
+  json += ",\"lightning_freq\":" + String(lighting.lightningFrequency, 2);
+
   json += "}";
 
   server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
