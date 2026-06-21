@@ -1573,19 +1573,23 @@ String dashboardHtml() {
 
       <div class="card wide" id="card_params_color_chase" style="display:none">
         <div class="label">Color Chase Settings</div>
-        <div class="unit">Chase colours</div>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 10px;">
+        <div class="unit">Chase colours &amp; widths (pixels)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:8px 0 10px;">
           <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 1
             <input type="color" id="chase_c1" value="#ff0000" onchange="applyLighting()">
+            <input type="number" id="chase_w1" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
           </label>
           <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 2
             <input type="color" id="chase_c2" value="#00ff00" onchange="applyLighting()">
+            <input type="number" id="chase_w2" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
           </label>
           <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 3
             <input type="color" id="chase_c3" value="#0000ff" onchange="applyLighting()">
+            <input type="number" id="chase_w3" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
           </label>
           <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 4
             <input type="color" id="chase_c4" value="#ff8000" onchange="applyLighting()">
+            <input type="number" id="chase_w4" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
           </label>
         </div>
         <div class="unit">Speed</div>
@@ -1595,8 +1599,18 @@ String dashboardHtml() {
 
       <div class="card wide" id="card_params_lightning" style="display:none">
         <div class="label">Lightning Settings</div>
-        <div class="unit">Flash colour</div>
-        <input type="color" id="lightning_color" value="#c8c8ff" onchange="applyLighting()" style="margin:6px 0 10px;">
+        <div class="unit">Flash colours (randomly selected per strike)</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px;">
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 1
+            <input type="color" id="lightning_c1" value="#c8c8ff" onchange="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 2
+            <input type="color" id="lightning_c2" value="#c8c8ff" onchange="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 3
+            <input type="color" id="lightning_c3" value="#c8c8ff" onchange="applyLighting()">
+          </label>
+        </div>
         <div class="unit">Frequency (flashes / sec)</div>
         <input type="range" id="lightning_freq" min="1" max="200" value="20" oninput="applyLighting()">
         <div class="unit"><span id="lightning_freq_label">2.0</span> Hz</div>
@@ -2047,18 +2061,30 @@ async function applyLighting() {
     patternParams += '&chase_c2_r=' + c2.r + '&chase_c2_g=' + c2.g + '&chase_c2_b=' + c2.b;
     patternParams += '&chase_c3_r=' + c3.r + '&chase_c3_g=' + c3.g + '&chase_c3_b=' + c3.b;
     patternParams += '&chase_c4_r=' + c4.r + '&chase_c4_g=' + c4.g + '&chase_c4_b=' + c4.b;
+    const w1El = document.getElementById('chase_w1');
+    const w2El = document.getElementById('chase_w2');
+    const w3El = document.getElementById('chase_w3');
+    const w4El = document.getElementById('chase_w4');
+    if (w1El) patternParams += '&chase_w1=' + Math.max(1, parseInt(w1El.value) || 50);
+    if (w2El) patternParams += '&chase_w2=' + Math.max(1, parseInt(w2El.value) || 50);
+    if (w3El) patternParams += '&chase_w3=' + Math.max(1, parseInt(w3El.value) || 50);
+    if (w4El) patternParams += '&chase_w4=' + Math.max(1, parseInt(w4El.value) || 50);
     patternParams += '&chase_speed=' + spd;
   }
 
   // Lightning.
-  const ltColorEl = document.getElementById('lightning_color');
+  const ltC1El = document.getElementById('lightning_c1');
+  const ltC2El = document.getElementById('lightning_c2');
+  const ltC3El = document.getElementById('lightning_c3');
   const ltFreqEl  = document.getElementById('lightning_freq');
-  if (ltColorEl && ltFreqEl) {
-    const lc   = hexToRgb(ltColorEl.value);
+  if (ltC1El && ltFreqEl) {
+    const lc1  = hexToRgb(ltC1El.value);
     const freq = (Number(ltFreqEl.value) / 10.0).toFixed(1);
     const lbl  = document.getElementById('lightning_freq_label');
     if (lbl) lbl.textContent = freq;
-    patternParams += '&lightning_r=' + lc.r + '&lightning_g=' + lc.g + '&lightning_b=' + lc.b;
+    patternParams += '&lightning_r=' + lc1.r + '&lightning_g=' + lc1.g + '&lightning_b=' + lc1.b;
+    if (ltC2El) { const lc2 = hexToRgb(ltC2El.value); patternParams += '&lightning_c2_r=' + lc2.r + '&lightning_c2_g=' + lc2.g + '&lightning_c2_b=' + lc2.b; }
+    if (ltC3El) { const lc3 = hexToRgb(ltC3El.value); patternParams += '&lightning_c3_r=' + lc3.r + '&lightning_c3_g=' + lc3.g + '&lightning_c3_b=' + lc3.b; }
     patternParams += '&lightning_freq=' + freq;
   }
 
@@ -2508,13 +2534,19 @@ async function refreshLightingState() {
         if (s.chase_c2_r !== undefined) setColorInput('chase_c2', s.chase_c2_r, s.chase_c2_g, s.chase_c2_b);
         if (s.chase_c3_r !== undefined) setColorInput('chase_c3', s.chase_c3_r, s.chase_c3_g, s.chase_c3_b);
         if (s.chase_c4_r !== undefined) setColorInput('chase_c4', s.chase_c4_r, s.chase_c4_g, s.chase_c4_b);
+        if (s.chase_w1 !== undefined) setInput('chase_w1', s.chase_w1);
+        if (s.chase_w2 !== undefined) setInput('chase_w2', s.chase_w2);
+        if (s.chase_w3 !== undefined) setInput('chase_w3', s.chase_w3);
+        if (s.chase_w4 !== undefined) setInput('chase_w4', s.chase_w4);
         if (s.chase_speed !== undefined) {
           const sliderVal = Math.round(Number(s.chase_speed) * 10);
           setInput('chase_speed', sliderVal);
           setLabel('chase_speed_label', Number(s.chase_speed).toFixed(1));
         }
 
-        if (s.lightning_r !== undefined) setColorInput('lightning_color', s.lightning_r, s.lightning_g, s.lightning_b);
+        if (s.lightning_r !== undefined) setColorInput('lightning_c1', s.lightning_r, s.lightning_g, s.lightning_b);
+        if (s.lightning_c2_r !== undefined) setColorInput('lightning_c2', s.lightning_c2_r, s.lightning_c2_g, s.lightning_c2_b);
+        if (s.lightning_c3_r !== undefined) setColorInput('lightning_c3', s.lightning_c3_r, s.lightning_c3_g, s.lightning_c3_b);
         if (s.lightning_freq !== undefined) {
           const sliderVal = Math.round(Number(s.lightning_freq) * 10);
           setInput('lightning_freq', sliderVal);

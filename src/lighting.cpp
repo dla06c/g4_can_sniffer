@@ -170,16 +170,28 @@ void updateColorChase() {
     {lighting.chaseC4R, lighting.chaseC4G, lighting.chaseC4B, 0},
   };
 
+  uint16_t widths[4] = {
+    max((uint16_t)1, lighting.chaseW1),
+    max((uint16_t)1, lighting.chaseW2),
+    max((uint16_t)1, lighting.chaseW3),
+    max((uint16_t)1, lighting.chaseW4),
+  };
+  uint16_t totalWidth = widths[0] + widths[1] + widths[2] + widths[3];
+
   // Default: 40 pixels per second at speed 1.0.
   float pps = 40.0f * lighting.chaseSpeed;
-  int offset = (int)fmod((millis() / 1000.0f) * pps, (float)NEOPIXEL_COUNT);
-
-  int segLen = NEOPIXEL_COUNT / 4;  // 50 pixels per color band
+  int offset = (int)fmod((millis() / 1000.0f) * pps, (float)totalWidth);
 
   uint8_t pr[NEOPIXEL_COUNT], pg[NEOPIXEL_COUNT], pb[NEOPIXEL_COUNT];
   for (uint16_t i = 0; i < NEOPIXEL_COUNT; i++) {
-    int pos = (i + offset) % NEOPIXEL_COUNT;
-    int idx = (pos / segLen) % 4;
+    int pos = (i + offset) % totalWidth;
+    // Determine which color band this pixel falls in.
+    int idx = 0;
+    int acc = 0;
+    for (int c = 0; c < 4; c++) {
+      acc += widths[c];
+      if (pos < acc) { idx = c; break; }
+    }
     RgbwColor c = scaleColor(colors[idx], lighting.maxBrightness);
     pr[i] = c.r;
     pg[i] = c.g;
@@ -195,6 +207,7 @@ void updateColorChase() {
 
 void updateLightning() {
   static uint8_t fade[NEOPIXEL_COUNT] = {0};
+  static uint8_t fadeColorIdx[NEOPIXEL_COUNT] = {0};
   static unsigned long nextStrikeMs = 0;
 
   unsigned long now = millis();
@@ -203,7 +216,9 @@ void updateLightning() {
   if (now >= nextStrikeMs) {
     int count = random(1, max(2, NEOPIXEL_COUNT / 20) + 1);
     for (int f = 0; f < count; f++) {
-      fade[random(NEOPIXEL_COUNT)] = 255;
+      int px = random(NEOPIXEL_COUNT);
+      fade[px] = 255;
+      fadeColorIdx[px] = (uint8_t)random(3);  // randomly pick color 0, 1, or 2
     }
     float intervalMs = 1000.0f / lighting.lightningFrequency;
     nextStrikeMs = now + (unsigned long)intervalMs;
@@ -215,10 +230,15 @@ void updateLightning() {
     else              fade[i] = 0;
   }
 
-  RgbwColor base = {lighting.lightningR, lighting.lightningG, lighting.lightningB, 0};
+  RgbwColor colorChoices[3] = {
+    {lighting.lightningR,   lighting.lightningG,   lighting.lightningB,   0},
+    {lighting.lightningC2R, lighting.lightningC2G, lighting.lightningC2B, 0},
+    {lighting.lightningC3R, lighting.lightningC3G, lighting.lightningC3B, 0},
+  };
 
   uint8_t pr[NEOPIXEL_COUNT], pg[NEOPIXEL_COUNT], pb[NEOPIXEL_COUNT];
   for (uint16_t i = 0; i < NEOPIXEL_COUNT; i++) {
+    RgbwColor base = colorChoices[fadeColorIdx[i]];
     float brightness = (fade[i] / 255.0f) * lighting.maxBrightness;
     RgbwColor c = scaleColor(base, brightness);
     pr[i] = c.r;
@@ -229,8 +249,8 @@ void updateLightning() {
   applyPixelColors(pixels, lighting.exteriorZones, pr, pg, pb);
   applyPixelColors(pixelsInterior, lighting.interiorZones, pr, pg, pb);
 
-  // Use the flash colour scaled to max brightness for the preview swatch.
-  currentLightingOutput = scaleColor(base, lighting.maxBrightness);
+  // Use the first flash colour scaled to max brightness for the preview swatch.
+  currentLightingOutput = scaleColor(colorChoices[0], lighting.maxBrightness);
 }
 
 void setupLightingPwm() {
@@ -400,12 +420,22 @@ void loadLightingSettings() {
   lighting.chaseC4R = lightingPreferences.getUChar("cc4r", lighting.chaseC4R);
   lighting.chaseC4G = lightingPreferences.getUChar("cc4g", lighting.chaseC4G);
   lighting.chaseC4B = lightingPreferences.getUChar("cc4b", lighting.chaseC4B);
+  lighting.chaseW1 = lightingPreferences.getUShort("cc1w", lighting.chaseW1);
+  lighting.chaseW2 = lightingPreferences.getUShort("cc2w", lighting.chaseW2);
+  lighting.chaseW3 = lightingPreferences.getUShort("cc3w", lighting.chaseW3);
+  lighting.chaseW4 = lightingPreferences.getUShort("cc4w", lighting.chaseW4);
   lighting.chaseSpeed = constrain(
     lightingPreferences.getFloat("chase_speed", lighting.chaseSpeed), 0.1f, 10.0f);
 
   lighting.lightningR = lightingPreferences.getUChar("lt_r", lighting.lightningR);
   lighting.lightningG = lightingPreferences.getUChar("lt_g", lighting.lightningG);
   lighting.lightningB = lightingPreferences.getUChar("lt_b", lighting.lightningB);
+  lighting.lightningC2R = lightingPreferences.getUChar("lt_c2r", lighting.lightningC2R);
+  lighting.lightningC2G = lightingPreferences.getUChar("lt_c2g", lighting.lightningC2G);
+  lighting.lightningC2B = lightingPreferences.getUChar("lt_c2b", lighting.lightningC2B);
+  lighting.lightningC3R = lightingPreferences.getUChar("lt_c3r", lighting.lightningC3R);
+  lighting.lightningC3G = lightingPreferences.getUChar("lt_c3g", lighting.lightningC3G);
+  lighting.lightningC3B = lightingPreferences.getUChar("lt_c3b", lighting.lightningC3B);
   lighting.lightningFrequency = constrain(
     lightingPreferences.getFloat("lt_freq", lighting.lightningFrequency), 0.1f, 20.0f);
 
@@ -459,11 +489,21 @@ void saveLightingSettings() {
   lightingPreferences.putUChar("cc4r", lighting.chaseC4R);
   lightingPreferences.putUChar("cc4g", lighting.chaseC4G);
   lightingPreferences.putUChar("cc4b", lighting.chaseC4B);
+  lightingPreferences.putUShort("cc1w", lighting.chaseW1);
+  lightingPreferences.putUShort("cc2w", lighting.chaseW2);
+  lightingPreferences.putUShort("cc3w", lighting.chaseW3);
+  lightingPreferences.putUShort("cc4w", lighting.chaseW4);
   lightingPreferences.putFloat("chase_speed", lighting.chaseSpeed);
 
   lightingPreferences.putUChar("lt_r",    lighting.lightningR);
   lightingPreferences.putUChar("lt_g",    lighting.lightningG);
   lightingPreferences.putUChar("lt_b",    lighting.lightningB);
+  lightingPreferences.putUChar("lt_c2r",  lighting.lightningC2R);
+  lightingPreferences.putUChar("lt_c2g",  lighting.lightningC2G);
+  lightingPreferences.putUChar("lt_c2b",  lighting.lightningC2B);
+  lightingPreferences.putUChar("lt_c3r",  lighting.lightningC3R);
+  lightingPreferences.putUChar("lt_c3g",  lighting.lightningC3G);
+  lightingPreferences.putUChar("lt_c3b",  lighting.lightningC3B);
   lightingPreferences.putFloat("lt_freq", lighting.lightningFrequency);
 
   const char* extStartKeys[4] = { "ez1s", "ez2s", "ez3s", "ez4s" };
@@ -621,12 +661,22 @@ void handleSetLighting() {
   if (server.hasArg("chase_c4_r")) lighting.chaseC4R = constrain(server.arg("chase_c4_r").toInt(), 0, 255);
   if (server.hasArg("chase_c4_g")) lighting.chaseC4G = constrain(server.arg("chase_c4_g").toInt(), 0, 255);
   if (server.hasArg("chase_c4_b")) lighting.chaseC4B = constrain(server.arg("chase_c4_b").toInt(), 0, 255);
+  if (server.hasArg("chase_w1")) lighting.chaseW1 = (uint16_t)constrain(server.arg("chase_w1").toInt(), 1, 500);
+  if (server.hasArg("chase_w2")) lighting.chaseW2 = (uint16_t)constrain(server.arg("chase_w2").toInt(), 1, 500);
+  if (server.hasArg("chase_w3")) lighting.chaseW3 = (uint16_t)constrain(server.arg("chase_w3").toInt(), 1, 500);
+  if (server.hasArg("chase_w4")) lighting.chaseW4 = (uint16_t)constrain(server.arg("chase_w4").toInt(), 1, 500);
   if (server.hasArg("chase_speed")) {
     lighting.chaseSpeed = constrain(server.arg("chase_speed").toFloat(), 0.1, 10.0);
   }
   if (server.hasArg("lightning_r")) lighting.lightningR = constrain(server.arg("lightning_r").toInt(), 0, 255);
   if (server.hasArg("lightning_g")) lighting.lightningG = constrain(server.arg("lightning_g").toInt(), 0, 255);
   if (server.hasArg("lightning_b")) lighting.lightningB = constrain(server.arg("lightning_b").toInt(), 0, 255);
+  if (server.hasArg("lightning_c2_r")) lighting.lightningC2R = constrain(server.arg("lightning_c2_r").toInt(), 0, 255);
+  if (server.hasArg("lightning_c2_g")) lighting.lightningC2G = constrain(server.arg("lightning_c2_g").toInt(), 0, 255);
+  if (server.hasArg("lightning_c2_b")) lighting.lightningC2B = constrain(server.arg("lightning_c2_b").toInt(), 0, 255);
+  if (server.hasArg("lightning_c3_r")) lighting.lightningC3R = constrain(server.arg("lightning_c3_r").toInt(), 0, 255);
+  if (server.hasArg("lightning_c3_g")) lighting.lightningC3G = constrain(server.arg("lightning_c3_g").toInt(), 0, 255);
+  if (server.hasArg("lightning_c3_b")) lighting.lightningC3B = constrain(server.arg("lightning_c3_b").toInt(), 0, 255);
   if (server.hasArg("lightning_freq")) {
     lighting.lightningFrequency = constrain(server.arg("lightning_freq").toFloat(), 0.1, 20.0);
   }
@@ -665,7 +715,7 @@ void handleLightingState() {
   unsigned long packetAgeMs = ecu.last_update_ms == 0 ? 999999UL : now - ecu.last_update_ms;
 
   String json;
-  json.reserve(1800);
+  json.reserve(2200);
   json += "{";
   json += "\"enabled\":" + String(lighting.enabled ? "true" : "false") + ",";
   json += "\"mode\":\"" + String(lightingModeName()) + "\",";
@@ -728,10 +778,20 @@ void handleLightingState() {
   json += ",\"chase_c4_r\":"  + String(lighting.chaseC4R);
   json += ",\"chase_c4_g\":"  + String(lighting.chaseC4G);
   json += ",\"chase_c4_b\":"  + String(lighting.chaseC4B);
+  json += ",\"chase_w1\":"    + String(lighting.chaseW1);
+  json += ",\"chase_w2\":"    + String(lighting.chaseW2);
+  json += ",\"chase_w3\":"    + String(lighting.chaseW3);
+  json += ",\"chase_w4\":"    + String(lighting.chaseW4);
   json += ",\"chase_speed\":"       + String(lighting.chaseSpeed, 2);
-  json += ",\"lightning_r\":"  + String(lighting.lightningR);
-  json += ",\"lightning_g\":"  + String(lighting.lightningG);
-  json += ",\"lightning_b\":"  + String(lighting.lightningB);
+  json += ",\"lightning_r\":"    + String(lighting.lightningR);
+  json += ",\"lightning_g\":"    + String(lighting.lightningG);
+  json += ",\"lightning_b\":"    + String(lighting.lightningB);
+  json += ",\"lightning_c2_r\":" + String(lighting.lightningC2R);
+  json += ",\"lightning_c2_g\":" + String(lighting.lightningC2G);
+  json += ",\"lightning_c2_b\":" + String(lighting.lightningC2B);
+  json += ",\"lightning_c3_r\":" + String(lighting.lightningC3R);
+  json += ",\"lightning_c3_g\":" + String(lighting.lightningC3G);
+  json += ",\"lightning_c3_b\":" + String(lighting.lightningC3B);
   json += ",\"lightning_freq\":" + String(lighting.lightningFrequency, 2);
 
   json += "}";
