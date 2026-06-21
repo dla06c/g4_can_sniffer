@@ -2033,8 +2033,14 @@ async function applyLighting() {
     const lbl  = document.getElementById('lightning_freq_label');
     if (lbl) lbl.textContent = freq;
     patternParams += '&lightning_r=' + lc1.r + '&lightning_g=' + lc1.g + '&lightning_b=' + lc1.b;
-    if (ltC2El) { const lc2 = hexToRgb(ltC2El.value); patternParams += '&lightning_c2_r=' + lc2.r + '&lightning_c2_g=' + lc2.g + '&lightning_c2_b=' + lc2.b; }
-    if (ltC3El) { const lc3 = hexToRgb(ltC3El.value); patternParams += '&lightning_c3_r=' + lc3.r + '&lightning_c3_g=' + lc3.g + '&lightning_c3_b=' + lc3.b; }
+    if (ltC2El) {
+      const lc2 = hexToRgb(ltC2El.value);
+      patternParams += '&lightning_c2_r=' + lc2.r + '&lightning_c2_g=' + lc2.g + '&lightning_c2_b=' + lc2.b;
+    }
+    if (ltC3El) {
+      const lc3 = hexToRgb(ltC3El.value);
+      patternParams += '&lightning_c3_r=' + lc3.r + '&lightning_c3_g=' + lc3.g + '&lightning_c3_b=' + lc3.b;
+    }
     patternParams += '&lightning_freq=' + freq;
   }
 

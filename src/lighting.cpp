@@ -186,7 +186,7 @@ void updateColorChase() {
   for (uint16_t i = 0; i < NEOPIXEL_COUNT; i++) {
     int pos = (i + offset) % totalWidth;
     // Determine which color band this pixel falls in.
-    int idx = 0;
+    int idx = 3;
     int acc = 0;
     for (int c = 0; c < 4; c++) {
       acc += widths[c];
