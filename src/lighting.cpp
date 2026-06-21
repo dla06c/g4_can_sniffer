@@ -111,10 +111,10 @@ RgbwColor rainbowPalette(float t) {
 
 RgbwColor enginePlasmaColor() {
   // <1000 rpm = 50% brightness, 4200+ rpm = 100% brightness.
-  float rpmBrightness = mapFloatClamped(ecu.rpm, 1100.0, 4200.0, 0.50, 1.00);
+  float rpmBrightness = mapFloatClamped(ecu.rpm, 1100.0, 4200.0, 0.60, 1.00);
 
-  // MGP is probably better than absolute MAP for this 15-60 range.
-  float loadFactor = mapFloatClamped(ecu.mgp, -35.0, 50.0, 0.0, 1.0);
+  // MAP is probably better than absolute MGP for this 30-70 range.
+  float loadFactor = mapFloatClamped(ecu.map, 30.0, 70.0, 0.0, 1.0);
 
   RgbwColor c = plasmaPalette(loadFactor);
 
