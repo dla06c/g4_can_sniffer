@@ -201,11 +201,11 @@ void updateLightning() {
 
   // Trigger a new lightning strike when the interval elapses.
   if (now >= nextStrikeMs) {
-    int count = random(1, max(2, NEOPIXEL_COUNT / 20));
+    int count = random(1, max(2, NEOPIXEL_COUNT / 20) + 1);
     for (int f = 0; f < count; f++) {
       fade[random(NEOPIXEL_COUNT)] = 255;
     }
-    float intervalMs = 1000.0f / max(0.1f, lighting.lightningFrequency);
+    float intervalMs = 1000.0f / lighting.lightningFrequency;
     nextStrikeMs = now + (unsigned long)intervalMs;
   }
 
