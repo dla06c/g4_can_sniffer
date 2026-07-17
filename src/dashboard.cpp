@@ -1591,6 +1591,7 @@ const refreshState = { dataInFlight: false, lightingInFlight: false,
                        dataPending: false,  lightingPending: false };
 
 let lastStreamLogAt = 0;
+let streamLogIndex = 0;
 
 async function refreshData() {
   if (refreshState.dataInFlight) { refreshState.dataPending = true; return; }
@@ -1629,7 +1630,8 @@ async function refreshData() {
           '--[WATER ' + Math.round(d.ect) + 'C / AIR ' + Math.round(d.iat) + 'C]',
           '--[CAN HEARTBEAT OK]'
         ];
-        pushLog(msgs[Math.floor(now / 3000) % msgs.length]);
+        pushLog(msgs[streamLogIndex % msgs.length]);
+        streamLogIndex++;
       }
 
       // ---- Gear (debug) tab values ----
