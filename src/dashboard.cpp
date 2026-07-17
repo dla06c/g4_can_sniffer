@@ -1,3 +1,7 @@
+#include "dashboard.h"
+
+String dashboardHtml() {
+  return R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
@@ -61,9 +65,18 @@
       z-index: 5;
     }
 
-    button, select, input[type="color"], input[type="range"] {
+    button, select, input[type="color"], input[type="range"], input[type="number"] {
       width: 100%;
       box-sizing: border-box;
+    }
+    
+    input[type="number"] {
+      border: 1px solid #303642;
+      border-radius: 10px;
+      padding: 12px;
+      background: #111722;
+      color: var(--text);
+      font-size: 16px;
     }
 
     button {
@@ -544,12 +557,10 @@
 
     .boost-arc {
       stroke: #28d7ff;
-      filter: drop-shadow(0 0 8px var(--gauge-glow-cyan));
     }
 
     .temp-arc {
       stroke: #ff9d4d;
-      filter: drop-shadow(0 0 8px var(--gauge-glow-orange));
     }
 
     .needle-pack {
@@ -727,7 +738,6 @@
       font-size: 14px;
       width: auto;
     }
-
     @media (max-width: 480px) {
       .value {
         font-size: 28px;
@@ -785,7 +795,7 @@
       width: min(47vw, 520px);
       height: auto;
       overflow: visible;
-      filter: drop-shadow(0 0 2px rgba(0, 180, 255, 0.12));
+      /* removed expensive SVG filter causing massive layout lag */
     }
 
     #page_cardash .outer-ring {
@@ -907,7 +917,10 @@
     #page_cardash .needle-blue,
     #page_cardash .needle-red {
       stroke-linecap: round;
-      filter: drop-shadow(0 0 3px rgba(0, 200, 255, .3));
+      /* offloaded layout rotation to GPU CSS transformations */
+      transform-origin: 260px 260px;
+      will-change: transform;
+      transition: transform 30ms linear;
     }
 
     #page_cardash .needle-blue {
@@ -922,8 +935,8 @@
 
     #page_cardash .warning-light {
       fill: url(#redGlow);
-      filter: drop-shadow(0 0 9px rgba(255, 0, 0, .82));
       opacity: .25;
+      will-change: opacity;
     }
 
     #page_cardash .warning-light.active {
@@ -995,7 +1008,6 @@
       stroke-width: 12;
       stroke-linecap: butt;
       opacity: 0.92;
-      filter: drop-shadow(0 0 4px rgba(0, 174, 239, 0.28));
     }
 
     #page_cardash .temp-track-warn {
@@ -1012,12 +1024,13 @@
       stroke-width: 12;
       stroke-linecap: butt;
       opacity: 0.94;
-      filter: drop-shadow(0 0 4px rgba(226, 11, 11, 0.35));
     }
 
     #page_cardash .temp-sub-needle {
       stroke-width: 3;
-      filter: drop-shadow(0 0 3px rgba(226, 11, 11, 0.45));
+      transform-origin: 260px 260px;
+      will-change: transform;
+      transition: transform 30ms linear;
     }
 
     #page_cardash .temp-readout-label {
@@ -1052,12 +1065,12 @@
       stroke-width: 14;
       stroke-linecap: butt;
       opacity: 0.96;
-      filter: drop-shadow(0 0 5px rgba(0, 174, 239, 0.34));
+      will-change: stroke-dashoffset;
+      transition: stroke-dashoffset 30ms linear;
     }
 
     #page_cardash .boost-progress-arc {
       stroke: var(--teal);
-      filter: drop-shadow(0 0 5px rgba(143, 239, 255, 0.28));
     }
 
 
@@ -1484,6 +1497,20 @@
       </div>
 
       <div class="card wide">
+        <div class="label">Auto-off Timer</div>
+        <input
+          type="number"
+          id="lighting_auto_off_minutes"
+          min="0"
+          max="1440"
+          step="1"
+          value="0"
+          onchange="applyLighting()"
+        >
+        <div class="unit">Minutes after last ECU packet before lights turn off. Use 0 to disable.</div>
+      </div>
+
+      <div class="card wide">
         <div class="label">Mode</div>
         <select id="lighting_mode" onchange="applyLighting(); updateLightingCardVisibility()">
           <option value="static">Static Colour</option>
@@ -1570,10 +1597,12 @@ function dashPolar(cx, cy, r, angleDeg) {
 }
 
 function dashDescribeArc(cx, cy, r, startAngle, endAngle) {
-  const start = dashPolar(cx, cy, r, endAngle);
-  const end = dashPolar(cx, cy, r, startAngle);
+  // Swapped the points! The arc now natively draws left-to-right (from startAngle to endAngle).
+  // This causes stroke-dashoffset to correctly reveal the path from the starting edge.
+  const start = dashPolar(cx, cy, r, startAngle);
+  const end = dashPolar(cx, cy, r, endAngle);
   const largeArc = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
-  const sweep = endAngle >= startAngle ? "0" : "1";
+  const sweep = endAngle >= startAngle ? "1" : "0";
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`;
 }
 
@@ -1778,8 +1807,9 @@ function setDashNeedle(id, value, min, max) {
   const angle = DASH_MAIN_NEEDLE_BASE_ANGLE + (DASH_PROGRESS_END_ANGLE - DASH_PROGRESS_START_ANGLE) * pct;
   const baseAngle = Number(needle.dataset.baseAngle || DASH_MAIN_NEEDLE_BASE_ANGLE);
   const rotation = (angle - baseAngle).toFixed(2);
+  
   if (needle.dataset.rotation === rotation) return;
-  needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
+  needle.style.transform = `rotate(${rotation}deg)`;
   needle.dataset.rotation = rotation;
 }
 
@@ -1791,8 +1821,9 @@ function setLowerArcNeedle(id, value, min, max) {
   const angle = DASH_SUB_NEEDLE_BASE_ANGLE + (158 - DASH_SUB_NEEDLE_BASE_ANGLE) * pct;
   const baseAngle = Number(needle.dataset.baseAngle || DASH_SUB_NEEDLE_BASE_ANGLE);
   const rotation = (angle - baseAngle).toFixed(2);
+  
   if (needle.dataset.rotation === rotation) return;
-  needle.setAttribute("transform", "rotate(" + rotation + " " + DASH_CX + " " + DASH_CY + ")");
+  needle.style.transform = `rotate(${rotation}deg)`;
   needle.dataset.rotation = rotation;
 }
 
@@ -1805,6 +1836,7 @@ function setProgressArc(id, value, min, max) {
   if (!length) return;
   const offset = (length * (1 - pct)).toFixed(2);
   if (arc.dataset.offset === offset) return;
+  
   arc.style.strokeDashoffset = offset;
   arc.dataset.offset = offset;
 }
@@ -1812,7 +1844,24 @@ function setProgressArc(id, value, min, max) {
 function setSvgText(id, value, decimals = 0) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = Number(value).toFixed(decimals);
+  
+  // Checking before assignment prevents destructive DOM layout thrashing
+  const strVal = Number(value).toFixed(decimals);
+  if (el.textContent !== strVal) {
+    el.textContent = strVal;
+  }
+}
+
+function setText(id, value, decimals = 0) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  const n = Number(value);
+  const strVal = Number.isFinite(n) ? n.toFixed(decimals) : '--';
+  
+  if (el.textContent !== strVal) {
+    el.textContent = strVal;
+  }
 }
 
 function updateBatteryLevel(voltage) {
@@ -1863,6 +1912,7 @@ async function applyLighting() {
   const color = hexToRgb(document.getElementById('static_color').value);
   const brightnessPct = Number(document.getElementById('lighting_brightness').value);
   const brightness = brightnessPct / 100.0;
+  const autoOffMinutes = Number(document.getElementById('lighting_auto_off_minutes').value) || 0;
 
   document.getElementById('brightness_label').textContent = brightnessPct;
 
@@ -1887,14 +1937,14 @@ async function applyLighting() {
 
   const url =
     '/setLighting?' +
-    'enabled=1' +
-    '&mode=' + encodeURIComponent(mode) +
+    'mode=' + encodeURIComponent(mode) +
     '&pattern=' + encodeURIComponent(pattern) +
     '&r=' + color.r +
     '&g=' + color.g +
     '&b=' + color.b +
     '&w=0' +
     '&brightness=' + brightness +
+    '&auto_off_minutes=' + autoOffMinutes +
     zonePart;
 
   await fetch(url);
@@ -1945,19 +1995,6 @@ function showPage(name) {
   document.getElementById('btn_' + name).classList.add('active');
 }
 
-function setText(id, value, decimals = 0) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  const n = Number(value);
-  if (!Number.isFinite(n)) {
-    el.textContent = '--';
-    return;
-  }
-
-  el.textContent = n.toFixed(decimals);
-}
-
 function setCardState(id, state) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1968,6 +2005,13 @@ function setCardState(id, state) {
     el.classList.add(state);
   }
 }
+
+const refreshState = {
+  dataInFlight: false,
+  lightingInFlight: false,
+  dataPending: false,
+  lightingPending: false
+};
 
 function updateWarnings(d) {
   const stale = d.age_ms > 1500;
@@ -2013,105 +2057,6 @@ function updateWarnings(d) {
   } else {
     alertBox.style.display = 'none';
   }
-}
-
-const refreshState = {
-  dataInFlight: false,
-  lightingInFlight: false,
-  dataPending: false,
-  lightingPending: false
-};
-
-async function refreshLightingState() {
-  if (refreshState.lightingInFlight) {
-    refreshState.lightingPending = true;
-    return;
-  }
-
-  refreshState.lightingInFlight = true;
-
-  do {
-    refreshState.lightingPending = false;
-
-    try {
-      const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
-      const s = await res.json();
-
-      const preview = document.getElementById('lighting_preview');
-      const text = document.getElementById('lighting_preview_text');
-      const mode = document.getElementById('lighting_preview_mode');
-
-      if (preview && text && mode) {
-        preview.style.backgroundColor =
-          'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
-
-        const carDashPage = document.getElementById('page_cardash');
-        if (carDashPage) {
-          const dialR = Number(s.preview_r) || 0;
-          const dialG = Number(s.preview_g) || 0;
-          const dialB = Number(s.preview_b) || 0;
-          carDashPage.style.setProperty('--dial-rgb', dialR + ', ' + dialG + ', ' + dialB);
-        }
-
-        text.textContent =
-          'RGBW output: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w +
-          ' | Preview RGB: ' + s.preview_r + ', ' + s.preview_g + ', ' + s.preview_b;
-
-        mode.textContent =
-          'Enabled: ' + s.enabled +
-          ' | Mode: ' + s.mode +
-          ' | Pattern: ' + s.pattern +
-          ' | RPM: ' + Math.round(s.rpm) +
-          ' | MGP: ' + Number(s.mgp).toFixed(1);
-
-        const modeSelect = document.getElementById('lighting_mode');
-        if (modeSelect) {
-          modeSelect.value = s.mode;
-          updateLightingCardVisibility();
-        }
-
-        const patternSelect = document.getElementById('lighting_pattern');
-        if (patternSelect) patternSelect.value = s.pattern;
-
-        const staticColor = document.getElementById('static_color');
-        if (staticColor) {
-          staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
-        }
-
-        const brightness = document.getElementById('lighting_brightness');
-        const brightnessLabel = document.getElementById('brightness_label');
-        const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
-        if (brightness) brightness.value = String(brightnessPct);
-        if (brightnessLabel) brightnessLabel.textContent = brightnessPct;
-
-        updateLightingEnabledButton(s.enabled);
-
-        // Populate zone inputs.
-        const zoneMap = [
-          { zones: s.exterior_zones, rangePrefix: 'ext_z', enPrefix: 'ext_z' },
-          { zones: s.interior_zones, rangePrefix: 'int_z', enPrefix: 'int_z' },
-        ];
-        for (const group of zoneMap) {
-          if (!Array.isArray(group.zones)) continue;
-          for (let i = 0; i < group.zones.length && i < 4; i++) {
-            const z = group.zones[i];
-            const idx = i + 1;
-            const rangeEl = document.getElementById(group.rangePrefix + idx + '_range');
-            const enEl    = document.getElementById(group.enPrefix   + idx + '_en');
-            if (rangeEl && document.activeElement !== rangeEl) {
-              rangeEl.value = z.start + '-' + z.end;
-            }
-            if (enEl) enEl.checked = z.enabled;
-          }
-        }
-      }
-    } catch (err) {
-      const text = document.getElementById('lighting_preview_text');
-      if (text) text.textContent = 'Lighting preview fetch error';
-    }
-  } while (refreshState.lightingPending);
-
-  refreshState.lightingInFlight = false;
 }
 
 function clamp(value, min, max) {
@@ -2175,7 +2120,7 @@ function updateCarDash(d) {
   setDashNeedle('rpmNeedle', rpm, 0, 8000);
   setDashNeedle('boostNeedle', mgp, -100, 250);
   setProgressArc('rpmProgressArc', rpm, 0, 8000);
-  setProgressArc('boostProgressArc', mgp, -100, 250);
+  setProgressArc('boostProgressArc', mgp, 0, 250);
   setLowerArcNeedle('iatNeedle', iat, 0, 60);
   setLowerArcNeedle('ectNeedle', ect, 0, 140);
 
@@ -2207,6 +2152,15 @@ async function refreshData() {
     try {
       const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
       const d = await res.json();
+
+      // Apply dialed lighting state synchronously with data update
+      const carDashPage = document.getElementById('page_cardash');
+      if (carDashPage) {
+        carDashPage.style.setProperty(
+          '--dial-rgb',
+          (d.led_r || 0) + ', ' + (d.led_g || 0) + ', ' + (d.led_b || 0)
+        );
+      }
 
       updateCarDash(d);
 
@@ -2258,14 +2212,19 @@ async function refreshData() {
       }
 
       const summary = document.getElementById('driving_summary');
-      summary.textContent =
+      const summaryText =
         'RPM ' + Math.round(d.rpm) +
         ' | MAP ' + Math.round(d.map) + ' kPa' +
         ' | Lambda ' + Number(d.lambda1).toFixed(2) +
         ' / target ' + Number(d.lambda_target).toFixed(2) +
         ' | Oil ' + Math.round(d.oil_pressure) + ' kPa';
+        
+      if (summary.textContent !== summaryText) {
+          summary.textContent = summaryText;
+      }
 
       updateWarnings(d);
+
     } catch (err) {
       const status = document.getElementById('status');
       status.textContent = 'Dashboard fetch error';
@@ -2276,14 +2235,110 @@ async function refreshData() {
   refreshState.dataInFlight = false;
 }
 
+// Lighting endpoint is now pulled much less frequently just for the UI form data
+// since LED data is merged directly into the fast data payload above.
+async function refreshLightingState() {
+  if (refreshState.lightingInFlight) {
+    refreshState.lightingPending = true;
+    return;
+  }
+
+  refreshState.lightingInFlight = true;
+
+  do {
+    refreshState.lightingPending = false;
+
+    try {
+      const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
+      const s = await res.json();
+
+      const preview = document.getElementById('lighting_preview');
+      const text = document.getElementById('lighting_preview_text');
+      const mode = document.getElementById('lighting_preview_mode');
+
+      if (preview && text && mode) {
+        preview.style.backgroundColor =
+          'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
+
+        const previewTextStr = 'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
+        if (text.textContent !== previewTextStr) text.textContent = previewTextStr;
+
+        const autoOffText =
+          Number(s.auto_off_minutes) > 0
+            ? ' / Auto-off: ' + s.auto_off_minutes + ' min' + (s.auto_off_expired ? ' active' : '')
+            : ' / Auto-off: disabled';
+
+        const modeTextStr = 'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
+                            ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%' +
+                            autoOffText;
+        if (mode.textContent !== modeTextStr) mode.textContent = modeTextStr;
+
+        const modeSelect = document.getElementById('lighting_mode');
+        if (modeSelect) {
+          modeSelect.value = s.mode;
+          updateLightingCardVisibility();
+        }
+
+        const patternSelect = document.getElementById('lighting_pattern');
+        if (patternSelect) patternSelect.value = s.pattern;
+
+        const staticColor = document.getElementById('static_color');
+        if (staticColor) {
+          staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+        }
+
+        const brightness = document.getElementById('lighting_brightness');
+        const brightnessLabel = document.getElementById('brightness_label');
+        const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+        if (brightness) brightness.value = String(brightnessPct);
+        if (brightnessLabel && brightnessLabel.textContent !== String(brightnessPct)) {
+          brightnessLabel.textContent = brightnessPct;
+        }
+        
+        const autoOffInput = document.getElementById('lighting_auto_off_minutes');
+        if (autoOffInput && document.activeElement !== autoOffInput) {
+          autoOffInput.value = String(s.auto_off_minutes || 0);
+        }
+
+        updateLightingEnabledButton(s.enabled);
+
+        // Populate zone inputs.
+        const zoneMap = [
+          { zones: s.exterior_zones, rangePrefix: 'ext_z', enPrefix: 'ext_z' },
+          { zones: s.interior_zones, rangePrefix: 'int_z', enPrefix: 'int_z' },
+        ];
+        for (const group of zoneMap) {
+          if (!Array.isArray(group.zones)) continue;
+          for (let i = 0; i < group.zones.length && i < 4; i++) {
+            const z = group.zones[i];
+            const idx = i + 1;
+            const rangeEl = document.getElementById(group.rangePrefix + idx + '_range');
+            const enEl    = document.getElementById(group.enPrefix   + idx + '_en');
+            if (rangeEl && document.activeElement !== rangeEl) {
+              rangeEl.value = z.start + '-' + z.end;
+            }
+            if (enEl) enEl.checked = z.enabled;
+          }
+        }
+      }
+    } catch (err) {
+      console.log('Lighting state refresh failed', err);
+    }
+  } while (refreshState.lightingPending);
+
+  refreshState.lightingInFlight = false;
+}
+
 buildCarDashGauges();
 updateLightingCardVisibility();
-setInterval(refreshData, 100);
+setInterval(refreshData, 50);
 refreshData();
 
-setInterval(refreshLightingState, 100);
+setInterval(refreshLightingState, 2000); // Backed off 800% to unchoke the ESP32 network stack
 refreshLightingState();
 </script>
 
 </body>
 </html>
+)rawliteral";
+}

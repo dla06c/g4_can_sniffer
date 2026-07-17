@@ -76,6 +76,10 @@ def mock_data():
 
 def preview_rgbw():
     d = mock_data()
+    static_r = lighting["r"]
+    static_g = lighting["g"]
+    static_b = lighting["b"]
+    static_w = lighting["w"]
 
     if not lighting["enabled"]:
         r = g = b = w = 0
@@ -98,7 +102,14 @@ def preview_rgbw():
         w = int((40 * max(0, load - 0.75) / 0.25) * brightness)
 
     return {
-        **lighting,
+        "enabled": lighting["enabled"],
+        "mode": lighting["mode"],
+        "pattern": lighting["pattern"],
+        "max_brightness": lighting["max_brightness"],
+        "static_r": static_r,
+        "static_g": static_g,
+        "static_b": static_b,
+        "static_w": static_w,
         "r": r,
         "g": g,
         "b": b,
