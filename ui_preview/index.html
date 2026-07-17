@@ -6,10 +6,6 @@
 <title>Link ECU Dashboard</title>
 <style>
 
-/*
- * Linebeam.ttf is expected beside index.html/styles.css.
- * It is intentionally referenced rather than bundled.
- */
 
 
 :root {
@@ -847,99 +843,35 @@ body {
 }
 
 
-/* ---- Gear (debug) and Light (lighting) scrollable content pages ---------- */
 .gear-page, .light-page {
-  z-index: 2;
-  background: #0a0a0a;
-  overflow-y: auto;
-  pointer-events: auto;
+  z-index: 2; background: #0a0a0a; overflow-y: auto; pointer-events: auto;
 }
-.overlay-content {
-  padding: 14px 16px 56px;
-  max-width: 900px;
-  margin: 0 auto;
-}
-.page-summary {
-  font-size: 11px;
-  color: #a9adb3;
-  margin: 0 0 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.content-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-  gap: 7px;
-}
-.content-card {
-  background: #121212;
-  border: 1px solid #252525;
-  border-radius: 8px;
-  padding: 10px 12px;
-  min-width: 0;
-}
+.overlay-content { padding: 14px 16px 56px; max-width: 900px; margin: 0 auto; }
+.page-summary { font-size: 11px; color: #a9adb3; margin: 0 0 10px; letter-spacing: 0.04em; text-transform: uppercase; }
+.content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 7px; }
+.content-card { background: #121212; border: 1px solid #252525; border-radius: 8px; padding: 10px 12px; min-width: 0; }
 .content-card.wide { grid-column: 1 / -1; }
-.content-card .label {
-  font-size: 10px;
-  color: #a9adb3;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-.content-card .value  { font-size: 20px; font-weight: bold; color: #dde2ea; line-height:1; }
+.content-card .label { font-size: 10px; color: #a9adb3; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.content-card .value { font-size: 20px; font-weight: bold; color: #dde2ea; line-height:1; }
 .content-card .smallvalue { font-size: 15px; font-weight: bold; color: #dde2ea; line-height:1; }
-.content-card .unit   { font-size: 10px; color: #7a828e; margin-top: 2px; }
-.content-card.warn    { border-color: #6b3e00; background: #1a1100; }
-.content-card.danger  { border-color: #6b1515; background: #1a0000; }
-.content-card.ok      { border-color: #163f2a; background: #0a1a12; }
-.content-card button, .content-card select {
-  width: 100%; box-sizing: border-box;
-  border: 0; border-radius: 7px;
-  padding: 9px 8px;
-  background: #1e1e1e; color: #dde2ea;
-  font-size: 13px; font-weight: bold; font-family: inherit;
-  cursor: pointer; margin-top: 4px;
-}
+.content-card .unit { font-size: 10px; color: #7a828e; margin-top: 2px; }
+.content-card.warn { border-color: #6b3e00; background: #1a1100; }
+.content-card.danger { border-color: #6b1515; background: #1a0000; }
+.content-card.ok { border-color: #163f2a; background: #0a1a12; }
+.content-card button, .content-card select { width:100%; box-sizing:border-box; border:0; border-radius:7px; padding:9px 8px; background:#1e1e1e; color:#dde2ea; font-size:13px; font-weight:bold; font-family:inherit; cursor:pointer; margin-top:4px; }
 .content-card button.active-btn { background: #004da3; color: #fff; }
-.content-card select {
-  border: 1px solid #2a2a2a; background: #111; color: #dde2ea;
-}
-.content-card input[type="color"],
-.content-card input[type="range"],
-.content-card input[type="number"],
-.content-card input[type="text"] {
-  width: 100%; box-sizing: border-box;
-  border: 1px solid #2a2a2a; border-radius: 6px;
-  padding: 7px; background: #111; color: #dde2ea;
-  font-size: 13px; font-family: inherit; margin-top: 4px;
-}
+.content-card select { border: 1px solid #2a2a2a; background: #111; color: #dde2ea; }
+.content-card input[type="color"], .content-card input[type="range"], .content-card input[type="number"], .content-card input[type="text"] { width:100%; box-sizing:border-box; border:1px solid #2a2a2a; border-radius:6px; padding:7px; background:#111; color:#dde2ea; font-size:13px; font-family:inherit; margin-top:4px; }
 .content-card input[type="color"] { height: 34px; padding: 2px 4px; }
-.zone-grid  { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
-.zone-row {
-  display: grid; grid-template-columns: auto 1fr 1fr;
-  gap: 6px; align-items: center;
-  font-size: 11px; color: #a9adb3;
-}
+.zone-grid { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+.zone-row { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: center; font-size: 11px; color: #a9adb3; }
 .zone-row input[type="checkbox"] { width: auto; margin: 0; }
 .zone-row input[type="text"] { width: 100%; }
 .lighting-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 6px; }
-.lighting-row label {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 3px;
-  font-size: 10px; color: #a9adb3;
-}
-.lighting-row input[type="color"]  { width:50px; height:28px; padding:2px; }
+.lighting-row label { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #a9adb3; }
+.lighting-row input[type="color"] { width:50px; height:28px; padding:2px; }
 .lighting-row input[type="number"] { width:60px; text-align:center; }
-.main-alert-bar {
-  position: absolute;
-  top: 0; left: 0; right: 0; z-index: 30;
-  background: rgba(107,21,21,0.92);
-  color: #ffdddd;
-  font-size: 10px; font-weight: bold;
-  letter-spacing: 0.07em; text-align: center;
-  padding: 4px 10px;
-  display: none; pointer-events: none;
-}
+.main-alert-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 30; background: rgba(107,21,21,0.92); color: #ffdddd; font-size: 10px; font-weight: bold; letter-spacing: 0.07em; text-align: center; padding: 4px 10px; display: none; pointer-events: none; }
 
 </style>
 </head>
@@ -1142,9 +1074,7 @@ body {
 <span>STREAM STATUS</span>
 <span class="connection-status disconnected" id="connection-status">DISCONNECTED</span>
 </div>
-<div class="stream-log" id="stream-log"></div><div>OIL 74 PSI</div><div>CAN HEARTBEAT OK</div><div>VOLTAGE 14.1V</div><div>WATER 99C / AIR 14C</div><div>RPM 460 / MAP 1.2 PSI</div>
-</div>
-</section>
+<div class="stream-log" id="stream-log"></section>
 <section aria-label="RPM display" class="rpm-panel">
 <div class="rpm-readout">
 <span id="rpm-value">0</span><span class="rpm-unit">rpm</span>
@@ -1527,8 +1457,8 @@ function updateDashboard({
   setText("water-value", Math.round(waterTemp).toString());
   setText("air-value", Math.round(airTemp).toString());
 
-  setBar("boost-bar", ((boost + 20) / 270) * 100);
-  setBar("oil-bar", (oilPressure / 700) * 100);
+  setBar("boost-bar", ((boost + 20) / 270) * 100); // kPa: -20 (vacuum) to 250 (max boost)
+  setBar("oil-bar", (oilPressure / 700) * 100); // kPa: 0 to 700
   setBar("voltage-bar", ((voltage - 10) / 5) * 100);
   setBar("water-bar", ((waterTemp - 40) / 100) * 100);
   setBar("air-bar", (airTemp / 80) * 100);
@@ -1541,8 +1471,6 @@ setSceneMotionActive(false);
 setConnectionState(false);
 setInterval(checkConnectionState, 250);
 setInterval(stepSceneMotion, SCENE_MOTION_INTERVAL_MS);
-
-}
 
 
 window.updateDashboard = updateDashboard;
@@ -1658,6 +1586,8 @@ function updateWarnings(d) {
 const refreshState = { dataInFlight: false, lightingInFlight: false,
                        dataPending: false,  lightingPending: false };
 
+let lastStreamLogAt = 0;
+
 async function refreshData() {
   if (refreshState.dataInFlight) { refreshState.dataPending = true; return; }
   refreshState.dataInFlight = true;
@@ -1685,9 +1615,9 @@ async function refreshData() {
       });
 
       // ---- Stream log (updated every ~3 s) ----
-      const NOW = Date.now();
-      if (!refreshData._lastLog || NOW - refreshData._lastLog > 3000) {
-        refreshData._lastLog = NOW;
+      const now = Date.now();
+      if (now - lastStreamLogAt > 3000) {
+        lastStreamLogAt = now;
         const msgs = [
           '--[RPM ' + Math.round(d.rpm) + ' / MGP ' + Number(d.mgp).toFixed(1) + ' kPa]',
           '--[OIL ' + Math.round(d.oil_pressure) + ' kPa]',
@@ -1695,7 +1625,7 @@ async function refreshData() {
           '--[WATER ' + Math.round(d.ect) + 'C / AIR ' + Math.round(d.iat) + 'C]',
           '--[CAN HEARTBEAT OK]'
         ];
-        pushLog(msgs[Math.floor(NOW / 3000) % msgs.length]);
+        pushLog(msgs[Math.floor(now / 3000) % msgs.length]);
       }
 
       // ---- Gear (debug) tab values ----
@@ -1790,8 +1720,10 @@ async function applyLighting() {
   }
 
   await fetch('/setLighting?mode='+encodeURIComponent(mode)+'&pattern='+encodeURIComponent(pattern)
-    +'&r='+color.r+'&g='+color.g+'&b='+color.b+'&w=0&brightness='+brt
-    +'&auto_off_minutes='+autoOff+zonePart+pp);
+    +'&r='+color.r+'&g='+color.g+'&b='+color.b+'&w=0'
+    +'&brightness='+encodeURIComponent(brt)
+    +'&auto_off_minutes='+encodeURIComponent(autoOff)
+    +zonePart+pp);
 }
 
 async function toggleLightingEnabled() {
@@ -1894,7 +1826,7 @@ async function refreshLightingState() {
 }
 
 updateLightingCardVisibility();
-setInterval(refreshData, 50);
+setInterval(refreshData, 100);
 refreshData();
 setInterval(refreshLightingState, 2000);
 refreshLightingState();
