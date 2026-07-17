@@ -1571,12 +1571,95 @@
 
       <div class="card wide" id="card_pattern_theme" style="display:none">
         <div class="label">Pattern / Theme</div>
-        <select id="lighting_pattern" onchange="applyLighting()">
+        <select id="lighting_pattern" onchange="applyLighting(); updateLightingCardVisibility()">
           <option value="engine_plasma">Engine Plasma</option>
           <option value="breathing">Breathing</option>
           <option value="rainbow">Rainbow</option>
+          <option value="color_chase">Color Chase</option>
+          <option value="lightning">Lightning</option>
           <option value="off">Off</option>
         </select>
+      </div>
+
+      <div class="card wide" id="card_params_engine_plasma" style="display:none">
+        <div class="label">Engine Plasma Settings</div>
+        <div class="unit">RPM range (brightness mapping)</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin:6px 0 10px;">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Min RPM
+            <input type="number" id="plasma_rpm_min" min="0" max="9000" step="100" value="1100" onchange="applyLighting()" style="width:90px;">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Max RPM
+            <input type="number" id="plasma_rpm_max" min="0" max="9000" step="100" value="4200" onchange="applyLighting()" style="width:90px;">
+          </label>
+        </div>
+        <div class="unit">MAP range (colour mapping, kPa)</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin:6px 0;">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Min MAP
+            <input type="number" id="plasma_map_min" min="0" max="300" step="5" value="30" onchange="applyLighting()" style="width:90px;">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Max MAP
+            <input type="number" id="plasma_map_max" min="0" max="300" step="5" value="70" onchange="applyLighting()" style="width:90px;">
+          </label>
+        </div>
+      </div>
+
+      <div class="card wide" id="card_params_breathing" style="display:none">
+        <div class="label">Breathing Settings</div>
+        <div class="unit">Speed (use Static Colour below to set the colour)</div>
+        <input type="range" id="breathing_speed" min="1" max="100" value="10" oninput="applyLighting()">
+        <div class="unit"><span id="breathing_speed_label">1.0</span>×</div>
+      </div>
+
+      <div class="card wide" id="card_params_rainbow" style="display:none">
+        <div class="label">Rainbow Settings</div>
+        <div class="unit">Speed</div>
+        <input type="range" id="rainbow_speed" min="1" max="100" value="10" oninput="applyLighting()">
+        <div class="unit"><span id="rainbow_speed_label">1.0</span>×</div>
+      </div>
+
+      <div class="card wide" id="card_params_color_chase" style="display:none">
+        <div class="label">Color Chase Settings</div>
+        <div class="unit">Chase colours &amp; widths (pixels)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:8px 0 10px;">
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 1
+            <input type="color" id="chase_c1" value="#ff0000" onchange="applyLighting()">
+            <input type="number" id="chase_w1" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 2
+            <input type="color" id="chase_c2" value="#00ff00" onchange="applyLighting()">
+            <input type="number" id="chase_w2" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 3
+            <input type="color" id="chase_c3" value="#0000ff" onchange="applyLighting()">
+            <input type="number" id="chase_w3" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 4
+            <input type="color" id="chase_c4" value="#ff8000" onchange="applyLighting()">
+            <input type="number" id="chase_w4" min="1" max="500" value="50" style="width:72px;text-align:center;" oninput="applyLighting()">
+          </label>
+        </div>
+        <div class="unit">Speed</div>
+        <input type="range" id="chase_speed" min="1" max="100" value="10" oninput="applyLighting()">
+        <div class="unit"><span id="chase_speed_label">1.0</span>×</div>
+      </div>
+
+      <div class="card wide" id="card_params_lightning" style="display:none">
+        <div class="label">Lightning Settings</div>
+        <div class="unit">Flash colours (randomly selected per strike)</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px;">
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 1
+            <input type="color" id="lightning_c1" value="#c8c8ff" onchange="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 2
+            <input type="color" id="lightning_c2" value="#c8c8ff" onchange="applyLighting()">
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 3
+            <input type="color" id="lightning_c3" value="#c8c8ff" onchange="applyLighting()">
+          </label>
+        </div>
+        <div class="unit">Frequency (flashes / sec)</div>
+        <input type="range" id="lightning_freq" min="1" max="200" value="20" oninput="applyLighting()">
+        <div class="unit"><span id="lightning_freq_label">2.0</span> Hz</div>
       </div>
 
       <div class="card wide" id="card_live_lighting" style="display:none">
@@ -1592,12 +1675,6 @@
         <div class="label">Max Brightness</div>
         <input type="range" id="lighting_brightness" min="0" max="100" value="100" oninput="applyLighting()">
         <div class="unit"><span id="brightness_label">100</span>%</div>
-      </div>
-
-      <div class="card wide">
-        <div class="label">Engine Plasma Mapping</div>
-        <div class="unit">Brightness: 1000 rpm = 50%, 4800 rpm = 100%</div>
-        <div class="unit">Colour: MGP &lt;15 = cold, MGP &gt;60 = hot</div>
       </div>
 
       <div class="card wide">
@@ -1958,6 +2035,88 @@ async function applyLighting() {
     if (enEl)    zonePart += '&' + z.enParam    + '=' + (enEl.checked ? '1' : '0');
   }
 
+  // Per-pattern parameters.
+  let patternParams = '';
+
+  // Engine Plasma.
+  const pRpmMin = document.getElementById('plasma_rpm_min');
+  const pRpmMax = document.getElementById('plasma_rpm_max');
+  const pMapMin = document.getElementById('plasma_map_min');
+  const pMapMax = document.getElementById('plasma_map_max');
+  if (pRpmMin) patternParams += '&plasma_rpm_min=' + pRpmMin.value;
+  if (pRpmMax) patternParams += '&plasma_rpm_max=' + pRpmMax.value;
+  if (pMapMin) patternParams += '&plasma_map_min=' + pMapMin.value;
+  if (pMapMax) patternParams += '&plasma_map_max=' + pMapMax.value;
+
+  // Breathing speed.
+  const breathSpeedEl = document.getElementById('breathing_speed');
+  if (breathSpeedEl) {
+    const spd = (Number(breathSpeedEl.value) / 10.0).toFixed(1);
+    const lbl = document.getElementById('breathing_speed_label');
+    if (lbl) lbl.textContent = spd;
+    patternParams += '&breathing_speed=' + spd;
+  }
+
+  // Rainbow speed.
+  const rainbowSpeedEl = document.getElementById('rainbow_speed');
+  if (rainbowSpeedEl) {
+    const spd = (Number(rainbowSpeedEl.value) / 10.0).toFixed(1);
+    const lbl = document.getElementById('rainbow_speed_label');
+    if (lbl) lbl.textContent = spd;
+    patternParams += '&rainbow_speed=' + spd;
+  }
+
+  // Color Chase.
+  const c1El = document.getElementById('chase_c1');
+  const c2El = document.getElementById('chase_c2');
+  const c3El = document.getElementById('chase_c3');
+  const c4El = document.getElementById('chase_c4');
+  const cSpeedEl = document.getElementById('chase_speed');
+  if (c1El && c2El && c3El && c4El && cSpeedEl) {
+    const c1 = hexToRgb(c1El.value);
+    const c2 = hexToRgb(c2El.value);
+    const c3 = hexToRgb(c3El.value);
+    const c4 = hexToRgb(c4El.value);
+    const spd = (Number(cSpeedEl.value) / 10.0).toFixed(1);
+    const lbl = document.getElementById('chase_speed_label');
+    if (lbl) lbl.textContent = spd;
+    patternParams += '&chase_c1_r=' + c1.r + '&chase_c1_g=' + c1.g + '&chase_c1_b=' + c1.b;
+    patternParams += '&chase_c2_r=' + c2.r + '&chase_c2_g=' + c2.g + '&chase_c2_b=' + c2.b;
+    patternParams += '&chase_c3_r=' + c3.r + '&chase_c3_g=' + c3.g + '&chase_c3_b=' + c3.b;
+    patternParams += '&chase_c4_r=' + c4.r + '&chase_c4_g=' + c4.g + '&chase_c4_b=' + c4.b;
+    const w1El = document.getElementById('chase_w1');
+    const w2El = document.getElementById('chase_w2');
+    const w3El = document.getElementById('chase_w3');
+    const w4El = document.getElementById('chase_w4');
+    if (w1El) patternParams += '&chase_w1=' + Math.max(1, parseInt(w1El.value) || 50);
+    if (w2El) patternParams += '&chase_w2=' + Math.max(1, parseInt(w2El.value) || 50);
+    if (w3El) patternParams += '&chase_w3=' + Math.max(1, parseInt(w3El.value) || 50);
+    if (w4El) patternParams += '&chase_w4=' + Math.max(1, parseInt(w4El.value) || 50);
+    patternParams += '&chase_speed=' + spd;
+  }
+
+  // Lightning.
+  const ltC1El = document.getElementById('lightning_c1');
+  const ltC2El = document.getElementById('lightning_c2');
+  const ltC3El = document.getElementById('lightning_c3');
+  const ltFreqEl  = document.getElementById('lightning_freq');
+  if (ltC1El && ltFreqEl) {
+    const lc1  = hexToRgb(ltC1El.value);
+    const freq = (Number(ltFreqEl.value) / 10.0).toFixed(1);
+    const lbl  = document.getElementById('lightning_freq_label');
+    if (lbl) lbl.textContent = freq;
+    patternParams += '&lightning_r=' + lc1.r + '&lightning_g=' + lc1.g + '&lightning_b=' + lc1.b;
+    if (ltC2El) {
+      const lc2 = hexToRgb(ltC2El.value);
+      patternParams += '&lightning_c2_r=' + lc2.r + '&lightning_c2_g=' + lc2.g + '&lightning_c2_b=' + lc2.b;
+    }
+    if (ltC3El) {
+      const lc3 = hexToRgb(ltC3El.value);
+      patternParams += '&lightning_c3_r=' + lc3.r + '&lightning_c3_g=' + lc3.g + '&lightning_c3_b=' + lc3.b;
+    }
+    patternParams += '&lightning_freq=' + freq;
+  }
+
   const url =
     '/setLighting?' +
     'enabled=1' +
@@ -1968,7 +2127,8 @@ async function applyLighting() {
     '&b=' + color.b +
     '&w=0' +
     '&brightness=' + brightness +
-    zonePart;
+    zonePart +
+    patternParams;
 
   await fetch(url);
 }
@@ -1992,12 +2152,33 @@ function updateLightingCardVisibility() {
   const modeEl = document.getElementById('lighting_mode');
   if (!modeEl) return;
   const mode = modeEl.value;
+
+  const patternEl = document.getElementById('lighting_pattern');
+  const pattern = patternEl ? patternEl.value : '';
+
   const staticCard  = document.getElementById('card_static_colour');
   const patternCard = document.getElementById('card_pattern_theme');
   const liveCard    = document.getElementById('card_live_lighting');
   if (staticCard)  staticCard.style.display  = (mode === 'static')  ? '' : 'none';
   if (patternCard) patternCard.style.display = (mode === 'pattern') ? '' : 'none';
   if (liveCard)    liveCard.style.display    = (mode === 'pattern') ? '' : 'none';
+
+  // Per-pattern parameter cards.
+  const paramCards = [
+    'card_params_engine_plasma',
+    'card_params_breathing',
+    'card_params_rainbow',
+    'card_params_color_chase',
+    'card_params_lightning',
+  ];
+  for (const id of paramCards) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+  if (mode === 'pattern' && pattern) {
+    const active = document.getElementById('card_params_' + pattern);
+    if (active) active.style.display = '';
+  }
 }
 
 function rgbToHex(r, g, b) {
@@ -2151,7 +2332,10 @@ async function refreshLightingState() {
         }
 
         const patternSelect = document.getElementById('lighting_pattern');
-        if (patternSelect) patternSelect.value = s.pattern;
+        if (patternSelect) {
+          patternSelect.value = s.pattern;
+          updateLightingCardVisibility();
+        }
 
         const staticColor = document.getElementById('static_color');
         if (staticColor) {
@@ -2183,6 +2367,60 @@ async function refreshLightingState() {
             }
             if (enEl) enEl.checked = z.enabled;
           }
+        }
+
+        // Populate per-pattern parameter inputs.
+        function setInput(id, value) {
+          const el = document.getElementById(id);
+          if (el && document.activeElement !== el) el.value = String(value);
+        }
+        function setLabel(id, value) {
+          const el = document.getElementById(id);
+          if (el) el.textContent = String(value);
+        }
+        function setColorInput(id, r, g, b) {
+          const el = document.getElementById(id);
+          if (el) el.value = rgbToHex(r, g, b);
+        }
+
+        if (s.plasma_rpm_min !== undefined) setInput('plasma_rpm_min', Math.round(s.plasma_rpm_min));
+        if (s.plasma_rpm_max !== undefined) setInput('plasma_rpm_max', Math.round(s.plasma_rpm_max));
+        if (s.plasma_map_min !== undefined) setInput('plasma_map_min', Math.round(s.plasma_map_min));
+        if (s.plasma_map_max !== undefined) setInput('plasma_map_max', Math.round(s.plasma_map_max));
+
+        if (s.breathing_speed !== undefined) {
+          const sliderVal = Math.round(Number(s.breathing_speed) * 10);
+          setInput('breathing_speed', sliderVal);
+          setLabel('breathing_speed_label', Number(s.breathing_speed).toFixed(1));
+        }
+
+        if (s.rainbow_speed !== undefined) {
+          const sliderVal = Math.round(Number(s.rainbow_speed) * 10);
+          setInput('rainbow_speed', sliderVal);
+          setLabel('rainbow_speed_label', Number(s.rainbow_speed).toFixed(1));
+        }
+
+        if (s.chase_c1_r !== undefined) setColorInput('chase_c1', s.chase_c1_r, s.chase_c1_g, s.chase_c1_b);
+        if (s.chase_c2_r !== undefined) setColorInput('chase_c2', s.chase_c2_r, s.chase_c2_g, s.chase_c2_b);
+        if (s.chase_c3_r !== undefined) setColorInput('chase_c3', s.chase_c3_r, s.chase_c3_g, s.chase_c3_b);
+        if (s.chase_c4_r !== undefined) setColorInput('chase_c4', s.chase_c4_r, s.chase_c4_g, s.chase_c4_b);
+        if (s.chase_w1 !== undefined) setInput('chase_w1', s.chase_w1);
+        if (s.chase_w2 !== undefined) setInput('chase_w2', s.chase_w2);
+        if (s.chase_w3 !== undefined) setInput('chase_w3', s.chase_w3);
+        if (s.chase_w4 !== undefined) setInput('chase_w4', s.chase_w4);
+        if (s.chase_speed !== undefined) {
+          const sliderVal = Math.round(Number(s.chase_speed) * 10);
+          setInput('chase_speed', sliderVal);
+          setLabel('chase_speed_label', Number(s.chase_speed).toFixed(1));
+        }
+
+        if (s.lightning_r !== undefined) setColorInput('lightning_c1', s.lightning_r, s.lightning_g, s.lightning_b);
+        if (s.lightning_c2_r !== undefined) setColorInput('lightning_c2', s.lightning_c2_r, s.lightning_c2_g, s.lightning_c2_b);
+        if (s.lightning_c3_r !== undefined) setColorInput('lightning_c3', s.lightning_c3_r, s.lightning_c3_g, s.lightning_c3_b);
+        if (s.lightning_freq !== undefined) {
+          const sliderVal = Math.round(Number(s.lightning_freq) * 10);
+          setInput('lightning_freq', sliderVal);
+          setLabel('lightning_freq_label', Number(s.lightning_freq).toFixed(1));
         }
       }
     } catch (err) {

@@ -18,6 +18,8 @@ enum LightingPattern {
   PATTERN_ENGINE_PLASMA,
   PATTERN_BREATHING,
   PATTERN_RAINBOW,
+  PATTERN_COLOR_CHASE,
+  PATTERN_LIGHTNING,
   PATTERN_OFF
 };
 
@@ -49,6 +51,37 @@ struct LightingConfig {
   // Interior (D12): Interior Zones 1-4.
   LightingZone exteriorZones[4];
   LightingZone interiorZones[4];
+
+  // Breathing pattern – speed multiplier (1.0 = default 700 ms half-period).
+  float breathingSpeed = 1.0;
+
+  // Rainbow pattern – speed multiplier (1.0 = 5 s full cycle).
+  float rainbowSpeed = 1.0;
+
+  // Engine Plasma – configurable RPM and MAP mapping ranges.
+  float plasmaRpmMin = 1100.0;
+  float plasmaRpmMax = 4200.0;
+  float plasmaMapMin = 30.0;
+  float plasmaMapMax = 70.0;
+
+  // Color Chase pattern – four chase colors (RGB), per-color pixel widths, and speed multiplier.
+  uint8_t chaseC1R = 255; uint8_t chaseC1G =   0; uint8_t chaseC1B =   0;
+  uint8_t chaseC2R =   0; uint8_t chaseC2G = 255; uint8_t chaseC2B =   0;
+  uint8_t chaseC3R =   0; uint8_t chaseC3G =   0; uint8_t chaseC3B = 255;
+  uint8_t chaseC4R = 255; uint8_t chaseC4G = 128; uint8_t chaseC4B =   0;
+  uint16_t chaseW1 = 50;
+  uint16_t chaseW2 = 50;
+  uint16_t chaseW3 = 50;
+  uint16_t chaseW4 = 50;
+  float   chaseSpeed = 1.0;  // 0.1–10.0×
+
+  // Lightning pattern – up to 3 flash colors (RGB) randomly chosen per strike, and flash frequency (Hz).
+  uint8_t lightningR = 200;
+  uint8_t lightningG = 200;
+  uint8_t lightningB = 255;
+  uint8_t lightningC2R = 200; uint8_t lightningC2G = 200; uint8_t lightningC2B = 255;
+  uint8_t lightningC3R = 200; uint8_t lightningC3G = 200; uint8_t lightningC3B = 255;
+  float   lightningFrequency = 2.0;  // 0.1–20.0 Hz
 };
 
 struct RgbwColor {
@@ -77,6 +110,8 @@ RgbwColor rainbowPalette(float t);
 RgbwColor enginePlasmaColor();
 RgbwColor breathingColor();
 RgbwColor rainbowColor();
+void updateColorChase();
+void updateLightning();
 
 void setupLightingPwm();
 void setRgbw(RgbwColor c);
