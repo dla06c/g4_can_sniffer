@@ -2468,9 +2468,10 @@ function updateDebugReadouts(d) {
 function updateDriveFromTelemetry(d) {
   const boostPsi = finiteNumber(d.mgp) / KPA_PER_PSI;
   const oilPsi = finiteNumber(d.oil_pressure) / KPA_PER_PSI;
+  const speedSource = d.gp_speed_1 ?? d.speed;
   updateDashboard({
     rpm: finiteNumber(d.rpm),
-    speed: finiteNumber(d.gp_speed_1 ?? d.speed),
+    speed: finiteNumber(speedSource),
     gear: finiteNumber(d.gear),
     boost: boostPsi,
     oilPressure: oilPsi,
