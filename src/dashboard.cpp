@@ -1582,7 +1582,7 @@ body {
 </div>
 <pre class="stream-log stream-log-live" id="stream-log" aria-label="Live scrolling ECU telemetry log"></pre>
 </section>
-<section aria-label="RPM display" class="rpm-panel">
+<section aria-label="RPM and speed display" class="rpm-panel">
 <div class="rpm-cluster">
 <div class="rpm-readout">
 <span id="rpm-value">0</span><span class="rpm-unit">rpm</span>
