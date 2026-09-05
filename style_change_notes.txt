@@ -1,0 +1,62 @@
+### Relocate the RPM panel
+
+<section aria-label="RPM display" class="rpm-panel">
+<div class="rpm-readout" style="color: rgb(134, 250, 136); text-shadow: rgba(134, 250, 136, 0.533) 0px 0px 6px, rgba(134, 250, 136, 0.267) 0px 0px 13px;">
+<span id="rpm-value">1953</span><span class="rpm-unit">rpm</span>
+</div>
+</section>
+
+style:
+
+    --background: #050505fb;
+    --red: #ff220d;
+    --grey: #a9adb3;
+    --green: #00e000;
+    --blue: #00a0ff;
+    --dynamic-text: #aac522;
+    --lcd-font: "Linebeam", "Courier New", monospace;
+    color: white;
+    text-transform: uppercase;
+    pointer-events: none;
+    visibility: visible;
+    box-sizing: border-box;
+    font-family: "Linebeam", "Courier New", monospace !important;
+    font-weight: 400 !important;
+    position: absolute;
+    left: -5%;
+    top: 29%;
+    width: 52%;
+    height: 21.4%;
+    display: grid;
+    place-items: center;
+    justify-content: end;
+    
+    
+<div class="rpm-readout" style="color: rgb(208, 208, 0); text-shadow: rgba(208, 208, 0, 0.533) 0px 0px 6px, rgba(208, 208, 0, 0.267) 0px 0px 13px;">
+<span id="rpm-value">3580</span><span class="rpm-unit">rpm</span>
+</div>
+    --background: #050505fb;
+    --red: #ff220d;
+    --grey: #a9adb3;
+    --green: #00e000;
+    --blue: #00a0ff;
+    --dynamic-text: #aac522;
+    --lcd-font: "Linebeam", "Courier New", monospace;
+    text-transform: uppercase;
+    pointer-events: none;
+    visibility: visible;
+    box-sizing: border-box;
+    font-family: "Linebeam", "Courier New", monospace !important;
+    font-weight: 400 !important;
+    padding: 0 1.2%;
+    background: #000;
+    display: flex;
+    gap: 0.22em;
+    line-height: 0.9;
+    align-items: flex-end;
+    flex-direction: column-reverse;
+    letter-spacing: -0.04em;
+    transition: color 100ms linear, text-shadow 100ms linear;
+    color: rgb(190, 218, 34);
+    text-shadow: rgba(190, 218, 34, 0.533) 0px 0px 6px, rgba(190, 218, 34, 0.267) 0px 0px 13px;
+

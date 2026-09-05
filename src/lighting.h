@@ -117,6 +117,7 @@ void setupLightingPwm();
 void setRgbw(RgbwColor c);
 bool lightingAutoOffExpired();
 void updateLighting();
+void requestLightingRefresh();
 void loadLightingSettings();
 void saveLightingSettings();
 void markLightingSettingsDirty();

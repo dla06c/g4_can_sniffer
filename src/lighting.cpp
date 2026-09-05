@@ -27,6 +27,20 @@ bool lightingSettingsDirty = false;
 unsigned long lightingSettingsLastChangeMs = 0;
 RgbwColor currentLightingOutput = {0, 0, 0, 0};
 
+static constexpr unsigned long LIGHTING_ANIMATION_INTERVAL_MS = 50;  // 20 FPS
+static bool lightingForceRefresh = true;
+static bool uniformOutputValid = false;
+static RgbwColor lastUniformOutput = {0, 0, 0, 0};
+static unsigned long lastLightingRenderMs = 0;
+
+static bool sameRgbw(const RgbwColor& a, const RgbwColor& b) {
+  return a.r == b.r && a.g == b.g && a.b == b.b && a.w == b.w;
+}
+
+void requestLightingRefresh() {
+  lightingForceRefresh = true;
+}
+
 uint8_t addClamp255(uint8_t a, uint8_t b) {
   int value = a + b;
   if (value > 255) return 255;
@@ -200,6 +214,8 @@ void updateColorChase() {
 
   applyPixelColors(pixels, lighting.exteriorZones, pr, pg, pb);
   applyPixelColors(pixelsInterior, lighting.interiorZones, pr, pg, pb);
+  uniformOutputValid = false;
+  lightingForceRefresh = false;
 
   // Use first chase colour as representative output for the preview swatch.
   currentLightingOutput = scaleColor(colors[0], lighting.maxBrightness);
@@ -248,6 +264,8 @@ void updateLightning() {
 
   applyPixelColors(pixels, lighting.exteriorZones, pr, pg, pb);
   applyPixelColors(pixelsInterior, lighting.interiorZones, pr, pg, pb);
+  uniformOutputValid = false;
+  lightingForceRefresh = false;
 
   // Use the first flash colour scaled to max brightness for the preview swatch.
   currentLightingOutput = scaleColor(colorChoices[0], lighting.maxBrightness);
@@ -265,10 +283,17 @@ void setupLightingPwm() {
   pixelsInterior.setBrightness(255);
   pixelsInterior.clear();
   pixelsInterior.show();
+
+  uniformOutputValid = false;
+  lightingForceRefresh = true;
 }
 
 void setRgbw(RgbwColor c) {
   currentLightingOutput = c;
+
+  if (!lightingForceRefresh && uniformOutputValid && sameRgbw(c, lastUniformOutput)) {
+    return;
+  }
 
   uint32_t packed = pixels.Color(c.r, c.g, c.b, c.w);
 
@@ -297,6 +322,10 @@ void setRgbw(RgbwColor c) {
     }
   }
   pixelsInterior.show();
+
+  lastUniformOutput = c;
+  uniformOutputValid = true;
+  lightingForceRefresh = false;
 }
 
 bool lightingAutoOffExpired() {
@@ -317,6 +346,18 @@ bool lightingAutoOffExpired() {
 }
 
 void updateLighting() {
+  const unsigned long now = millis();
+  const bool animated =
+    lighting.enabled &&
+    lighting.mode == LIGHT_PATTERN &&
+    lighting.pattern != PATTERN_OFF;
+
+  if (animated && !lightingForceRefresh &&
+      now - lastLightingRenderMs < LIGHTING_ANIMATION_INTERVAL_MS) {
+    return;
+  }
+  if (animated) lastLightingRenderMs = now;
+
   if (!lighting.enabled) {
     setRgbw({0, 0, 0, 0});
     return;
@@ -334,7 +375,6 @@ void updateLighting() {
       lighting.staticB,
       lighting.staticW
     };
-
     setRgbw(scaleColor(c, lighting.maxBrightness));
     return;
   }
@@ -343,31 +383,24 @@ void updateLighting() {
     setRgbw(enginePlasmaColor());
     return;
   }
-
   if (lighting.pattern == PATTERN_BREATHING) {
     setRgbw(breathingColor());
     return;
   }
-
   if (lighting.pattern == PATTERN_RAINBOW) {
     setRgbw(rainbowColor());
     return;
   }
-
   if (lighting.pattern == PATTERN_COLOR_CHASE) {
     updateColorChase();
     return;
   }
-
   if (lighting.pattern == PATTERN_LIGHTNING) {
     updateLightning();
     return;
   }
 
-  if (lighting.pattern == PATTERN_OFF) {
-    setRgbw({0, 0, 0, 0});
-    return;
-  }
+  setRgbw({0, 0, 0, 0});
 }
 
 void loadLightingSettings() {
@@ -681,6 +714,7 @@ void handleSetLighting() {
     lighting.lightningFrequency = constrain(server.arg("lightning_freq").toFloat(), 0.1, 20.0);
   }
 
+  requestLightingRefresh();
   updateLighting();
   markLightingSettingsDirty();
 

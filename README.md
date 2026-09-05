@@ -140,3 +140,40 @@ STATUS frames=50 log=50 dropped=0 bitrate=1M mode=normal last_age_ms=4
   "batt_v": 14.20
 }
 ```
+
+## Dashboard layout merge
+
+The web UI now uses the `dashboard_tabs` drive layout as the primary dashboard.
+The old **Driving** and **Health** tabs have been removed. The old **Debug**
+content is under the gear icon, and the complete old **Lighting** controls are
+under the light icon.
+
+Drive-page mappings from `/data`:
+
+| New readout | Existing payload field | Display conversion |
+|---|---|---|
+| RPM | `rpm` | none |
+| Boost | `mgp` | kPa gauge to psi (`/ 6.894757293`) |
+| Oil pressure | `oil_pressure` | kPa to psi (`/ 6.894757293`) |
+| Voltage | `battery_v` | none |
+| Water temperature | `ect` | none |
+| Air temperature | `iat` | none |
+| Gear indicator | `gear` | optional integer 0–5 |
+
+The UDP parser remains compatible with the original 31-value packet. An
+optional 32nd value can now provide the selected gear. When omitted, gear is 0
+(neutral/unknown), so the gear highlight and road/tire motion stay inactive.
+
+## July 2026 display refinements
+
+- The supplied Linebeam font is embedded in the page as a compact WOFF2 subset,
+  so it loads directly from the ESP32 without SPIFFS/LittleFS.
+- The Stream Status body is fixed decorative terminal text; it no longer appends
+  or scrolls live ECU readings. The connected/disconnected heading remains live.
+- Road and tyre motion activates at RPM > 500 without checking gear.
+- Motion updates every 75 ms with multiple spaced line groups visible at once.
+
+
+## Performance-optimized dashboard
+
+See `PERFORMANCE_OPTIMIZATION.md` for the WebSocket, cached-asset, DOM, CAN, and LED-rendering changes in this build.

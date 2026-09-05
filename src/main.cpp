@@ -57,7 +57,7 @@ void setup() {
   setupRoutes();
   server.begin();
 
-  Serial.println("Live ECU source: CAN 1 / User Stream 1 / ID 0x3E8");
+  Serial.println("Live ECU source: CAN channels 1-3 / IDs 0x3E8-0x3EA");
   Serial.print("UDP replay fallback still available on port ");
   Serial.println(UDP_PORT);
 }
@@ -70,14 +70,13 @@ void loop() {
   // readUdpPackets();
 
   server.handleClient();
+  serviceTelemetryWebSocket();
 
-  static unsigned long lastLightingUpdateMs = 0;
+  // updateLighting() skips unchanged static output and self-throttles animated
+  // patterns, so it is safe to call every loop without repeatedly blocking on show().
+  updateLighting();
+
   unsigned long now = millis();
-
-  if (now - lastLightingUpdateMs >= 30) {
-    lastLightingUpdateMs = now;
-    updateLighting();
-  }
 
   if (lightingSettingsDirty && now - lightingSettingsLastChangeMs >= LIGHTING_SAVE_DEBOUNCE_MS) {
     saveLightingSettings();

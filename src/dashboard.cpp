@@ -1,16 +1,21 @@
 #include "dashboard.h"
 
-String dashboardHtml() {
-  return R"rawliteral(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+// Dashboard page stored in flash and streamed directly by WebServer::send_P().
+const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Link ECU Dashboard</title>
 <style>
 
-
+@font-face {
+  font-family: "Linebeam";
+  src: url("/linebeam.woff2?v=perf3") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --lcd-font: "Linebeam", "Courier New", monospace;
@@ -123,54 +128,26 @@ body {
  */
 
 /*
- * The 15 coloured outline blocks in the uploaded vector are the RPM bar.
- * Inactive segments stay visible as dark outlines; active segments use their
- * original green/yellow/orange/red outline colour.
- *
- * Active colour is driven purely by CSS [data-rpm-color] attribute selectors —
- * no inline style writes needed. JS only toggles the `is-active` class.
+ * Eighty visible RPM bars are drawn with a static SVG gap pattern. The active
+ * colour is a full-width fixed-zone gradient revealed through a simple clip
+ * window, so the colour breakpoints stay locked to the original RPM positions
+ * while telemetry updates only change the visible fill amount.
  */
-.rpm-progress-segment {
-  fill: none;
-  stroke: #272727;
-  stroke-width: 1.5px;
-  stroke-opacity: 0.9;
-  vector-effect: non-scaling-stroke;
-  filter: none;
-  transition:
-    stroke 90ms linear,
-    stroke-width 90ms linear,
-    stroke-opacity 90ms linear,
-    filter 90ms linear;
+.rpm-bar-field {
+  shape-rendering: crispEdges;
 }
 
-.rpm-progress-segment.is-active {
-  stroke-width: 2.7px;
-  stroke-opacity: 1;
+.rpm-meter-base {
+  fill: #17191b;
 }
 
-/* Green (segments 0–2) */
-.rpm-progress-segment.is-active[data-rpm-color="#86fa88"] {
-  stroke: #86fa88;
-  filter: drop-shadow(0 0 3px #86fa88);
+.rpm-meter-active {
+  will-change: auto;
 }
 
-/* Yellow (segments 3–6) */
-.rpm-progress-segment.is-active[data-rpm-color="#d0d000"] {
-  stroke: #d0d000;
-  filter: drop-shadow(0 0 3px #d0d000);
-}
-
-/* Orange (segments 7–10) */
-.rpm-progress-segment.is-active[data-rpm-color="#ff8000"] {
-  stroke: #ff8000;
-  filter: drop-shadow(0 0 3px #ff8000);
-}
-
-/* Red (segments 11–14) */
-.rpm-progress-segment.is-active[data-rpm-color="#d33f6a"] {
-  stroke: #d33f6a;
-  filter: drop-shadow(0 0 3px #d33f6a);
+.rpm-meter-grid {
+  pointer-events: none;
+  opacity: 0.98;
 }
 
 .overlay-layer {
@@ -449,6 +426,193 @@ body {
 .rpm-unit {
   font-family: var(--lcd-font);
   letter-spacing: 0.04em;
+}
+
+
+/* -------------------------------------------------------------------------
+   Lightweight red cyberpunk metric instrumentation
+
+   Decorative chrome is baked into the separately cached dashboard SVG. The
+   live HTML layer remains transparent and only updates text plus one transform
+   per progress bar. This prevents a metric update from repainting multi-layer
+   gradients, shadows, and clipped panel backgrounds.
+   ------------------------------------------------------------------------- */
+.metric-panel {
+  --panel-accent: #ff3b28;
+  --panel-accent-rgb: 255, 59, 40;
+  position: absolute;
+  isolation: isolate;
+  contain: layout paint style;
+  overflow: hidden;
+  padding: 1.1% 1.15% 1.0%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.metric-panel::before,
+.metric-panel::after,
+.metric-panel .metric-readout::before,
+.metric-panel .metric-readout::after {
+  content: none;
+  display: none;
+}
+
+/* Exact inner bounds of the red vector frames in dashboard-bg.svg. */
+.boost-panel {
+  left: 76.85%;
+  top: 28.25%;
+  width: 21.55%;
+  height: 19.90%;
+}
+
+.oil-panel {
+  left: 1.35%;
+  top: 52.55%;
+  width: 21.55%;
+  height: 19.90%;
+}
+
+.voltage-panel {
+  left: 1.35%;
+  top: 76.75%;
+  width: 21.55%;
+  height: 19.85%;
+  clip-path: polygon(0 0, 100% 0, 100% 69%, 68% 100%, 0 100%);
+}
+
+.water-panel {
+  left: 76.85%;
+  top: 52.55%;
+  width: 21.55%;
+  height: 19.90%;
+}
+
+.air-panel {
+  left: 76.85%;
+  top: 76.75%;
+  width: 21.55%;
+  height: 19.85%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 32% 100%, 0 69%);
+}
+
+.metric-panel .panel-heading {
+  position: relative;
+  z-index: 1;
+  min-height: 1.15em;
+  margin: 0 0 2.2%;
+  padding: 0 1.3% 2.2%;
+  border-bottom: 1px solid rgba(var(--panel-accent-rgb), 0.58);
+  color: var(--panel-accent);
+  font-size: clamp(7px, 0.76vw, 13px);
+  line-height: 1;
+  letter-spacing: 0.085em;
+  text-shadow: none;
+}
+
+.metric-panel .panel-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 31%;
+  height: 2px;
+  background: var(--panel-accent);
+}
+
+.metric-panel .panel-heading > span:first-child {
+  color: var(--panel-accent);
+}
+
+.metric-panel .panel-heading > span:last-child {
+  min-width: 2.75em;
+  padding: 0.18em 0.36em 0.12em;
+  border: 1px solid rgba(var(--panel-accent-rgb), 0.72);
+  background: rgba(var(--panel-accent-rgb), 0.08);
+  color: #d9ff43;
+  text-align: center;
+  letter-spacing: 0.11em;
+}
+
+.metric-panel .bar-track {
+  position: relative;
+  z-index: 1;
+  width: 94%;
+  height: 8.5%;
+  min-height: 4px;
+  margin: 0.7% auto 0;
+  overflow: hidden;
+  border: 1px solid rgba(var(--panel-accent-rgb), 0.72);
+  background: rgba(0, 0, 0, 0.82);
+  clip-path: none;
+}
+
+.metric-panel .bar-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 9.1%,
+    rgba(8, 2, 2, 0.88) 9.1% 10%
+  );
+}
+
+.metric-panel .bar-fill {
+  z-index: 1;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  transform-origin: left center;
+  background: #ff3b28;
+  box-shadow: none;
+  transition: none;
+}
+
+.metric-panel .metric-readout {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  padding: 0 2% 3%;
+  align-items: flex-end;
+  justify-content: center;
+  color: #d9ff43;
+  text-shadow: none;
+}
+
+.metric-panel .metric-readout > span:first-child {
+  font-size: clamp(31px, 4.45vw, 78px);
+  letter-spacing: -0.052em;
+}
+
+.metric-panel .metric-unit {
+  margin-bottom: 0.13em;
+  color: #d9ff43;
+  font-size: clamp(12px, 1.48vw, 25px);
+  letter-spacing: 0.075em;
+  text-shadow: none;
+}
+
+.metric-panel .boost-readout {
+  justify-content: flex-end;
+  padding-right: 2%;
+}
+
+.voltage-panel .metric-readout {
+  justify-content: flex-start;
+  padding-left: 4%;
+  padding-right: 24%;
+}
+
+.air-panel .metric-readout {
+  justify-content: flex-end;
+  padding-left: 24%;
+  padding-right: 4%;
 }
 
 @media (max-width: 900px) {
@@ -833,7 +997,7 @@ body {
   stroke-opacity: 1;
   filter:
     drop-shadow(0 0 3px rgba(208, 208, 0, 0.7))
-    drop-shadow(0 0 6px rgba(208, 208, 0, 0.4));
+    drop-shadow(0 0 6px rgba(208, 208, 0, 0.4))
     drop-shadow(0 0 12px rgba(208, 208, 0, 0.22));
 }
 
@@ -847,58 +1011,342 @@ body {
 }
 
 
-.gear-page, .light-page {
-  z-index: 2; background: #0a0a0a; overflow-y: auto; pointer-events: auto;
+/* -------------------------------------------------------------------------
+   Embedded legacy Debug and Lighting pages
+   ------------------------------------------------------------------------- */
+.legacy-page {
+  z-index: 10;
+  padding: 12.5% 2.2% 2.2%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #050505;
+  color: #f2f4f8;
+  text-transform: none;
+  scrollbar-color: #ff220d #111;
+  scrollbar-width: thin;
 }
-.overlay-content { padding: 14px 16px 56px; max-width: 900px; margin: 0 auto; }
-.page-summary { font-size: 11px; color: #a9adb3; margin: 0 0 10px; letter-spacing: 0.04em; text-transform: uppercase; }
-.content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 7px; }
-.content-card { background: #121212; border: 1px solid #252525; border-radius: 8px; padding: 10px 12px; min-width: 0; }
-.content-card.wide { grid-column: 1 / -1; }
-.content-card .label { font-size: 10px; color: #a9adb3; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-.content-card .value { font-size: 20px; font-weight: bold; color: #dde2ea; line-height:1; }
-.content-card .smallvalue { font-size: 15px; font-weight: bold; color: #dde2ea; line-height:1; }
-.content-card .unit { font-size: 10px; color: #7a828e; margin-top: 2px; }
-.content-card.warn { border-color: #6b3e00; background: #1a1100; }
-.content-card.danger { border-color: #6b1515; background: #1a0000; }
-.content-card.ok { border-color: #163f2a; background: #0a1a12; }
-.content-card button, .content-card select { width:100%; box-sizing:border-box; border:0; border-radius:7px; padding:9px 8px; background:#1e1e1e; color:#dde2ea; font-size:13px; font-weight:bold; font-family:inherit; cursor:pointer; margin-top:4px; }
-.content-card button.active-btn { background: #004da3; color: #fff; }
-.content-card select { border: 1px solid #2a2a2a; background: #111; color: #dde2ea; }
-.content-card input[type="color"], .content-card input[type="range"], .content-card input[type="number"], .content-card input[type="text"] { width:100%; box-sizing:border-box; border:1px solid #2a2a2a; border-radius:6px; padding:7px; background:#111; color:#dde2ea; font-size:13px; font-family:inherit; margin-top:4px; }
-.content-card input[type="color"] { height: 34px; padding: 2px 4px; }
-.zone-grid { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
-.zone-row { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: center; font-size: 11px; color: #a9adb3; }
-.zone-row input[type="checkbox"] { width: auto; margin: 0; }
-.zone-row input[type="text"] { width: 100%; }
-.lighting-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 6px; }
-.lighting-row label { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #a9adb3; }
-.lighting-row input[type="color"] { width:50px; height:28px; padding:2px; }
-.lighting-row input[type="number"] { width:60px; text-align:center; }
-.main-alert-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 30; background: rgba(107,21,21,0.92); color: #ffdddd; font-size: 10px; font-weight: bold; letter-spacing: 0.07em; text-align: center; padding: 4px 10px; display: none; pointer-events: none; }
+
+.legacy-page.is-active {
+  pointer-events: auto;
+}
+
+.legacy-page .legacy-content {
+  width: 100%;
+  min-height: 100%;
+}
+
+.legacy-page .summary {
+  margin: 0 0 1.2%;
+  padding: 1.1% 1.4%;
+  border: 1px solid #3b3b3b;
+  border-radius: 8px;
+  background: #111;
+  color: #a9adb3;
+  font-size: clamp(9px, 1.05vw, 17px);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.legacy-page .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: clamp(7px, 0.9vw, 14px);
+  padding-bottom: 1%;
+}
+
+.legacy-page .card {
+  min-width: 0;
+  min-height: 82px;
+  padding: clamp(8px, 1vw, 15px);
+  border: 1px solid #3b3b3b;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #171717, #0c0c0c);
+  text-align: center;
+}
+
+.legacy-page .wide,
+.light-page .wide {
+  grid-column: 1 / -1;
+}
+
+.legacy-page .label {
+  margin-bottom: 7px;
+  color: #a9adb3;
+  font-size: clamp(9px, 0.95vw, 15px);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.legacy-page .value {
+  color: #aac522;
+  font-size: clamp(24px, 3.2vw, 52px);
+  line-height: 1;
+  text-shadow: 0 0 7px rgba(170, 197, 34, 0.25);
+}
+
+.legacy-page .smallvalue {
+  color: #aac522;
+  font-size: clamp(20px, 2.5vw, 40px);
+  line-height: 1;
+}
+
+.legacy-page .unit {
+  margin-top: 6px;
+  color: #7f858d;
+  font-size: clamp(8px, 0.78vw, 13px);
+  line-height: 1.25;
+}
+
+.legacy-page button,
+.legacy-page select,
+.legacy-page input[type="number"],
+.legacy-page input[type="text"] {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #474747;
+  border-radius: 7px;
+  background: #0a0a0a;
+  color: #f2f4f8;
+  padding: 8px 10px;
+  font-size: clamp(10px, 0.95vw, 16px);
+}
+
+.legacy-page button {
+  cursor: pointer;
+  color: #a9adb3;
+  text-transform: uppercase;
+}
+
+.legacy-page button.active {
+  border-color: #86fa88;
+  color: #86fa88;
+  box-shadow: 0 0 8px rgba(134, 250, 136, 0.18);
+}
+
+.legacy-page input[type="color"] {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #474747;
+  border-radius: 7px;
+  background: #0a0a0a;
+  padding: 3px;
+}
+
+.legacy-page input[type="range"] {
+  width: 100%;
+  accent-color: #ff220d;
+}
+
+.legacy-page input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #ff220d;
+}
+
+.legacy-page .zone-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.legacy-page .zone-row {
+  display: grid;
+  grid-template-columns: auto minmax(125px, 1fr) minmax(100px, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: #c7c9cd;
+  font-size: clamp(9px, 0.9vw, 14px);
+  text-align: left;
+}
+
+#lighting_preview {
+  box-shadow: inset 0 0 18px rgba(255,255,255,0.06), 0 0 10px rgba(255,255,255,0.05);
+}
+
+@media (max-width: 760px) {
+  .legacy-page {
+    padding-top: 13.5%;
+  }
+  .legacy-page .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .legacy-page .zone-row {
+    grid-template-columns: auto 1fr;
+  }
+  .legacy-page .zone-row input[type="text"] {
+    grid-column: 1 / -1;
+  }
+}
+
+
+
+/* Continuously scrolling telemetry terminal. */
+.stream-log-live {
+  display: block;
+  overflow: hidden;
+  color: rgba(170, 197, 34, 0.82);
+  text-shadow: 0 0 5px rgba(170, 197, 34, 0.22);
+  scroll-behavior: smooth;
+}
+
+.stream-log-line {
+  display: block;
+  min-height: 1.15em;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0.80;
+  animation: stream-line-enter 130ms linear;
+}
+
+.stream-log-line:nth-last-child(-n + 2) {
+  opacity: 1;
+}
+
+.stream-log-time {
+  color: rgba(137, 137, 137, 0.82);
+}
+
+.stream-log-channel {
+  color: var(--red);
+  text-shadow: 0 0 5px rgba(255, 34, 13, 0.32);
+}
+
+.stream-log-line.is-alert {
+  color: #d33f6a;
+  text-shadow: 0 0 5px rgba(211, 63, 106, 0.30);
+}
+
+@keyframes stream-line-enter {
+  from { opacity: 0; transform: translateY(0.45em); }
+  to { opacity: 0.80; transform: translateY(0); }
+}
+
+
+
+/* -------------------------------------------------------------------------
+   Performance layer
+   Static art/font are separate cached resources. Dynamic layers avoid blur
+   filters and layout-triggering width changes.
+   ------------------------------------------------------------------------- */
+.dashboard-bg {
+  pointer-events: none;
+  contain: strict;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.dashboard-page:not(.is-active) {
+  display: none !important;
+}
+
+.gear-progress-segment,
+.gear-progress-label,
+.far-road-line,
+.road-motion-line,
+.tire-tread-line,
+.dashboard-tab,
+.dashboard-tab.is-active,
+.dashboard-tab:hover,
+.dashboard-tab:focus-visible {
+  filter: none !important;
+}
+
+.gear-progress-segment,
+.gear-progress-label {
+  transition: none !important;
+}
+
+.bar-fill {
+  width: calc(100% - 4px) !important;
+  max-width: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 80ms linear;
+  will-change: transform;
+}
+
+.stream-log {
+  display: block;
+  overflow: hidden;
+  white-space: pre;
+  margin: 0;
+  font-family: "Linebeam", "Courier New", monospace;
+  scrollbar-width: none;
+}
+.stream-log::-webkit-scrollbar { display: none; }
+
+.motion-frame {
+  opacity: 0;
+  pointer-events: none;
+}
+.motion-frame.is-lit { opacity: 1; }
+.road-motion-frame .road-motion-line {
+  stroke: #d0d000;
+  stroke-width: 1px;
+  stroke-opacity: 1;
+  fill: rgba(255, 231, 14, 0.14);
+}
+.tread-motion-frame .tire-tread-line {
+  stroke: #ff220d;
+  stroke-width: 1px;
+  stroke-opacity: 1;
+}
+
+.rpm-layer,
+.gear-indicator-layer,
+.scene-motion-layer {
+  contain: paint;
+}
 
 </style>
+
 </head>
 <body>
 <main class="page-shell">
-<section aria-label="Dashboard" class="dashboard" data-active-page="drive">
-<img class="dashboard-bg" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgICAgdmlld0JveD0iMTk2Ljk5OTk2OSAtMjExLjAwMDAwMCAyMjYuMDAwMDMxIDEzMi4wMDAwMDAiCiAgICAgYXJpYS1oaWRkZW49InRydWUiPgogIDxzdHlsZT4KICAgIC52ZWN0b3Itb3V0bGluZSB7CiAgICAgIGZpbGw6IG5vbmU7CiAgICAgIHZlY3Rvci1lZmZlY3Q6IG5vbi1zY2FsaW5nLXN0cm9rZTsKICAgIH0KICAgIC5kYXNoYm9hcmQtb2JqZWN0IHsKICAgICAgcG9pbnRlci1ldmVudHM6IG5vbmU7CiAgICB9CiAgICAuZGFzaGJvYXJkLW91dGxpbmUgewogICAgICBmaWx0ZXI6CiAgICAgICAgZHJvcC1zaGFkb3coMCAwIDEuNXB4IHJnYmEoMjU1LCAzNCwgMTMsIDAuNTIpKQogICAgICAgIGRyb3Atc2hhZG93KDAgMCA1cHggcmdiYSgyNTUsIDM0LCAxMywgMC4xOCkpOwogICAgfQogICAgLmRhc2hib2FyZC1ib3VuZGFyeSwKICAgIC5kYXNoYm9hcmQtcGFuZWwtYm91bmRhcnksCiAgICAuc2NlbmUtcm9hZCwKICAgIC5zY2VuZS1zdW4sCiAgICAuc2NlbmUtY2FyLAogICAgLmJyYW5kLWxvZ28gewogICAgICB2ZWN0b3ItZWZmZWN0OiBub24tc2NhbGluZy1zdHJva2U7CiAgICB9CiAgICAjc3VuIC5kYXNoYm9hcmQtb3V0bGluZSwKICAgICNicmFuZC1sb2dvIC5kYXNoYm9hcmQtb3V0bGluZSB7CiAgICAgIHN0cm9rZTogI2ZmNTA0MDsKICAgICAgZmlsbDogcmdiYSgyNTUsIDM0LCAxMywgMC4yNCk7CiAgICAgIGZpbHRlcjoKICAgICAgICBkcm9wLXNoYWRvdygwIDAgNHB4IHJnYmEoMjU1LCAzNCwgMTMsIDAuODUpKQogICAgICAgIGRyb3Atc2hhZG93KDAgMCA5cHggcmdiYSgyNTUsIDM0LCAxMywgMC40MCkpCiAgICAgICAgZHJvcC1zaGFkb3coMCAwIDE4cHggcmdiYSgyNTUsIDM0LCAxMywgMC4yMikpOwogICAgfQogIDwvc3R5bGU+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSIgZD0iTTM2Ny4wNzg4NTcsMTc2LjQwNDA5OUwyNTEuNzA2MjM4LDE3Ni40MDQwOTlMMjIwLjcwNjIzOCwxNDUuNDA0MDk5TDE5OC4wNzg4NTcsMTQ1LjQwNDA5OUwyNDUuMDc4ODI3LDE5Mi40MDQwNjhMMzY3LjA3ODg1NywxOTIuNDA0MDY4TDM2Ny4wNzg4NTcsMTc2LjQwNDA5OXoiIHN0eWxlPSJzdHJva2U6IzgwODA4MDtzdHJva2Utd2lkdGg6MS4zNXB4O2ZpbGw6bm9uZSIgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsLTEsMCwwKSI+PC9wYXRoPgo8ZyBhcmlhLWxhYmVsPSJPdXRlciBkYXNoYm9hcmQgZnJhbWUiIGNsYXNzPSJkYXNoYm9hcmQtb2JqZWN0IGRhc2hib2FyZC1ib3VuZGFyeSIgaWQ9ImRhc2hib2FyZC1mcmFtZSIgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsLTEsMCwwKSI+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTQyMyw3OS4xODM0NzlMMTk3LjEwNTYyMSw3OS4wMDAwMDhMMTk2Ljk5OTk2OSwyMTFMNDIzLDIxMUw0MjMsNzkuMTgzNDc5eiIgaWQ9Im91dGVyLWZyYW1lIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8L2c+CjxnIGFyaWEtbGFiZWw9Ikhvcml6b250YWwgZGFzaGJvYXJkIGRpdmlkZXJzIiBjbGFzcz0iZGFzaGJvYXJkLW9iamVjdCBkYXNoYm9hcmQtYm91bmRhcnkiIGlkPSJkYXNoYm9hcmQtZGl2aWRlcnMiIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLC0xLDAsMCkiPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0xOTcuNzUwNjEsMTQ0LjQwNDA5OUw0MjIuMjUwNjQxLDE0NC40MDQwOTkiIGlkPSJkaXZpZGVyLXVwcGVyIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0xOTcuNzUwNjEsMTEyLjQwNDA5OUw0MjIuMjUwNjQxLDExMi40MDQwOTkiIGlkPSJkaXZpZGVyLWxvd2VyIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8L2c+CjxnIGFyaWEtbGFiZWw9IlJvYWQgYW5kIHBlcnNwZWN0aXZlIGxpbmVzIiBjbGFzcz0iZGFzaGJvYXJkLW9iamVjdCBzY2VuZS1yb2FkIiBpZD0icm9hZC1zY2VuZSIgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsLTEsMCwwKSI+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTQyMi43ODYwMTEsODAuNDA0MDk5TDM4Ni42MTU3ODQsODAuNDA0MTQ0TDMyNC45NjExODIsMTEyLjQwNDExNEwzODAuMzI1MTM0LDgwLjQwNDE0NEwyMzkuNjMwMzcxLDgwLjQwNDE2TDI5NC45Nzg5NDMsMTEyLjQwNDExNEwyMzMuMzI0MzcxLDgwLjQwNDE2TDE5Ny4yODUyNzgsODAuNDA0MTE0IiBpZD0icm9hZC1wZXJzcGVjdGl2ZSIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPC9nPgo8ZyBhcmlhLWxhYmVsPSJTdHJpcGVkIHN1biIgY2xhc3M9ImRhc2hib2FyZC1vYmplY3Qgc2NlbmUtc3VuIiBpZD0ic3VuIiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzI3LjU0MjUxMSwxMTguOTE2MzY3TDI5Mi4zODA4MjksMTE4LjkxNjM2N0MyOTIuMjYyMjA3LDExOC42MzU2NjYsMjkyLjE1MjI1MiwxMTguMzUxMzM0LDI5Mi4wNTEyMDgsMTE4LjA2MzYxNEwzMjcuODcyMTYyLDExOC4wNjM2MTRDMzI3Ljc3MTA4OCwxMTguMzUxMzM0LDMyNy42NjExMzMsMTE4LjYzNTY2NiwzMjcuNTQyNTExLDExOC45MTYzNjd6IiBpZD0ic3VuLXN0cmlwZS0xIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zMjguMzM5MjMzLDExNi40MzU0MUMzMjguMjc0ODcyLDExNi43MjI0MjcsMzI4LjIwMTg0MywxMTcuMDA2NzksMzI4LjEyMDM5MiwxMTcuMjg4MTkzTDI5MS44MDI5NDgsMTE3LjI4ODE5M0MyOTEuNzIxNTI3LDExNy4wMDY3NiwyOTEuNjQ4NDY4LDExNi43MjI0MjcsMjkxLjU4NDEzNywxMTYuNDM1Mzc5TDMyOC4zMzkyMzMsMTE2LjQzNTQxIiBpZD0ic3VuLXN0cmlwZS0yIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zMjguNjA2NzgxLDExNC44MDcyMDVDMzI4LjU3NjU5OSwxMTUuMDkzNjc0LDMyOC41Mzc4NDIsMTE1LjM3ODAzNiwzMjguNDkwNzg0LDExNS42NjAwMTlMMjkxLjQzMjU4NywxMTUuNjU5OTg4QzI5MS4zODU1MjksMTE1LjM3ODAwNiwyOTEuMzQ2NzcxLDExNS4wOTM2NzQsMjkxLjMxNjU1OSwxMTQuODA3MjA1TDMyOC42MDY3ODEsMTE0LjgwNzIwNSIgaWQ9InN1bi1zdHJpcGUtMyIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzI4LjY4NTMwMywxMTMuMTc5MDAxQzMyOC42ODU2MzgsMTEzLjIxOTY4MSwzMjguNjg1NzkxLDExMy4yNjA0NTIsMzI4LjY4NTc5MSwxMTMuMzAxMjI0QzMyOC42ODU3OTEsMTEzLjU0NjA2NiwzMjguNjc5NTk2LDExMy43ODk2NTgsMzI4LjY2NzI2NywxMTQuMDMxODE1TDI5MS4yNTYwNzMsMTE0LjAzMTgxNUMyOTEuMjQzNzc0LDExMy43ODk2NTgsMjkxLjIzNzU0OSwxMTMuNTQ2MDY2LDI5MS4yMzc1NDksMTEzLjMwMTIyNEMyOTEuMjM3NTQ5LDExMy4yNjA0NTIsMjkxLjIzNzcwMSwxMTMuMjE5NzExLDI5MS4yMzgwMzcsMTEzLjE3OTAzMUwzMjguNjg1MzAzLDExMy4xNzkwMDEiIGlkPSJzdW4tc3RyaXBlLTQiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTI5Mi43MzQ4NjMsMTE5LjY5MTcyN0wzMjcuMTg4NTA3LDExOS42OTE3MjdDMzI0LjMzMTY2NSwxMjUuNTA3Mzg1LDMxNy42OTQwNjEsMTI5LjU4MzA2OSwzMDkuOTYxNjcsMTI5LjU4MzA2OUMzMDIuMjI5MzQsMTI5LjU4MzA2OSwyOTUuNTkxNjQ0LDEyNS41MDczODUsMjkyLjczNDg2MywxMTkuNjkxNzI3eiIgaWQ9InN1bi1ib2R5IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8L2c+CjxnIGFyaWEtbGFiZWw9IlJlYXIgY2FyIHdpcmVmcmFtZSIgY2xhc3M9ImRhc2hib2FyZC1vYmplY3Qgc2NlbmUtY2FyIiBpZD0iY2FyIiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjk4LjMwNTE0NSw5Ny41MDQ5MjlMMjk2LjEwMzE0OSw5OC4yOTEwNjEiIGlkPSJjYXItZGV0YWlsLTAwIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zMjEuNTk0OTcxLDk4LjY4MTI5TDMxMC4wMDc0MTYsOTguNjgxMjU5TDI5OC4zNTczLDk4LjY4MTI1OSIgaWQ9ImNhci1kZXRhaWwtMDEiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMxOC45NDkxNTgsOTIuODY4MzYyTDMxMC4wMDc0MTYsOTIuODc0Mzc0TDMwMS4wMjQ1MzYsOTIuODY4MzYyIiBpZD0iY2FyLWRldGFpbC0wMiIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzIxLjY1NzQxLDk3LjUwMDk5MkwzMTAuMDA3NDE2LDk3LjQ4MzEzOUwyOTguMzE2MjU0LDk3LjUwMDk2MUwyOTguMzE2MjU0LDk3LjUwMDk2MSIgaWQ9ImNhci1kZXRhaWwtMDMiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMxNS43OTc5NDMsODYuMTkwMzk5QzMxNS44MzMwMDgsODUuODE0NzgxLDMxNi4zOTQzMTgsODUuNTE2MTksMzE3LjA4MTU3Myw4NS41MTYxOUMzMTcuNzkxNDczLDg1LjUxNjE5LDMxOC4zNjY5NDMsODUuODM0NzU1LDMxOC4zNjY5NDMsODYuMjI3NzIyQzMxOC4zNjY5NDMsODYuNjIwNjg5LDMxNy43OTE0NzMsODYuOTM5MjU1LDMxNy4wODE1NzMsODYuOTM5MjU1QzMxNi4zNzE2NzQsODYuOTM5MjU1LDMxNS43OTYyMDQsODYuNjIwNjg5LDMxNS43OTYyMDQsODYuMjI3NzIyIiBpZD0iY2FyLWRldGFpbC0wNCIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzA0LjE3Njk3MSw4Ni4yMDU2MTJDMzA0LjE1NTg4NCw4NS44MjI4NjEsMzAzLjU4ODc0NSw4NS41MTYxNTksMzAyLjg5MjIxMiw4NS41MTYxNTlDMzAyLjE4MjMxMiw4NS41MTYxNTksMzAxLjYwNjg0Miw4NS44MzQ3MjQsMzAxLjYwNjg0Miw4Ni4yMjc2OTJDMzAxLjYwNjg0Miw4Ni42MjA2NTksMzAyLjE4MjMxMiw4Ni45MzkyMjQsMzAyLjg5MjIxMiw4Ni45MzkyMjRDMzAzLjYwMjExMiw4Ni45MzkyMjQsMzA0LjE3NzU4Miw4Ni42MjA2NTksMzA0LjE3NzU4Miw4Ni4yMjc2OTIiIGlkPSJjYXItZGV0YWlsLTA1IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yOTcuOTU2MDg1LDg2LjQ2OTg2NEwzMDEuMjEyODMsODYuNDUxODU5QzMwMS4yMTI1ODUsODYuNDU3ODQsMzAxLjIxMjQzMyw4Ni40NjM4NTIsMzAxLjIxMjQzMyw4Ni40Njk4NjRDMzAxLjIxMjQzMyw4Ni45MTk0NzksMzAxLjk0MTQwNiw4Ny4yODM5NjYsMzAyLjg0MDYzNyw4Ny4yODM5NjZDMzAzLjczOTgzOCw4Ny4yODM5NjYsMzA0LjQ2ODgxMSw4Ni45MTk0NzksMzA0LjQ2ODgxMSw4Ni40Njk4NjRDMzA0LjQ2ODgxMSw4Ni40NTc4MjUsMzA0LjQ2ODI2Miw4Ni40NDU4MTYsMzA0LjQ2NzI4NSw4Ni40MzM4OTlMMzA5Ljk2NjI3OCw4Ni40MDMyOUwzMTUuNTA2NDA5LDg2LjQzMzkxNEMzMTUuNTA1NDMyLDg2LjQ0NTg0NywzMTUuNTA0ODgzLDg2LjQ1Nzg0LDMxNS41MDQ4ODMsODYuNDY5ODk0QzMxNS41MDQ4ODMsODYuOTE5NDk1LDMxNi4yMzM4NTYsODcuMjgzOTgxLDMxNy4xMzMwNTcsODcuMjgzOTgxQzMxOC4wMzIyNTcsODcuMjgzOTgxLDMxOC43NjEyMyw4Ni45MTk0OTUsMzE4Ljc2MTIzLDg2LjQ2OTg5NEMzMTguNzYxMjMsODYuNDYzODgyLDMxOC43NjExMDgsODYuNDU3ODcsMzE4Ljc2MDgzNCw4Ni40NTE4ODlMMzIyLjAxNzYwOSw4Ni40Njk4OTQiIGlkPSJjYXItZGV0YWlsLTA2IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zMjEuNjg3MjU2LDk1LjI0OTM4MkMzMjEuNjg3MjU2LDk0LjY1NzY2MSwzMjIuMjAwMjU2LDk0LjE3Nzk3OSwzMjIuODMzMDY5LDk0LjE3Nzk3OUMzMjMuNDY1ODgxLDk0LjE3Nzk3OSwzMjMuOTc4ODgyLDk0LjY1NzY2MSwzMjMuOTc4ODgyLDk1LjI0OTM4MkMzMjMuOTc4ODgyLDk1Ljg0MTEwMywzMjMuNDY1ODgxLDk2LjMyMDc4NiwzMjIuODMzMDY5LDk2LjMyMDc4NkMzMjIuMjAwMjU2LDk2LjMyMDc4NiwzMjEuNjg3MjU2LDk1Ljg0MTEwMywzMjEuNjg3MjU2LDk1LjI0OTM4MnoiIGlkPSJjYXItZGV0YWlsLTA3IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zMDAuNTk2OTU0LDEwMi43OTk1NzZMMzEwLjAwNzQxNiwxMDMuMjY5MTE5TDMxOS4zNzY3NCwxMDIuNzk5NjA2IiBpZD0iY2FyLWRldGFpbC0wOCIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzE5LjIwNTEwOSwxMDIuNzk5NjA2TDMxMC4wMDc0MTYsMTAyLjc5OTU3NkwzMDEuMDUzNDk3LDEwMi43OTk1NzYiIGlkPSJjYXItZGV0YWlsLTA5IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yOTYuMzI3ODgxLDk4LjY4MTI1OUwzMDAuNTk2OTU0LDEwMi43OTk1NzZMMjk4LjM0NjAzOSw5OC42ODEyNTlMMjk4LjMxNjg2NCw5Ny41MjM2OTciIGlkPSJjYXItZGV0YWlsLTEwIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yOTguMzIyMDgzLDk4LjY4MTI1OUwyOTYuMzY5NjI5LDk4LjY4MTI1OSIgaWQ9ImNhci1kZXRhaWwtMTEiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMyMy42NDU3NTIsOTguNjgxMjU5TDMxOS4zNzY2NzgsMTAyLjc5OTU3NkwzMjEuNjI3NTk0LDk4LjY4MTI1OUwzMjEuNjU2OTgyLDk3LjUxNzU2MyIgaWQ9ImNhci1kZXRhaWwtMTIiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMyMy42MTI2NCw5OC42ODEyOUwzMjEuNjY4NDU3LDk4LjY4MTI5IiBpZD0iY2FyLWRldGFpbC0xMyIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzI1LjIyODc2LDkzLjIyNTUxTDMyMy44OTkxMDksOTguMzAxMjg1TDMyMS42OTA1NTIsOTcuNTEyODAyIiBpZD0iY2FyLWRldGFpbC0xNCIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzIxLjY1ODk5Nyw5Ny40MzY3NTJMMzIxLjY4NzEzNCw5Ni4zMjA2NjNMMzE4Ljk0OTA5Nyw5Mi44NjgzNjJMMzI1LjE5MTE2Miw5My4yMjMzNDMiIGlkPSJjYXItZGV0YWlsLTE1IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yOTguMzE1NzA0LDk3LjQ3ODk1OEwyOTguMjg2NDk5LDk2LjMyMDY2M0wzMDEuMDI0NTM2LDkyLjg2ODM2MkwyOTQuNzQ0OTM0LDkzLjIyNTQ3OUwyOTMuMTc3MjE2LDkzLjc2MDYzNSIgaWQ9ImNhci1kZXRhaWwtMTYiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTI5OC4yODY1Myw5NS4yNDkzNjdDMjk4LjI4NjUzLDk0LjY1NzY0NiwyOTcuNzczNTI5LDk0LjE3Nzk2MywyOTcuMTQwNzE3LDk0LjE3Nzk2M0MyOTYuNTA3OTA0LDk0LjE3Nzk2MywyOTUuOTk0OTA0LDk0LjY1NzY0NiwyOTUuOTk0OTA0LDk1LjI0OTM2N0MyOTUuOTk0OTA0LDk1Ljg0MTA4NywyOTYuNTA3OTA0LDk2LjMyMDc3LDI5Ny4xNDA3MTcsOTYuMzIwNzdDMjk3Ljc3MzUyOSw5Ni4zMjA3NywyOTguMjg2NTMsOTUuODQxMDg3LDI5OC4yODY1Myw5NS4yNDkzNjd6IiBpZD0iY2FyLWRldGFpbC0xNyIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzE5LjcxNTYzNyw4Ni4zNzM1MkwzMTkuNzMzOTQ4LDgzLjQ5MTQ1NUwzMjYuNTUxMyw4My41NDYyOEwzMjYuNTMzMDIsODUuNjU1Nzc3IiBpZD0iY2FyLWRldGFpbC0xOCIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzAwLjI1ODA4Nyw4Ni4zODg5MDFMMzAwLjIzOTY4NSw4My40OTE0NTVMMjkzLjQyMjMzMyw4My41NDYyOEwyOTMuNDQwNjEzLDg1LjY1NTc3NyIgaWQ9ImNhci1kZXRhaWwtMTkiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMwOS45NjYyNzgsOTMuNzk2NzM4TDMxMy44NzY2NzgsOTMuNzk2NzM4TDMxMy44NzY2NzgsOTYuNTExNjczTDMxMC4wMDc0MTYsOTYuNTExNjczTDMwNi4wOTY5ODUsOTYuNTExNjczTDMwNi4wOTY5ODUsOTMuNzk2NzA3TDMwOS45NjYyNzgsOTMuNzk2NzM4eiIgaWQ9ImNhci1kZXRhaWwtMjAiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMyMi4wMTc2MDksODYuMzk4NzQzTDMyMi4wMTc2MDksODUuNjU1ODA3TDMyNi45MDIxNjEsODUuNjU1ODA3TDMyNi45MDIxNjEsOTMuNzk2NzM4TDMyMy42NDU3ODIsOTguNjgxMjkiIGlkPSJjYXItZGV0YWlsLTIxIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zMjUuMjI4Njk5LDkzLjIyNTQ3OUwzMjYuODI0NzA3LDkzLjc3MDI3OSIgaWQ9ImNhci1kZXRhaWwtMjIiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMyMi4wNzQxNTgsODYuNDgwMjI1TDMyNi44NzAzLDg3LjM1NzY4MSIgaWQ9ImNhci1kZXRhaWwtMjMiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMyNS4yMjg2OTksOTMuMjI1NDc5TDMyNC4zNTkxNjEsOTEuMTEzMzg4IiBpZD0iY2FyLWRldGFpbC0yNCIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzI2LjU5MTI3OCw5MS4wODM2MThMMzI0LjM1OTE2MSw5MS4xMTMzODhMMzI0LjM4OCw4Ni45NjIyMzQiIGlkPSJjYXItZGV0YWlsLTI1IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yOTYuMzI3ODgxLDk4LjY4MTI1OUwyOTMuMDcxNTMzLDkzLjc5NjcwN0wyOTMuMDcxNTMzLDg1LjY1NTc3N0wyOTcuOTU2MDg1LDg1LjY1NTc3N0wyOTcuOTU2MDg1LDg2LjM5NzYyOSIgaWQ9ImNhci1kZXRhaWwtMjYiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTI5Ny45MjMyMTgsODYuNDc1ODc2TDI5My4wNzE1MzMsODcuMzYzNDk1IiBpZD0iY2FyLWRldGFpbC0yNyIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjk0Ljc0NDkzNCw5My4yMjU0NzlMMjk1LjYxNDQ3MSw5MS4xMTMzODgiIGlkPSJjYXItZGV0YWlsLTI4IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yOTYuMDc0NTg1LDk4LjMwMTI1NEwyOTQuNzQ0OTM0LDkzLjIyNTQ3OSIgaWQ9ImNhci1kZXRhaWwtMjkiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTI5My4zODIzNTUsOTEuMDgzNjE4TDI5NS42MTQ0NzEsOTEuMTEzMzg4TDI5NS41ODU3NTQsODYuOTcyNjcyIiBpZD0iY2FyLWRldGFpbC0zMCIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzIyLjg4OTQ5Niw4Ni42NTM1NjRMMzE5LjQxODgyMyw5MC4yNTAzNTFMMzEwLjAwNzQxNiw5MC4yNjQ5MzhMMzAwLjU1NDg3MSw5MC4yNTAzMkwyOTcuMDk3NTY1LDg2LjY2NzM3NCIgaWQ9ImNhci1kZXRhaWwtMzEiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTMyMC4zNDkzNjUsODkuMjAxMjMzTDMxMC4wMDc0MTYsODkuMjI4NTkyTDI5OS42MjU0ODgsODkuMjAxMjAyIiBpZD0iY2FyLWRldGFpbC0zMiIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzIxLjU0Mjc4Niw4Ny45NzEyOThMMzEwLjAwNzQxNiw4OC4xNTYwMjFMMjk4LjM5NDAxMiw4Ny45NzA2NzMiIGlkPSJjYXItZGV0YWlsLTMzIiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8L2c+CjxnIGFyaWEtbGFiZWw9IlZvbHRhZ2UgcGFuZWwgYm91bmRhcnkiIGNsYXNzPSJkYXNoYm9hcmQtb2JqZWN0IGRhc2hib2FyZC1wYW5lbC1ib3VuZGFyeSIgaWQ9InBhbmVsLXZvbHRhZ2UiIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLC0xLDAsMCkiPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yMzMuMjc2NTY2LDgxLjQwNDA5OUwxOTguMDc4ODU3LDgxLjQwNDA5OUwxOTguMDc4ODU3LDExMS40MDQwOTlMMjUyLjA3ODg1NywxMTEuNDA0MDk5TDI1Mi4wNzg4NTcsOTEuMTU1MzE5TDIzMy4yNzY1NjYsODEuNDA0MDk5eiIgaWQ9InZvbHRhZ2UtcGFuZWwtYm91bmRhcnkiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjwvZz4KPGcgYXJpYS1sYWJlbD0iQWlyLXRlbXBlcmF0dXJlIHBhbmVsIGJvdW5kYXJ5IiBjbGFzcz0iZGFzaGJvYXJkLW9iamVjdCBkYXNoYm9hcmQtcGFuZWwtYm91bmRhcnkiIGlkPSJwYW5lbC1haXItdGVtcGVyYXR1cmUiIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLC0xLDAsMCkiPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0zODYuNjM1Mjg0LDgxLjQwNDA5OUw0MjIuMDc4ODU3LDgxLjQwNDA5OUw0MjIuMDc4ODU3LDExMS40MDQwOTlMMzY4LjA3ODg1NywxMTEuNDA0MDk5TDM2OC4wNzg4NTcsOTEuMDI3ODE3TDM4Ni42MzUyODQsODEuNDA0MDk5eiIgaWQ9ImFpci1wYW5lbC1ib3VuZGFyeSIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPC9nPgo8ZyBhcmlhLWxhYmVsPSJCb29zdCBwYW5lbCBib3VuZGFyeSIgY2xhc3M9ImRhc2hib2FyZC1vYmplY3QgZGFzaGJvYXJkLXBhbmVsLWJvdW5kYXJ5IiBpZD0icGFuZWwtYm9vc3QiIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLC0xLDAsMCkiPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik00MjIuMDc4ODU3LDE0NS40MDQwOTlMMzY4LjA3ODg1NywxNDUuNDA0MDk5TDM2OC4wNzg4NTcsMTc1LjQwNDA5OUw0MjIuMDc4ODU3LDE3NS40MDQwOTlMNDIyLjA3ODg1NywxNDUuNDA0MDk5eiIgaWQ9ImJvb3N0LXBhbmVsLWJvdW5kYXJ5IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8L2c+CjxnIGFyaWEtbGFiZWw9Ik9pbC1wcmVzc3VyZSBwYW5lbCBib3VuZGFyeSIgY2xhc3M9ImRhc2hib2FyZC1vYmplY3QgZGFzaGJvYXJkLXBhbmVsLWJvdW5kYXJ5IiBpZD0icGFuZWwtb2lsLXByZXNzdXJlIiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjUyLjA3ODg1NywxMTMuNDA0MDk5TDE5OC4wNzg4NTcsMTEzLjQwNDA5OUwxOTguMDc4ODU3LDE0My40MDQwOTlMMjUyLjA3ODg1NywxNDMuNDA0MDk5TDI1Mi4wNzg4NTcsMTEzLjQwNDA5OXoiIGlkPSJvaWwtcGFuZWwtYm91bmRhcnkiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjwvZz4KPGcgYXJpYS1sYWJlbD0iV2F0ZXItdGVtcGVyYXR1cmUgcGFuZWwgYm91bmRhcnkiIGNsYXNzPSJkYXNoYm9hcmQtb2JqZWN0IGRhc2hib2FyZC1wYW5lbC1ib3VuZGFyeSIgaWQ9InBhbmVsLXdhdGVyLXRlbXBlcmF0dXJlIiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNNDIyLjA3ODg1NywxMTMuNDA0MDk5TDM2OC4wNzg4NTcsMTEzLjQwNDA5OUwzNjguMDc4ODU3LDE0My40MDQwOTlMNDIyLjA3ODg1NywxNDMuNDA0MDk5TDQyMi4wNzg4NTcsMTEzLjQwNDA5OXoiIGlkPSJ3YXRlci1wYW5lbC1ib3VuZGFyeSIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPC9nPgo8ZyBhcmlhLWxhYmVsPSJTdHJlYW0tc3RhdHVzIG91dGVyIGJvdW5kYXJ5IiBjbGFzcz0iZGFzaGJvYXJkLW9iamVjdCBkYXNoYm9hcmQtcGFuZWwtYm91bmRhcnkiIGlkPSJwYW5lbC1zdHJlYW0tc3RhdHVzIiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNNDIyLjA3ODg1NywxOTIuMzg1MjU0TDQyMi4wNzg4NTcsMjA5Ljk5OTYwM0wzNjguMDc4ODU3LDIwOS45OTk2MDNMMzY4LjA3ODg1NywxODguNzk2MzI2TDM2OC4wNzg4NTcsMTc2LjM4NTI1NEw0MjIuMDc4ODU3LDE3Ni4zODUyNTRMNDIyLjA3ODg1NywxOTIuMzg1MjU0eiIgaWQ9InN0cmVhbS1zdGF0dXMtb3V0ZXItYm91bmRhcnkiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjwvZz4KPGcgYXJpYS1sYWJlbD0iU3RyZWFtLXN0YXR1cyBpbm5lciBib3VuZGFyeSIgY2xhc3M9ImRhc2hib2FyZC1vYmplY3QgZGFzaGJvYXJkLXBhbmVsLWJvdW5kYXJ5IiBpZD0icGFuZWwtc3RyZWFtLXN0YXR1cy1pbm5lciIgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsLTEsMCwwKSI+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTQyMS4wNzg4NTcsMTc3LjM4NTI1NEwzNjkuMDc4ODU3LDE3Ny4zODUyNTRMMzY5LjA3ODg1NywyMDYuOTMzMjU4TDQyMS4wNzg4NTcsMjA2LjkzMzI1OEw0MjEuMDc4ODU3LDE3Ny4zODUyNTR6IiBpZD0ic3RyZWFtLXN0YXR1cy1pbm5lci1ib3VuZGFyeSIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPC9nPgo8ZyBhcmlhLWxhYmVsPSJUb3AgdGFiIHBhbmVsIGJvdW5kYXJ5IiBjbGFzcz0iZGFzaGJvYXJkLW9iamVjdCBkYXNoYm9hcmQtcGFuZWwtYm91bmRhcnkiIGlkPSJwYW5lbC10YWJzIiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMzY3LjA3ODg1NywxOTMuNDA0MDgzTDI1My4wNzg4NTcsMTkzLjQwNDA4M0wyNTMuMDc4ODU3LDIxMEwzNjcuMDc4ODU3LDIxMEwzNjcuMDc4ODU3LDE5My40MDQwODN6IiBpZD0idGFicy1wYW5lbC1ib3VuZGFyeSIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPC9nPgo8ZwogIGFyaWEtbGFiZWw9IlRvcC1sZWZ0IGJyYW5kIGFuZCBjdXJyZW50LWdlYXIgaW5kaWNhdG9yIGJvdW5kYXJ5IgogIGNsYXNzPSJkYXNoYm9hcmQtb2JqZWN0IGRhc2hib2FyZC1wYW5lbC1ib3VuZGFyeSIKICBpZD0icGFuZWwtYnJhbmQtaGVhZGVyIgogIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLC0xLDAsMCkiCj4KICA8cGF0aAogICAgY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIgogICAgZD0iTTIyOC4wNzg4NDIsMTc2LjQwNDA5OUwxOTguMDc4ODU3LDE3Ni40MDQxMTRMMTk4LjA3ODg1NywxOTIuNDA0MDUzTDE5OC4wNzg4NTcsMjA5LjgxNzM4M0wxOTguMDc4ODU3LDIxMEwyNTIuMDc4ODU3LDIxMEwyNTIuMDc4ODU3LDIwOC45ODM3NjVMMjUyLjA3ODg1NywxOTMuNDA0MDgzTDI0NS4wNzg4MjcsMTkzLjQwNDA4M0wyMjguMDc4ODQyLDE3Ni40MDQwOTkiCiAgICBpZD0iYnJhbmQtaGVhZGVyLWJvdW5kYXJ5IgogICAgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiCiAgPjwvcGF0aD4KPC9nPgo8ZyBhcmlhLWxhYmVsPSJUb3AtbGVmdCB2ZWN0b3IgbG9nbyIgY2xhc3M9ImRhc2hib2FyZC1vYmplY3QgYnJhbmQtbG9nbyIgaWQ9ImJyYW5kLWxvZ28iIHRyYW5zZm9ybT0ibWF0cml4KDEsMCwwLC0xLDAsMCkiPgo8cGF0aCBjbGFzcz0idmVjdG9yLW91dGxpbmUgZGFzaGJvYXJkLW91dGxpbmUiIGQ9Ik0yMDguMTY2NTA0LDE4Ni40ODY4MTZMMjA3Ljg2ODE2NCwxODcuMDE3NTc4TDIwNy41MjI5NDksMTg3LjU0MTk5MkwyMDcuMTEyNzkzLDE4Ny4zNzE1ODJMMjA3LjI4MDc2MiwxODcuMTI3OTNDMjA3LjQ1MzkwMywxODYuODYxMDUzLDIwNy42MTIzNSwxODYuNTg0OTMsMjA3Ljc1NTM3MSwxODYuMzAwNzgxTDIwOC4xNjY1MDQsMTg2LjQ4NjgxNnoiIGlkPSJicmFuZC1sb2dvLXBhcnQtMDEiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTIyOC4xMTYyMTEsMTg0Ljc3NDkwMkMyMjcuODg3OTM5LDE4NS40NjM0NCwyMjcuNjMyNTM4LDE4Ni4xNDI3LDIyNy4zNTA1ODYsMTg2LjgxMTAzNUwyMjYuNzUzOTA2LDE4Ni42MTAzNTJMMjI2LjgzNzQwMiwxODYuNDI0ODA1QzIyNy4wOTIwNTYsMTg1LjgxNjE2MiwyMjcuMzE3NDI5LDE4NS4xOTU2MzMsMjI3LjUxMjY5NSwxODQuNTY1NDNMMjI4LjExNjIxMSwxODQuNzc0OTAyeiIgaWQ9ImJyYW5kLWxvZ28tcGFydC0wMiIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjI2LjA1NzEyOSwxODQuMjI0NjA5QzIyNS43OTA1MTIsMTg0Ljk0MDkwMywyMjUuNTAxMjgyLDE4NS42NDg2NjYsMjI1LjE4OTk0MSwxODYuMzQ2NjhMMjI0LjU3NzYzNywxODYuMTIxNTgyQzIyNC45MTA3MjEsMTg1LjQzMzMzNCwyMjUuMjAwMzMzLDE4NC43MjQ5NiwyMjUuNDQ0ODI0LDE4NC4wMDA0ODhMMjI2LjA1NzEyOSwxODQuMjI0NjA5eiIgaWQ9ImJyYW5kLWxvZ28tcGFydC0wMyIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjE3LjYzNzIwNywxODEuNTU1MTc2QzIxOC4zNDY4NDgsMTgyLjc0MjkzNSwyMTguODQ2MjA3LDE4NC4wNDQyODEsMjE5LjExMzI4MSwxODUuNDAxODU1TDIxOS4xNTg2OTEsMTg1LjYxMDg0QzIxOS4yMDE1NTMsMTg1LjgwMDc1MSwyMTkuMjUwNzMyLDE4NS45ODkxNTEsMjE5LjMwNjE1MiwxODYuMTc1NzgxTDIxOC42MTYyMTEsMTg2LjMxNDk0MUwyMTguNTY2NDA2LDE4NS45NjkyMzhDMjE4LjMwODUwMiwxODQuMjk0OTk4LDIxNy42NTQwMjIsMTgyLjcwNjQ1MSwyMTYuNjU3NzE1LDE4MS4zMzY0MjZMMjE3LjMxNTkxOCwxODEuMDU4MTA1TDIxNy42MzcyMDcsMTgxLjU1NTE3NnoiIGlkPSJicmFuZC1sb2dvLXBhcnQtMDQiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTIyMy4yMzE5MzQsMTgxLjI5Nzg1MkMyMjIuNzA1NDc1LDE4My4wNTkyMDQsMjIyLjAxNTc3OCwxODQuNzY3NjcsMjIxLjE3MTg3NSwxODYuNDAwODc5TDIyMC41NDQ5MjIsMTg2LjE5MTg5NUwyMjAuNjc2MjcsMTg1Ljk1MjE0OEMyMjEuNDY2MTEsMTg0LjM5NDg4MiwyMjIuMDkxNTM3LDE4Mi43NTk2NDQsMjIyLjU0MjQ4LDE4MS4wNzI3NTRMMjIzLjIzMTkzNCwxODEuMjk3ODUyeiIgaWQ9ImJyYW5kLWxvZ28tcGFydC0wNSIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjI2LjczOTI1OCwxODAuODk2OTczQzIyOC41MzkwNjMsMTgxLjY5MDg1NywyMjkuODk0ODM2LDE4My4yNDMwNzMsMjMwLjQzOTQ1MywxODUuMTMzMzAxQzIzMC41MzA5NiwxODUuNDQ4ODUzLDIzMC42MjMwOTMsMTg1Ljc3NTQyMSwyMzAuNzA5OTYxLDE4Ni4wOTIyODVMMjMwLjc4NzU5OCwxODYuMzE0OTQxTDIzMC4wNzY2NiwxODYuNTE3MDlMMjMwLjAwMzkwNiwxODYuMDc5MTAyQzIyOS44MjQwNTEsMTg1LjA4NjMxOSwyMjkuNDI1MjAxLDE4NC4xNDU5OTYsMjI4LjgzNjQyNiwxODMuMzI2NjZDMjI4LjA0ODkwNCwxODIuMzU1MDU3LDIyNi45ODk0NDEsMTgxLjY0MDcwMSwyMjUuNzkzNDU3LDE4MS4yNzQ5MDJMMjI2LjMyODEyNSwxODAuNzMyOTFMMjI2LjczOTI1OCwxODAuODk2OTczeiIgaWQ9ImJyYW5kLWxvZ28tcGFydC0wNiIgc3R5bGU9InN0cm9rZTojZmYyMjBkO2ZpbGw6bm9uZTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2Utd2lkdGg6MS44cHgiPjwvcGF0aD4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjEzLjEwNzkxLDE4MC45MDE4NTVDMjEzLjA4OTU1NCwxODEuMTI2MTYsMjEzLjA4MDU5NywxODEuMzUxMTIsMjEzLjA4MTA1NSwxODEuNTc2MTcyTDIxMy4wODEwNTUsMTg0Ljg0Mzc1TDIxMy42NTg2OTEsMTg1LjI1MDQ4OEMyMTQuMTk5NTU0LDE4NS42NDc4ODgsMjE0LjcwNjIwNywxODYuMDg5ODU5LDIxNS4xNzMzNCwxODYuNTcxNzc3TDIxNC42NTQyOTcsMTg3LjA1MTc1OEwyMTQuNDQyODcxLDE4Ni44MDk1N0MyMTMuMzcxMDE3LDE4NS42NzQ0NTQsMjEyLjA1MjA2MywxODQuODAxNDM3LDIxMC41ODgzNzksMTg0LjI1ODMwMUMyMTAuMTE5NzgxLDE4NC4wNzM5NTksMjA5LjY0MTM1NywxODMuOTE1NjgsMjA5LjE1NTI3MywxODMuNzg0MThMMjA5LjQ2NDg0NCwxODMuMTc5MTk5QzIxMC40OTA2NDYsMTgzLjQ5NDIxNywyMTEuNDc5OTY1LDE4My45MTc2NzksMjEyLjQxNjAxNiwxODQuNDQyMzgzQzIxMi40MzIwMzcsMTgzLjQwOTQ1NCwyMTIuNDMwNzU2LDE4Mi4zNzYyMDUsMjEyLjQxMjEwOSwxODEuMzQzMjYyQzIxMi40MDg2NzYsMTgxLjE0NDQwOSwyMTIuMzk0NTAxLDE4MC45NDU4NjIsMjEyLjM2OTYyOSwxODAuNzQ4NTM1TDIxMy4xMjg0MTgsMTgwLjc0ODUzNUwyMTMuMTA3OTEsMTgwLjkwMTg1NXoiIGlkPSJicmFuZC1sb2dvLXBhcnQtMDciIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTIwMi45NzE2OCwxODAuNjUxMzY3QzIwMy43OTIwMDcsMTgxLjAwODcxMywyMDQuNTM5NjI3LDE4MS41MTM4NTUsMjA1LjE3NzI0NiwxODIuMTQxNjAyTDIwNS40NDgyNDIsMTgyLjQyNjc1OEMyMDUuNzM4ODkyLDE4Mi4yMDU0MTQsMjA2LjAyMDUzOCwxODEuOTcyNDczLDIwNi4yOTI0OCwxODEuNzI4NTE2TDIwNi43NDg1MzUsMTgyLjI2MzE4NEMyMDYuNDYxMTk3LDE4Mi40OTYzMzgsMjA2LjE2NzE2LDE4Mi43MjEwMjQsMjA1Ljg2NjY5OSwxODIuOTM3MDEyQzIwNi40NDEyOTksMTgzLjczNTY4NywyMDYuODc5NDI1LDE4NC42MjQyOTgsMjA3LjE2MzA4NiwxODUuNTY2NDA2TDIwNy4yNjA3NDIsMTg1Ljc2NTYyNUwyMDYuODk2NDg0LDE4NS45ODI0MjJMMjA3LjMwNjY0MSwxODYuMTY4OTQ1QzIwNy4xMTQ2MzksMTg2LjUzNDg2NiwyMDYuOTAyNTczLDE4Ni44ODk4OTMsMjA2LjY3MTM4NywxODcuMjMyNDIyTDIwNi4yNjEyMywxODcuMDUzMjIzTDIwNi40MjQzMTYsMTg2LjgxMTAzNUMyMDYuNTg5MzcxLDE4Ni41NDc0NTUsMjA2Ljc0MTcxNCwxODYuMjc2MTY5LDIwNi44ODA4NTksMTg1Ljk5ODA0N0wyMDYuNzQ4NTM1LDE4Ni4wNzU2ODRMMjA2LjY0NjQ4NCwxODYuMDQ1NDFDMjA2LjUxMjI4MywxODYuMDE3MTY2LDIwNi4zNzU0MTIsMTg2LjAwMzczOCwyMDYuMjM4MjgxLDE4Ni4wMDUzNzFMMjA0LjE0NzQ2MSwxODYuMDA1MzcxTDIwNC4zMDIyNDYsMTg2LjI3NzgzMkwyMDQuNDU2MDU1LDE4Ni41NjM5NjVMMjA0LjY1MDg3OSwxODYuODkxMTEzTDIwMy45NDUzMTMsMTg3LjExNjIxMUwyMDMuODk4NDM4LDE4Ni45NTQ1OUMyMDMuMzUyNzgzLDE4NS42NDg1NzUsMjAyLjQxNDEyNCwxODQuNTQ1MjQyLDIwMS4yMTI0MDIsMTgzLjc5NzM2M0wyMDEuNzMxNDQ1LDE4My40MDI4MzJDMjAyLjUyNjg4NiwxODMuOTYyOTgyLDIwMy4yMjA3NzksMTg0LjY1NDg5MiwyMDMuNzgzMjAzLDE4NS40NDg3M0wyMDYuNDAwMzkxLDE4NS40NDg3M0MyMDYuMTg3ODUxLDE4NC42NzMwMDQsMjA1LjgzMDY1OCwxODMuOTQ0Mzk3LDIwNS4zNDc2NTYsMTgzLjMwMTI3TDIwNC45MzU1NDcsMTgzLjU4NDk2MUMyMDQuNTM3NTUyLDE4My44NTYyMTYsMjA0LjEyOTg2OCwxODQuMTEzMDgzLDIwMy43MTMzNzksMTg0LjM1NDk4TDIwMy4yOTU4OTgsMTgzLjkyMTg3NUwyMDMuNjgzNTk0LDE4My42NzM4MjhDMjA0LjEwOTEzMSwxODMuMzk1NDE2LDIwNC41MjcyOTgsMTgzLjEwNTcyOCwyMDQuOTM3NSwxODIuODA1MTc2TDIwNC42NjQ1NTEsMTgyLjUyNTg3OUMyMDMuODk0MTE5LDE4MS43OTE1OCwyMDIuOTYwOCwxODEuMjUwMTIyLDIwMS45NDA5MTgsMTgwLjk0NTgwMUwyMDIuNDk3MDcsMTgwLjQ1ODAwOEwyMDIuOTcxNjgsMTgwLjY1MTM2N3oiIGlkPSJicmFuZC1sb2dvLXBhcnQtMDgiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjxwYXRoIGNsYXNzPSJ2ZWN0b3Itb3V0bGluZSBkYXNoYm9hcmQtb3V0bGluZSIgZD0iTTIwMC43MjI0NzMsMjA2LjgwODkyOUwyMDAuMjc3MzU5LDIwNi43MjIzOTdMMjA1LjU4ODYzOCwyMDEuMTI1NTQ5QzIwOC41MDk4NDIsMTk4LjA0NzI4NywyMTEuMjM1MTUzLDE5NS4xNzk1MzUsMjExLjY0NDg5NywxOTQuNzUyNzYyTDIxMi4zODk4NjIsMTkzLjk3NjgzN0wyMTAuOTIxMDY2LDE5MS43Nzc3NzFDMjEwLjExMzIzNSwxOTAuNTY4Mjk4LDIwOS40ODY0NjUsMTg5LjU0Mzk3NiwyMDkuNTI4MjU5LDE4OS41MDE0OEMyMDkuNjIzMjc2LDE4OS40MDQ4OTIsMjEzLjE1MywxOTAuMDUzMTMxLDIxOC40NDE1ODksMTkxLjEzODQxMkMyMzAuOTg0MDcsMTkzLjcxMjI4LDIzOS41NjAzNjQsMTk2LjA2ODAwOCwyNDMuNTYxMTg4LDE5OC4wMzgyMjNDMjQ1LjIyNzQwMiwxOTguODU4NzQ5LDI0NS44ODY5NjMsMTk5LjMxMjEzNCwyNDYuMjY3MjI3LDE5OS44OTgzNzZDMjQ2LjY0NDY4NCwyMDAuNDgwMjg2LDI0Ni41Nzc4OTYsMjAwLjg1ODgxLDI0NS45ODIzLDIwMS41MTM0NThDMjQzLjU4MzAyMywyMDQuMTUwNjgxLDIzNS43ODIzNjQsMjA1Ljc3ODgzOSwyMjEuMzMyMDYyLDIwNi42NTg1MDhDMjIwLjAwNzI2MywyMDYuNzM5MTUxLDIxNS41Nzg2NDQsMjA2Ljg0MjI4NSwyMTEuNDkwNjkyLDIwNi44ODc3MTFMMjA0LjA1ODA0NCwyMDYuOTcwMjkxTDIwOS42MTY3OTEsMjAxLjM4OTQwNEMyMTMuNjA1OTg4LDE5Ny4zODQzMzgsMjE1LjI3NjY3MiwxOTUuNzk1MTM1LDIxNS41MzM3NjgsMTk1Ljc2MTA0N0MyMTUuODgyNjc1LDE5NS43MTQ3OTgsMjE5LjkxODk5MSwxOTYuMDk1MjkxLDIyMC42ODE0NTgsMTk2LjI0NjMyM0wyMjEuMDYzMTQxLDE5Ni4zMjE5MTVMMjIwLjM1MTQyNSwxOTcuMTE0NjM5QzIxOS45NTk5OTEsMTk3LjU1MDYyOSwyMTguMDU1NjQ5LDE5OS42MDExNTEsMjE2LjExOTU2OCwyMDEuNjcxMzU2TDIxMi41OTk0MTEsMjA1LjQzNTM0OUwyMTUuMjEwODE1LDIwNS4zMzY4MzhDMjI0LjMzNTA5OCwyMDQuOTkyNjQ1LDIzMy42NzcxODUsMjA0LjIwMDI4NywyMzguNDQzMzQ0LDIwMy4zNjYzMThDMjQ1LjI1MzUyNSwyMDIuMTc0Njk4LDI0Ni45MzI1MjYsMjAwLjY4NTM0OSwyNDMuMDc5NDM3LDE5OS4yNTM4NDVDMjM5LjI5NDAwNiwxOTcuODQ3NDg4LDIyOS41OTM5MTgsMTk2LjIwMDg4MiwyMTguMDAxODkyLDE5NC45OTY5MDJMMjE0Ljg3ODE4OSwxOTQuNjcyNDdMMjA4Ljg0OTMxOSwyMDAuODAyMzY4TDIwMi44MjA0NSwyMDYuOTMyMjgxTDIwMS45OTQwMTksMjA2LjkxMzg2NEMyMDEuNTM5NDc0LDIwNi45MDM3MzIsMjAwLjk2NzI4NSwyMDYuODU2NTA2LDIwMC43MjI0NzMsMjA2LjgwODkyOXoiIGlkPSJicmFuZC1sb2dvLXBhcnQtMDkiIHN0eWxlPSJzdHJva2U6I2ZmMjIwZDtmaWxsOm5vbmU7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLXdpZHRoOjEuOHB4Ij48L3BhdGg+CjwvZz4KPGcgYXJpYS1sYWJlbD0iUlBNIHJlYWRvdXQgcGFuZWwgYm91bmRhcnkiIGNsYXNzPSJkYXNoYm9hcmQtb2JqZWN0IGRhc2hib2FyZC1wYW5lbC1ib3VuZGFyeSIgaWQ9InBhbmVsLXJwbS1yZWFkb3V0IiB0cmFuc2Zvcm09Im1hdHJpeCgxLDAsMCwtMSwwLDApIj4KPHBhdGggY2xhc3M9InZlY3Rvci1vdXRsaW5lIGRhc2hib2FyZC1vdXRsaW5lIiBkPSJNMjUzLjA3ODg1NywxNDUuNDA0MDk5TDM2Ny4wNzg4NTcsMTQ1LjQwNDA5OUwzNjcuMDc4ODU3LDE3NS40MDQwOTlMMjUzLjA3ODg1NywxNzUuNDA0MDk5TDI1MS43MDYyMzgsMTc1LjQwNDA5OUwyMjEuNzA2MjM4LDE0NS40MDQwOTlMMjUzLjA3ODg1NywxNDUuNDA0MDk5eiIgaWQ9InJwbS1yZWFkb3V0LXBhbmVsLWJvdW5kYXJ5IiBzdHlsZT0ic3Ryb2tlOiNmZjIyMGQ7ZmlsbDpub25lO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZS13aWR0aDoxLjhweCI+PC9wYXRoPgo8L2c+Cjwvc3ZnPgo=" aria-hidden="true" alt="">
+<section aria-label="Dashboard based on uploaded vector wireframe" class="dashboard" data-active-page="drive">
+<img class="dashboard-bg" src="/dashboard-bg.svg?v=perf3" aria-hidden="true" alt="">
+
 <svg class="rpm-layer" aria-hidden="true" viewBox="196.999969 -211.000000 226.000031 132.000000" preserveAspectRatio="xMidYMid meet">
-<path class="vector-outline rpm-progress-segment" d="M222.752701,148.450562L222.752701,169.077942L219.813751,166.138992L200.078857,146.404099L220.706238,146.404099L222.752701,148.450562z" data-rpm-color="#86fa88" data-rpm-segment="0" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M232.752701,179.077942L232.752701,158.450562L223.752701,149.450562L223.752701,170.077942L232.752701,179.077942" data-rpm-color="#86fa88" data-rpm-segment="1" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M241.752701,167.450546L241.752701,188.077942L233.752701,180.077942L233.752701,159.450546L241.752701,167.450546" data-rpm-color="#86fa88" data-rpm-segment="2" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M250.752701,176.450546L250.752701,191.404083L245.078842,191.404083L242.752701,189.077942L242.752701,168.450546L250.752701,176.450546" data-rpm-color="#d0d000" data-rpm-segment="3" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M260.752686,191.404083L260.752686,177.404083L251.752701,177.404083L251.752701,191.404083L260.752686,191.404083" data-rpm-color="#d0d000" data-rpm-segment="4" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M269.752686,177.404083L261.752686,177.404083L261.752686,191.404083L269.752686,191.404083L269.752686,177.404083" data-rpm-color="#d0d000" data-rpm-segment="5" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M278.752686,177.404083L270.752686,177.404083L270.752686,191.404083L278.752686,191.404083L278.752686,177.404083" data-rpm-color="#d0d000" data-rpm-segment="6" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M288.752686,177.404083L279.752686,177.404083L279.752686,191.404083L288.752686,191.404083L288.752686,177.404083" data-rpm-color="#ff8000" data-rpm-segment="7" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M297.752686,177.404083L289.752686,177.404083L289.752686,191.404083L297.752686,191.404083L297.752686,177.404083" data-rpm-color="#ff8000" data-rpm-segment="8" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M306.752686,177.404083L298.752686,177.404083L298.752686,191.404083L306.752686,191.404083L306.752686,177.404083" data-rpm-color="#ff8000" data-rpm-segment="9" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M316.752686,177.404083L307.752686,177.404083L307.752686,191.404083L316.752686,191.404083L316.752686,177.404083" data-rpm-color="#ff8000" data-rpm-segment="10" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M325.752686,177.404083L317.752686,177.404083L317.752686,191.404083L325.752686,191.404083L325.752686,177.404083" data-rpm-color="#d33f6a" data-rpm-segment="11" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M335.752686,177.404083L326.752686,177.404083L326.752686,191.404083L335.752686,191.404083L335.752686,177.404083" data-rpm-color="#d33f6a" data-rpm-segment="12" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M345.752686,177.404083L336.752686,177.404083L336.752686,191.404083L345.752686,191.404083L345.752686,177.404083" data-rpm-color="#d33f6a" data-rpm-segment="13" transform="matrix(1,0,0,-1,0,0)"></path>
-<path class="vector-outline rpm-progress-segment" d="M346.752686,177.404083L346.752686,191.404083L366.078857,191.404083L366.078857,177.404083L346.752686,177.404083" data-rpm-color="#d33f6a" data-rpm-segment="14" transform="matrix(1,0,0,-1,0,0)"></path>
+<defs>
+<clipPath id="rpm-silhouette-clip" clipPathUnits="userSpaceOnUse">
+<path d="M222.752701,148.450562L222.752701,169.077942L219.813751,166.138992L200.078857,146.404099L220.706238,146.404099L222.752701,148.450562z" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M232.752701,179.077942L232.752701,158.450562L223.752701,149.450562L223.752701,170.077942L232.752701,179.077942" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M241.752701,167.450546L241.752701,188.077942L233.752701,180.077942L233.752701,159.450546L241.752701,167.450546" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M250.752701,176.450546L250.752701,191.404083L245.078842,191.404083L242.752701,189.077942L242.752701,168.450546L250.752701,176.450546" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M260.752686,191.404083L260.752686,177.404083L251.752701,177.404083L251.752701,191.404083L260.752686,191.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M269.752686,177.404083L261.752686,177.404083L261.752686,191.404083L269.752686,191.404083L269.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M278.752686,177.404083L270.752686,177.404083L270.752686,191.404083L278.752686,191.404083L278.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M288.752686,177.404083L279.752686,177.404083L279.752686,191.404083L288.752686,191.404083L288.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M297.752686,177.404083L289.752686,177.404083L289.752686,191.404083L297.752686,191.404083L297.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M306.752686,177.404083L298.752686,177.404083L298.752686,191.404083L306.752686,191.404083L306.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M316.752686,177.404083L307.752686,177.404083L307.752686,191.404083L316.752686,191.404083L316.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M325.752686,177.404083L317.752686,177.404083L317.752686,191.404083L325.752686,191.404083L325.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M335.752686,177.404083L326.752686,177.404083L326.752686,191.404083L335.752686,191.404083L335.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M345.752686,177.404083L336.752686,177.404083L336.752686,191.404083L345.752686,191.404083L345.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+<path d="M346.752686,177.404083L346.752686,191.404083L366.078857,191.404083L366.078857,177.404083L346.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
+</clipPath>
+<linearGradient id="rpm-zone-gradient" gradientUnits="userSpaceOnUse" x1="200.390107" y1="0" x2="366.390107" y2="0">
+<stop offset="0%" stop-color="#86fa88"></stop>
+<stop offset="28.749%" stop-color="#86fa88"></stop>
+<stop offset="28.75%" stop-color="#d0d000"></stop>
+<stop offset="49.999%" stop-color="#d0d000"></stop>
+<stop offset="50%" stop-color="#ff8000"></stop>
+<stop offset="71.249%" stop-color="#ff8000"></stop>
+<stop offset="71.25%" stop-color="#d33f6a"></stop>
+<stop offset="100%" stop-color="#d33f6a"></stop>
+</linearGradient>
+<clipPath id="rpm-active-window" clipPathUnits="userSpaceOnUse">
+<rect id="rpm-active-window-rect" x="200.390107" y="-192" width="0" height="47"></rect>
+</clipPath>
+<pattern id="rpm-bar-gap-pattern" patternUnits="userSpaceOnUse" x="200.390107" y="-192" width="2.075" height="47">
+<rect x="1.4525" y="0" width="0.6225" height="47" fill="#050505"></rect>
+<rect x="1.4525" y="0" width="0.08" height="47" fill="#555b60" opacity="0.72"></rect>
+</pattern>
+</defs>
+<g class="rpm-bar-field" clip-path="url(#rpm-silhouette-clip)">
+<rect class="rpm-meter-base" x="200.390107" y="-192" width="166" height="47"></rect>
+<rect class="rpm-meter-active" id="rpm-active-fill" x="200.390107" y="-192" width="166" height="47" fill="url(#rpm-zone-gradient)" clip-path="url(#rpm-active-window)"></rect>
+<rect class="rpm-meter-grid" x="200.390107" y="-192" width="166" height="47" fill="url(#rpm-bar-gap-pattern)"></rect>
+</g>
 </svg>
 
 <div class="gear-indicator-layer" aria-hidden="true">
@@ -1025,46 +1473,76 @@ body {
       <path class="scene-motion-path far-road-line is-lit" data-source-index="2" transform="matrix(1,0,0,-1,15,20)" d="M294.978943,72.404114L294.976013,70"></path>
     </g>
     <g id="scene-motion-road">
-      <path class="scene-motion-path road-motion-line" data-source-index="3" data-road-group="0" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,73.401062L310,72.893013"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="4" data-road-group="0" transform="matrix(1,0,0,-1,0,20)" d="M330.8508,69L329.120636,70L329.593231,70L331.519928,69L330.8508,69"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="5" data-road-group="0" transform="matrix(1,0,0,-1,0,20)" d="M288.420258,69L290.346954,70L290.820679,70L289.091034,69L288.420258,69z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="6" data-road-group="1" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,72.893013L310,71.876907"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="7" data-road-group="1" transform="matrix(1,0,0,-1,0,-20)" d="M285.631744,27L289.091034,29L288.420197,29L284.566772,27L285.631744,27z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="8" data-road-group="1" transform="matrix(1,0,0,-1,0,-20)" d="M334.310974,27L330.850739,29L331.519897,29L335.373322,27L334.310974,27z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="9" data-road-group="2" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,71.876907L310,70.860794"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="10" data-road-group="2" transform="matrix(1,0,0,-1,0,20)" d="M280.713409,65L284.566833,67L285.631744,67L282.172455,65L280.713409,65z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="11" data-road-group="2" transform="matrix(1,0,0,-1,0,20)" d="M337.771271,65L334.311035,67L335.373352,67L339.226776,65L337.771271,65z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="18" data-road-group="3" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,70.860794L310,69.981216"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="16" data-road-group="4" transform="matrix(1,0,0,-1,0,-20)" d="M275.253876,21L282.172455,25L280.713379,25L273.006531,21L275.253876,21z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="17" data-road-group="4" transform="matrix(1,0,0,-1,0,-20)" d="M344.691742,21L337.77124,25L339.226746,25L346.933563,21L344.691742,21z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="19" data-road-group="5" transform="matrix(1,0,0,-1,0,20)" d="M273.006561,61L265.299713,57L268.335297,57L275.253876,61L273.006561,61z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="20" data-road-group="5" transform="matrix(1,0,0,-1,0,20)" d="M344.691772,61L351.612274,57L354.640411,57L346.933594,61L344.691772,61z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="21" data-road-group="6" transform="matrix(1,0,0,-1,0,-20)" d="M361.992981,11L351.612244,17L354.640411,17L366.200653,11L361.992981,11z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="22" data-road-group="6" transform="matrix(1,0,0,-1,0,-20)" d="M253.739456,11L265.299713,17L268.335297,17L257.957428,11L253.739456,11z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="23" data-road-group="7" transform="matrix(1,0,0,-1,0,20)" d="M247.579544,45L242.179214,45L253.739471,51L257.957428,51L247.579544,45"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="24" data-road-group="7" transform="matrix(1,0,0,-1,0,20)" d="M377.760925,45L372.373749,45L361.993011,51L366.200684,51L377.760925,45z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="12" data-road-group="8" transform="matrix(1,0,0,-1,0,0)" d="M310,25.000008L310,26.403477"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="15" data-road-group="9" transform="matrix(1,0,0,-1,0,-20)" d="M242.179214,5L247.579544,5L239.630371,0.40416L233.324371,0.40416L242.179214,5"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="14" data-road-group="9" transform="matrix(1,0,0,-1,0,-20)" d="M377.760925,5L386.615784,0.404144L380.325134,0.404144L372.373718,5L377.760925,5z"></path>
-      <path class="scene-motion-path road-motion-line" data-source-index="13" data-road-group="9" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,60.699692L310,58.36475"></path>
+      <g class="motion-frame road-motion-frame" data-motion-frame="0">
+        <path class="scene-motion-path road-motion-line" data-source-index="3" data-road-group="0" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,73.401062L310,72.893013"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="4" data-road-group="0" transform="matrix(1,0,0,-1,0,20)" d="M330.8508,69L329.120636,70L329.593231,70L331.519928,69L330.8508,69"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="5" data-road-group="0" transform="matrix(1,0,0,-1,0,20)" d="M288.420258,69L290.346954,70L290.820679,70L289.091034,69L288.420258,69z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="1">
+        <path class="scene-motion-path road-motion-line" data-source-index="6" data-road-group="1" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,72.893013L310,71.876907"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="7" data-road-group="1" transform="matrix(1,0,0,-1,0,-20)" d="M285.631744,27L289.091034,29L288.420197,29L284.566772,27L285.631744,27z"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="8" data-road-group="1" transform="matrix(1,0,0,-1,0,-20)" d="M334.310974,27L330.850739,29L331.519897,29L335.373322,27L334.310974,27z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="2">
+        <path class="scene-motion-path road-motion-line" data-source-index="9" data-road-group="2" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,71.876907L310,70.860794"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="10" data-road-group="2" transform="matrix(1,0,0,-1,0,20)" d="M280.713409,65L284.566833,67L285.631744,67L282.172455,65L280.713409,65z"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="11" data-road-group="2" transform="matrix(1,0,0,-1,0,20)" d="M337.771271,65L334.311035,67L335.373352,67L339.226776,65L337.771271,65z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="3">
+        <path class="scene-motion-path road-motion-line" data-source-index="18" data-road-group="3" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,70.860794L310,69.981216"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="4">
+        <path class="scene-motion-path road-motion-line" data-source-index="16" data-road-group="4" transform="matrix(1,0,0,-1,0,-20)" d="M275.253876,21L282.172455,25L280.713379,25L273.006531,21L275.253876,21z"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="17" data-road-group="4" transform="matrix(1,0,0,-1,0,-20)" d="M344.691742,21L337.77124,25L339.226746,25L346.933563,21L344.691742,21z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="5">
+        <path class="scene-motion-path road-motion-line" data-source-index="19" data-road-group="5" transform="matrix(1,0,0,-1,0,20)" d="M273.006561,61L265.299713,57L268.335297,57L275.253876,61L273.006561,61z"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="20" data-road-group="5" transform="matrix(1,0,0,-1,0,20)" d="M344.691772,61L351.612274,57L354.640411,57L346.933594,61L344.691772,61z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="6">
+        <path class="scene-motion-path road-motion-line" data-source-index="21" data-road-group="6" transform="matrix(1,0,0,-1,0,-20)" d="M361.992981,11L351.612244,17L354.640411,17L366.200653,11L361.992981,11z"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="22" data-road-group="6" transform="matrix(1,0,0,-1,0,-20)" d="M253.739456,11L265.299713,17L268.335297,17L257.957428,11L253.739456,11z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="7">
+        <path class="scene-motion-path road-motion-line" data-source-index="23" data-road-group="7" transform="matrix(1,0,0,-1,0,20)" d="M247.579544,45L242.179214,45L253.739471,51L257.957428,51L247.579544,45"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="24" data-road-group="7" transform="matrix(1,0,0,-1,0,20)" d="M377.760925,45L372.373749,45L361.993011,51L366.200684,51L377.760925,45z"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="8">
+        <path class="scene-motion-path road-motion-line" data-source-index="12" data-road-group="8" transform="matrix(1,0,0,-1,0,0)" d="M310,25.000008L310,26.403477"></path>
+      </g>
+      <g class="motion-frame road-motion-frame" data-motion-frame="9">
+        <path class="scene-motion-path road-motion-line" data-source-index="15" data-road-group="9" transform="matrix(1,0,0,-1,0,-20)" d="M242.179214,5L247.579544,5L239.630371,0.40416L233.324371,0.40416L242.179214,5"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="14" data-road-group="9" transform="matrix(1,0,0,-1,0,-20)" d="M377.760925,5L386.615784,0.404144L380.325134,0.404144L372.373718,5L377.760925,5z"></path>
+        <path class="scene-motion-path road-motion-line" data-source-index="13" data-road-group="9" transform="matrix(1,0,0,-1.968291,0,94.474655)" d="M310,60.699692L310,58.36475"></path>
+      </g>
     </g>
     <g id="scene-motion-treads">
-      <path class="scene-motion-path tire-tread-line" data-source-index="34" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M321.635651,23.506748L323.311615,23.945175L324.665283,23.531113"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="33" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M295.210602,23.531898L297,24L298.619965,23.50448"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="35" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M319.733948,23.491455L323.312042,24.427471L326.202026,23.54347"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="25" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M300.239685,23.491455L297.000427,24.482296L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="36" data-tread-group="1" transform="matrix(1,0,0,-1,0,0)" d="M319.733521,24.009159L323.311615,24.945175L326.550873,23.954334L326.54776,23.955288"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="32" data-tread-group="1" transform="matrix(1,0,0,-1,0,0)" d="M300.239258,24.009159L297,25L293.421906,24.063984L293.426819,24.065271"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="27" data-tread-group="2" transform="matrix(1,0,0,-1,26.31076,-0.980583)" d="M300.239685,23.491455L297.000427,24.482296L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="26" data-tread-group="2" transform="matrix(1,0,0,-1,-0.000854,-1.035408)" d="M300.239685,23.491455L297.000427,24.482296L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="37" data-tread-group="3" transform="matrix(1,0,0,-1,26.311188,-1.462879)" d="M300.239685,23.491455L297.946442,24.192928"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="38" data-tread-group="3" transform="matrix(1,0,0,-1,26.311188,-1.462879)" d="M295.894257,24.192928L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="28" data-tread-group="3" transform="matrix(1,0,0,-1,-0.000427,-1.517704)" d="M300.239685,23.491455L297.956512,24.189844"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="29" data-tread-group="3" transform="matrix(1,0,0,-1,-0.000427,-1.517704)" d="M295.68457,24.138073L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="39" data-tread-group="3" transform="matrix(1,0,0,-1,26.31076,-1.980583)" d="M300.239685,23.491455L299.638916,23.675224"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="31" data-tread-group="3" transform="matrix(1,0,0,-1,-0.000854,-2.035408)" d="M293.705566,23.620369L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="40" data-tread-group="4" transform="matrix(1,0,0,-1,26.31076,-1.980583)" d="M295.706848,24.1439L293.422333,23.54628"></path>
-      <path class="scene-motion-path tire-tread-line" data-source-index="30" data-tread-group="4" transform="matrix(1,0,0,-1,-0.000854,-2.035408)" d="M300.239685,23.491455L297.95694,24.189713"></path>
+      <g class="motion-frame tread-motion-frame" data-motion-frame="0">
+        <path class="scene-motion-path tire-tread-line" data-source-index="34" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M321.635651,23.506748L323.311615,23.945175L324.665283,23.531113"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="33" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M295.210602,23.531898L297,24L298.619965,23.50448"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="35" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M319.733948,23.491455L323.312042,24.427471L326.202026,23.54347"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="25" data-tread-group="0" transform="matrix(1,0,0,-1,0,0)" d="M300.239685,23.491455L297.000427,24.482296L293.422333,23.54628"></path>
+      </g>
+      <g class="motion-frame tread-motion-frame" data-motion-frame="1">
+        <path class="scene-motion-path tire-tread-line" data-source-index="36" data-tread-group="1" transform="matrix(1,0,0,-1,0,0)" d="M319.733521,24.009159L323.311615,24.945175L326.550873,23.954334L326.54776,23.955288"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="32" data-tread-group="1" transform="matrix(1,0,0,-1,0,0)" d="M300.239258,24.009159L297,25L293.421906,24.063984L293.426819,24.065271"></path>
+      </g>
+      <g class="motion-frame tread-motion-frame" data-motion-frame="2">
+        <path class="scene-motion-path tire-tread-line" data-source-index="27" data-tread-group="2" transform="matrix(1,0,0,-1,26.31076,-0.980583)" d="M300.239685,23.491455L297.000427,24.482296L293.422333,23.54628"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="26" data-tread-group="2" transform="matrix(1,0,0,-1,-0.000854,-1.035408)" d="M300.239685,23.491455L297.000427,24.482296L293.422333,23.54628"></path>
+      </g>
+      <g class="motion-frame tread-motion-frame" data-motion-frame="3">
+        <path class="scene-motion-path tire-tread-line" data-source-index="37" data-tread-group="3" transform="matrix(1,0,0,-1,26.311188,-1.462879)" d="M300.239685,23.491455L297.946442,24.192928"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="38" data-tread-group="3" transform="matrix(1,0,0,-1,26.311188,-1.462879)" d="M295.894257,24.192928L293.422333,23.54628"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="28" data-tread-group="3" transform="matrix(1,0,0,-1,-0.000427,-1.517704)" d="M300.239685,23.491455L297.956512,24.189844"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="29" data-tread-group="3" transform="matrix(1,0,0,-1,-0.000427,-1.517704)" d="M295.68457,24.138073L293.422333,23.54628"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="39" data-tread-group="3" transform="matrix(1,0,0,-1,26.31076,-1.980583)" d="M300.239685,23.491455L299.638916,23.675224"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="31" data-tread-group="3" transform="matrix(1,0,0,-1,-0.000854,-2.035408)" d="M293.705566,23.620369L293.422333,23.54628"></path>
+      </g>
+      <g class="motion-frame tread-motion-frame" data-motion-frame="4">
+        <path class="scene-motion-path tire-tread-line" data-source-index="40" data-tread-group="4" transform="matrix(1,0,0,-1,26.31076,-1.980583)" d="M295.706848,24.1439L293.422333,23.54628"></path>
+        <path class="scene-motion-path tire-tread-line" data-source-index="30" data-tread-group="4" transform="matrix(1,0,0,-1,-0.000854,-2.035408)" d="M300.239685,23.491455L297.95694,24.189713"></path>
+      </g>
     </g>
   </svg>
 </div>
@@ -1078,107 +1556,330 @@ body {
 <span>STREAM STATUS</span>
 <span class="connection-status disconnected" id="connection-status">DISCONNECTED</span>
 </div>
-<div class="stream-log" id="stream-log"></section>
+<pre class="stream-log stream-log-live" id="stream-log" aria-label="Live scrolling ECU telemetry log"></pre>
+</section>
 <section aria-label="RPM display" class="rpm-panel">
 <div class="rpm-readout">
 <span id="rpm-value">0</span><span class="rpm-unit">rpm</span>
 </div>
 </section>
-<section aria-label="Boost pressure" class="boost-panel metric-panel">
+<section aria-label="Boost pressure" class="boost-panel metric-panel" data-panel-id="P-01 // MAP">
 <div class="panel-heading">
 <span>BOOST PRESSURE</span>
 <span>MAP</span>
 </div>
-<div class="bar-track"><span class="bar-fill" id="boost-bar"></span></div>
+<div class="bar-track"><span class="bar-fill" id="boost-bar" style="transform: scaleX(0)"></span></div>
 <div class="metric-readout boost-readout">
-<span id="boost-value">0.0</span><span class="metric-unit">kpa</span>
+<span id="boost-value">0.0</span><span class="metric-unit">psi</span>
 </div>
 </section>
-<section aria-label="Oil pressure" class="oil-panel metric-panel">
+<section aria-label="Oil pressure" class="oil-panel metric-panel" data-panel-id="P-02 // OPS">
 <div class="panel-heading">
 <span>OIL PRESSURE</span>
 <span>OPS</span>
 </div>
-<div class="bar-track"><span class="bar-fill" id="oil-bar"></span></div>
+<div class="bar-track"><span class="bar-fill" id="oil-bar" style="transform: scaleX(0)"></span></div>
 <div class="metric-readout">
-<span id="oil-value">0</span><span class="metric-unit">kpa</span>
+<span id="oil-value">0</span><span class="metric-unit">psi</span>
 </div>
 </section>
-<section aria-label="Voltage" class="voltage-panel metric-panel">
+<section aria-label="Voltage" class="voltage-panel metric-panel" data-panel-id="E-01 // BUS">
 <div class="panel-heading">
 <span>VOLTAGE</span>
 <span>ELEC</span>
 </div>
-<div class="bar-track"><span class="bar-fill" id="voltage-bar"></span></div>
+<div class="bar-track"><span class="bar-fill" id="voltage-bar" style="transform: scaleX(0)"></span></div>
 <div class="metric-readout">
 <span id="voltage-value">0.0</span><span class="metric-unit">v</span>
 </div>
 </section>
-<section aria-label="Water temperature" class="water-panel metric-panel">
+<section aria-label="Water temperature" class="water-panel metric-panel" data-panel-id="T-01 // CLT">
 <div class="panel-heading">
 <span>WATER TEMP</span>
 <span>CLT</span>
 </div>
-<div class="bar-track"><span class="bar-fill" id="water-bar"></span></div>
+<div class="bar-track"><span class="bar-fill" id="water-bar" style="transform: scaleX(0)"></span></div>
 <div class="metric-readout">
 <span id="water-value">0</span><span class="metric-unit">c</span>
 </div>
 </section>
-<section aria-label="Air temperature" class="air-panel metric-panel">
+<section aria-label="Air temperature" class="air-panel metric-panel" data-panel-id="T-02 // IAT">
 <div class="panel-heading">
 <span>AIR TEMP</span>
 <span>IAT</span>
 </div>
-<div class="bar-track"><span class="bar-fill" id="air-bar"></span></div>
+<div class="bar-track"><span class="bar-fill" id="air-bar" style="transform: scaleX(0)"></span></div>
 <div class="metric-readout">
-<span id="air-value">0</span><span class="metric-unit">c</span>
+<span id="air-value">22</span><span class="metric-unit">c</span>
 </div>
 </section>
 </div>
-<div class="main-alert-bar" id="main_alert"></div>
-<section aria-hidden="true" aria-label="Settings page" class="dashboard-page gear-page" data-page="gear">
-  <div class="overlay-content">
-    <div class="page-summary">Tuning and control-loop debug values</div>
-    <div class="content-grid">
-      <div class="content-card"><div class="label">Ignition Angle</div><div class="value" id="ignition_angle">0.0</div><div class="unit">deg</div></div>
-      <div class="content-card"><div class="label">Injection Actual PW</div><div class="value" id="injection_actual_pw">0.0</div><div class="unit">ms</div></div>
-      <div class="content-card"><div class="label">Injection Effective PW</div><div class="value" id="injection_effective_pw">0.0</div><div class="unit">ms</div></div>
-      <div class="content-card" id="card_lambda_error"><div class="label">Lambda Error</div><div class="value" id="lambda_error">0.00</div><div class="unit">&#955;</div></div>
-      <div class="content-card"><div class="label">Boost Target</div><div class="value" id="boost_target">0</div><div class="unit">kPa</div></div>
-      <div class="content-card" id="card_boost_error"><div class="label">Boost Target Error</div><div class="value" id="boost_error">0</div><div class="unit">kPa</div></div>
-      <div class="content-card"><div class="label">Boost P</div><div class="smallvalue" id="boost_p">0.0</div><div class="unit">proportional</div></div>
-      <div class="content-card"><div class="label">Boost I</div><div class="smallvalue" id="boost_i">0.0</div><div class="unit">integral</div></div>
-      <div class="content-card"><div class="label">Boost D</div><div class="smallvalue" id="boost_d">0.0</div><div class="unit">derivative</div></div>
-      <div class="content-card"><div class="label">Boost Duty</div><div class="value" id="boost_duty">0</div><div class="unit">%</div></div>
-      <div class="content-card"><div class="label">APS Main</div><div class="value" id="aps_main">0</div><div class="unit">%</div></div>
-      <div class="content-card"><div class="label">E-Throttle Target</div><div class="value" id="throttle_target">0</div><div class="unit">%</div></div>
-      <div class="content-card"><div class="label">VVT Inlet Target</div><div class="value" id="vvt_in_target">0</div><div class="unit">deg</div></div>
-      <div class="content-card"><div class="label">VVT Inlet Position</div><div class="value" id="vvt_in_pos">0</div><div class="unit">deg</div></div>
-    </div>
-  </div>
-</section>
-<section aria-hidden="true" aria-label="Lighting page" class="dashboard-page light-page" data-page="light">
-  <div class="overlay-content">
-    <div class="page-summary">Cabin RGBW lighting controls</div>
-    <div class="content-grid">
-      <div class="content-card wide"><div class="label">Lighting Enabled</div><button id="lighting_enabled_btn" class="active-btn" onclick="toggleLightingEnabled()">On</button></div>
-      <div class="content-card wide"><div class="label">Auto-off Timer</div><input type="number" id="lighting_auto_off_minutes" min="0" max="1440" step="1" value="0" onchange="applyLighting()"><div class="unit">Minutes after last ECU packet before lights turn off. Use 0 to disable.</div></div>
-      <div class="content-card wide"><div class="label">Mode</div><select id="lighting_mode" onchange="applyLighting(); updateLightingCardVisibility()"><option value="static">Static Colour</option><option value="pattern">Pattern / Theme</option></select></div>
-      <div class="content-card wide" id="card_static_colour"><div class="label">Static Colour</div><input type="color" id="static_color" value="#0050ff" onchange="applyLighting()"></div>
-      <div class="content-card wide" id="card_pattern_theme" style="display:none"><div class="label">Pattern / Theme</div><select id="lighting_pattern" onchange="applyLighting(); updateLightingCardVisibility()"><option value="engine_plasma">Engine Plasma</option><option value="breathing">Breathing</option><option value="rainbow">Rainbow</option><option value="color_chase">Color Chase</option><option value="lightning">Lightning</option><option value="off">Off</option></select></div>
-      <div class="content-card wide" id="card_params_engine_plasma" style="display:none"><div class="label">Engine Plasma Settings</div><div class="unit">RPM range (brightness mapping)</div><div class="lighting-row"><label>Min RPM<input type="number" id="plasma_rpm_min" min="0" max="9000" step="100" value="1100" onchange="applyLighting()" style="width:90px;"></label><label>Max RPM<input type="number" id="plasma_rpm_max" min="0" max="9000" step="100" value="4200" onchange="applyLighting()" style="width:90px;"></label></div><div class="unit">MAP range (colour mapping, kPa)</div><div class="lighting-row"><label>Min MAP<input type="number" id="plasma_map_min" min="0" max="300" step="5" value="30" onchange="applyLighting()" style="width:90px;"></label><label>Max MAP<input type="number" id="plasma_map_max" min="0" max="300" step="5" value="70" onchange="applyLighting()" style="width:90px;"></label></div></div>
-      <div class="content-card wide" id="card_params_breathing" style="display:none"><div class="label">Breathing Settings</div><div class="unit">Speed</div><input type="range" id="breathing_speed" min="1" max="100" value="10" oninput="applyLighting()"><div class="unit"><span id="breathing_speed_label">1.0</span>&times;</div></div>
-      <div class="content-card wide" id="card_params_rainbow" style="display:none"><div class="label">Rainbow Settings</div><div class="unit">Speed</div><input type="range" id="rainbow_speed" min="1" max="100" value="10" oninput="applyLighting()"><div class="unit"><span id="rainbow_speed_label">1.0</span>&times;</div></div>
-      <div class="content-card wide" id="card_params_color_chase" style="display:none"><div class="label">Color Chase Settings</div><div class="unit">Chase colours &amp; widths (pixels)</div><div class="lighting-row"><label>Color 1<input type="color" id="chase_c1" value="#ff0000" onchange="applyLighting()"><input type="number" id="chase_w1" min="1" max="500" value="50" oninput="applyLighting()"></label><label>Color 2<input type="color" id="chase_c2" value="#00ff00" onchange="applyLighting()"><input type="number" id="chase_w2" min="1" max="500" value="50" oninput="applyLighting()"></label><label>Color 3<input type="color" id="chase_c3" value="#0000ff" onchange="applyLighting()"><input type="number" id="chase_w3" min="1" max="500" value="50" oninput="applyLighting()"></label><label>Color 4<input type="color" id="chase_c4" value="#ff8000" onchange="applyLighting()"><input type="number" id="chase_w4" min="1" max="500" value="50" oninput="applyLighting()"></label></div><div class="unit">Speed</div><input type="range" id="chase_speed" min="1" max="100" value="10" oninput="applyLighting()"><div class="unit"><span id="chase_speed_label">1.0</span>&times;</div></div>
-      <div class="content-card wide" id="card_params_lightning" style="display:none"><div class="label">Lightning Settings</div><div class="unit">Flash colours (randomly selected per strike)</div><div class="lighting-row"><label>Color 1<input type="color" id="lightning_c1" value="#c8c8ff" onchange="applyLighting()"></label><label>Color 2<input type="color" id="lightning_c2" value="#c8c8ff" onchange="applyLighting()"></label><label>Color 3<input type="color" id="lightning_c3" value="#c8c8ff" onchange="applyLighting()"></label></div><div class="unit">Frequency (flashes / sec)</div><input type="range" id="lightning_freq" min="1" max="200" value="20" oninput="applyLighting()"><div class="unit"><span id="lightning_freq_label">2.0</span> Hz</div></div>
-      <div class="content-card wide" id="card_live_lighting" style="display:none"><div class="label">Live Lighting Output</div><div id="lighting_preview" style="height:70px;border-radius:10px;border:1px solid #333;background:#000;margin-bottom:8px;"></div><div class="unit" id="lighting_preview_text">RGBW: 0, 0, 0, 0</div><div class="unit" id="lighting_preview_mode">Mode: --</div></div>
-      <div class="content-card wide"><div class="label">Max Brightness</div><input type="range" id="lighting_brightness" min="0" max="100" value="100" oninput="applyLighting()"><div class="unit"><span id="brightness_label">100</span>%</div></div>
-      <div class="content-card wide"><div class="label">Outside Zones (D13 - Exterior)</div><div class="zone-grid"><label class="zone-row"><input type="checkbox" id="ext_z1_en" onchange="applyLighting()"><span>Outside Zone 1</span><input type="text" id="ext_z1_range" placeholder="e.g. 0-49" onchange="applyLighting()"></label><label class="zone-row"><input type="checkbox" id="ext_z2_en" onchange="applyLighting()"><span>Outside Zone 2</span><input type="text" id="ext_z2_range" placeholder="e.g. 50-99" onchange="applyLighting()"></label><label class="zone-row"><input type="checkbox" id="ext_z3_en" onchange="applyLighting()"><span>Outside Zone 3</span><input type="text" id="ext_z3_range" placeholder="e.g. 100-149" onchange="applyLighting()"></label><label class="zone-row"><input type="checkbox" id="ext_z4_en" onchange="applyLighting()"><span>Outside Zone 4</span><input type="text" id="ext_z4_range" placeholder="e.g. 150-199" onchange="applyLighting()"></label></div></div>
-      <div class="content-card wide"><div class="label">Interior Zones (D12 - Interior)</div><div class="zone-grid"><label class="zone-row"><input type="checkbox" id="int_z1_en" onchange="applyLighting()"><span>Interior Zone 1</span><input type="text" id="int_z1_range" placeholder="e.g. 0-49" onchange="applyLighting()"></label><label class="zone-row"><input type="checkbox" id="int_z2_en" onchange="applyLighting()"><span>Interior Zone 2</span><input type="text" id="int_z2_range" placeholder="e.g. 50-99" onchange="applyLighting()"></label><label class="zone-row"><input type="checkbox" id="int_z3_en" onchange="applyLighting()"><span>Interior Zone 3</span><input type="text" id="int_z3_range" placeholder="e.g. 100-149" onchange="applyLighting()"></label><label class="zone-row"><input type="checkbox" id="int_z4_en" onchange="applyLighting()"><span>Interior Zone 4</span><input type="text" id="int_z4_range" placeholder="e.g. 150-199" onchange="applyLighting()"></label></div></div>
-    </div>
-  </div>
-</section>
-<nav aria-label="Dashboard pages" class="dashboard-tabs"><button aria-current="page" aria-label="Drive" class="dashboard-tab tab-1 is-active" data-page-target="drive" type="button"><svg aria-hidden="true" class="tab-icon tab-icon-drive" focusable="false" viewbox="282.500275 -226.499176 10.999451 10.998367">
+<section aria-hidden="true" aria-label="Gear diagnostics page" class="dashboard-page dummy-page legacy-page gear-page" data-page="gear"><div class="legacy-content">
+<div class="summary">Live Link ECU CAN channels 1-3, followed by legacy tuning fields.</div>
+<div class="grid">
+<div class="card">
+<div class="label">GP Speed 1</div>
+<div class="value" id="gp_speed_1">0.0</div>
+<div class="unit">km/h</div>
+</div>
+<div class="card">
+<div class="label">Current Gear</div>
+<div class="value" id="gear_debug">N</div>
+<div class="unit">gear</div>
+</div>
+<div class="card">
+<div class="label">Throttle Position</div>
+<div class="value" id="tps_debug">0.0</div>
+<div class="unit">%</div>
+</div>
+<div class="card">
+<div class="label">MAP</div>
+<div class="value" id="map_debug">0.0</div>
+<div class="unit">kPa</div>
+</div>
+<div class="card">
+<div class="label">MGP</div>
+<div class="value" id="mgp_debug">0.0</div>
+<div class="unit">kPa</div>
+</div>
+<div class="card">
+<div class="label">Oil Pressure</div>
+<div class="value" id="oil_pressure_debug">0.0</div>
+<div class="unit">kPa</div>
+</div>
+<div class="card">
+<div class="label">Fuel Pressure</div>
+<div class="value" id="fuel_pressure_debug">0.0</div>
+<div class="unit">kPa</div>
+</div>
+<div class="card">
+<div class="label">Lambda 1</div>
+<div class="value" id="lambda1_debug">0.000</div>
+<div class="unit">lambda</div>
+</div>
+<div class="card">
+<div class="label">Lambda Target</div>
+<div class="value" id="lambda_target_debug">0.000</div>
+<div class="unit">lambda</div>
+</div>
+<div class="card">
+<div class="label">Battery Voltage</div>
+<div class="value" id="battery_debug">0.00</div>
+<div class="unit">V</div>
+</div>
+<div class="card">
+<div class="label">Ignition Angle</div>
+<div class="value" id="ignition_angle">0.0</div>
+<div class="unit">deg</div>
+</div>
+<div class="card">
+<div class="label">Injection Actual PW</div>
+<div class="value" id="injection_actual_pw">0.0</div>
+<div class="unit">ms</div>
+</div>
+<div class="card">
+<div class="label">Injection Effective PW</div>
+<div class="value" id="injection_effective_pw">0.0</div>
+<div class="unit">ms</div>
+</div>
+<div class="card" id="card_lambda_error">
+<div class="label">Lambda Error</div>
+<div class="value" id="lambda_error">0.00</div>
+<div class="unit">λ</div>
+</div>
+<div class="card">
+<div class="label">Boost Target</div>
+<div class="value" id="boost_target">0</div>
+<div class="unit">kPa</div>
+</div>
+<div class="card" id="card_boost_error">
+<div class="label">Boost Target Error</div>
+<div class="value" id="boost_error">0</div>
+<div class="unit">kPa</div>
+</div>
+<div class="card">
+<div class="label">Boost P</div>
+<div class="smallvalue" id="boost_p">0.0</div>
+<div class="unit">proportional</div>
+</div>
+<div class="card">
+<div class="label">Boost I</div>
+<div class="smallvalue" id="boost_i">0.0</div>
+<div class="unit">integral</div>
+</div>
+<div class="card">
+<div class="label">Boost D</div>
+<div class="smallvalue" id="boost_d">0.0</div>
+<div class="unit">derivative</div>
+</div>
+<div class="card">
+<div class="label">Boost Duty</div>
+<div class="value" id="boost_duty">0</div>
+<div class="unit">%</div>
+</div>
+<div class="card">
+<div class="label">APS Main</div>
+<div class="value" id="aps_main">0</div>
+<div class="unit">%</div>
+</div>
+<div class="card">
+<div class="label">E-Throttle Target</div>
+<div class="value" id="throttle_target">0</div>
+<div class="unit">%</div>
+</div>
+<div class="card">
+<div class="label">VVT Inlet Target</div>
+<div class="value" id="vvt_in_target">0</div>
+<div class="unit">deg</div>
+</div>
+<div class="card">
+<div class="label">VVT Inlet Position</div>
+<div class="value" id="vvt_in_pos">0</div>
+<div class="unit">deg</div>
+</div>
+</div>
+</div></section><section aria-hidden="true" aria-label="Lighting controls page" class="dashboard-page dummy-page legacy-page light-page" data-page="light"><div class="legacy-content">
+<div class="summary">Cabin RGBW lighting controls.</div>
+<div class="grid">
+<div class="card wide">
+<div class="label">Lighting Enabled</div>
+<button class="active" id="lighting_enabled_btn" onclick="toggleLightingEnabled()">On</button>
+</div>
+<div class="card wide">
+<div class="label">Auto-off Timer</div>
+<input id="lighting_auto_off_minutes" max="1440" min="0" onchange="applyLighting()" step="1" type="number" value="0"/>
+<div class="unit">Minutes after last ECU packet before lights turn off. Use 0 to disable.</div>
+</div>
+<div class="card wide">
+<div class="label">Mode</div>
+<select id="lighting_mode" onchange="applyLighting(); updateLightingCardVisibility()">
+<option value="static">Static Colour</option>
+<option value="pattern">Pattern / Theme</option>
+</select>
+</div>
+<div class="card wide" id="card_static_colour">
+<div class="label">Static Colour</div>
+<input id="static_color" onchange="applyLighting()" type="color" value="#0050ff"/>
+</div>
+<div class="card wide" id="card_pattern_theme" style="display:none">
+<div class="label">Pattern / Theme</div>
+<select id="lighting_pattern" onchange="applyLighting(); updateLightingCardVisibility()">
+<option value="engine_plasma">Engine Plasma</option>
+<option value="breathing">Breathing</option>
+<option value="rainbow">Rainbow</option>
+<option value="color_chase">Color Chase</option>
+<option value="lightning">Lightning</option>
+<option value="off">Off</option>
+</select>
+</div>
+<div class="card wide" id="card_params_engine_plasma" style="display:none">
+<div class="label">Engine Plasma Settings</div>
+<div class="unit">RPM range (brightness mapping)</div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin:6px 0 10px;">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Min RPM
+            <input id="plasma_rpm_min" max="9000" min="0" onchange="applyLighting()" step="100" style="width:90px;" type="number" value="1100"/>
+</label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Max RPM
+            <input id="plasma_rpm_max" max="9000" min="0" onchange="applyLighting()" step="100" style="width:90px;" type="number" value="4200"/>
+</label>
+</div>
+<div class="unit">MAP range (colour mapping, kPa)</div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin:6px 0;">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Min MAP
+            <input id="plasma_map_min" max="300" min="0" onchange="applyLighting()" step="5" style="width:90px;" type="number" value="30"/>
+</label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85em;">Max MAP
+            <input id="plasma_map_max" max="300" min="0" onchange="applyLighting()" step="5" style="width:90px;" type="number" value="70"/>
+</label>
+</div>
+</div>
+<div class="card wide" id="card_params_breathing" style="display:none">
+<div class="label">Breathing Settings</div>
+<div class="unit">Speed (use Static Colour below to set the colour)</div>
+<input id="breathing_speed" max="100" min="1" oninput="applyLighting()" type="range" value="10"/>
+<div class="unit"><span id="breathing_speed_label">1.0</span>×</div>
+</div>
+<div class="card wide" id="card_params_rainbow" style="display:none">
+<div class="label">Rainbow Settings</div>
+<div class="unit">Speed</div>
+<input id="rainbow_speed" max="100" min="1" oninput="applyLighting()" type="range" value="10"/>
+<div class="unit"><span id="rainbow_speed_label">1.0</span>×</div>
+</div>
+<div class="card wide" id="card_params_color_chase" style="display:none">
+<div class="label">Color Chase Settings</div>
+<div class="unit">Chase colours &amp; widths (pixels)</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:8px 0 10px;">
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 1
+            <input id="chase_c1" onchange="applyLighting()" type="color" value="#ff0000"/>
+<input id="chase_w1" max="500" min="1" oninput="applyLighting()" style="width:72px;text-align:center;" type="number" value="50"/>
+</label>
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 2
+            <input id="chase_c2" onchange="applyLighting()" type="color" value="#00ff00"/>
+<input id="chase_w2" max="500" min="1" oninput="applyLighting()" style="width:72px;text-align:center;" type="number" value="50"/>
+</label>
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 3
+            <input id="chase_c3" onchange="applyLighting()" type="color" value="#0000ff"/>
+<input id="chase_w3" max="500" min="1" oninput="applyLighting()" style="width:72px;text-align:center;" type="number" value="50"/>
+</label>
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 4
+            <input id="chase_c4" onchange="applyLighting()" type="color" value="#ff8000"/>
+<input id="chase_w4" max="500" min="1" oninput="applyLighting()" style="width:72px;text-align:center;" type="number" value="50"/>
+</label>
+</div>
+<div class="unit">Speed</div>
+<input id="chase_speed" max="100" min="1" oninput="applyLighting()" type="range" value="10"/>
+<div class="unit"><span id="chase_speed_label">1.0</span>×</div>
+</div>
+<div class="card wide" id="card_params_lightning" style="display:none">
+<div class="label">Lightning Settings</div>
+<div class="unit">Flash colours (randomly selected per strike)</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px;">
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 1
+            <input id="lightning_c1" onchange="applyLighting()" type="color" value="#c8c8ff"/>
+</label>
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 2
+            <input id="lightning_c2" onchange="applyLighting()" type="color" value="#c8c8ff"/>
+</label>
+<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85em;">Color 3
+            <input id="lightning_c3" onchange="applyLighting()" type="color" value="#c8c8ff"/>
+</label>
+</div>
+<div class="unit">Frequency (flashes / sec)</div>
+<input id="lightning_freq" max="200" min="1" oninput="applyLighting()" type="range" value="20"/>
+<div class="unit"><span id="lightning_freq_label">2.0</span> Hz</div>
+</div>
+<div class="card wide" id="card_live_lighting" style="display:none">
+<div class="label">Live Lighting Output</div>
+<div id="lighting_preview" style="height:80px;border-radius:14px;border:1px solid #555;background:#000;margin-bottom:10px;">
+</div>
+<div class="unit" id="lighting_preview_text">RGBW: 0, 0, 0, 0</div>
+<div class="unit" id="lighting_preview_mode">Mode: --</div>
+</div>
+<div class="card wide">
+<div class="label">Max Brightness</div>
+<input id="lighting_brightness" max="100" min="0" oninput="applyLighting()" type="range" value="100"/>
+<div class="unit"><span id="brightness_label">100</span>%</div>
+</div>
+<div class="card wide">
+<div class="label">Outside Zones (D13 – Exterior)</div>
+<div class="zone-grid">
+<label class="zone-row"><input id="ext_z1_en" onchange="applyLighting()" type="checkbox"/><span>Outside Zone 1</span><input id="ext_z1_range" onchange="applyLighting()" placeholder="e.g. 0-49" type="text"/></label>
+<label class="zone-row"><input id="ext_z2_en" onchange="applyLighting()" type="checkbox"/><span>Outside Zone 2</span><input id="ext_z2_range" onchange="applyLighting()" placeholder="e.g. 50-99" type="text"/></label>
+<label class="zone-row"><input id="ext_z3_en" onchange="applyLighting()" type="checkbox"/><span>Outside Zone 3</span><input id="ext_z3_range" onchange="applyLighting()" placeholder="e.g. 100-149" type="text"/></label>
+<label class="zone-row"><input id="ext_z4_en" onchange="applyLighting()" type="checkbox"/><span>Outside Zone 4</span><input id="ext_z4_range" onchange="applyLighting()" placeholder="e.g. 150-199" type="text"/></label>
+</div>
+</div>
+<div class="card wide">
+<div class="label">Interior Zones (D12 – Interior)</div>
+<div class="zone-grid">
+<label class="zone-row"><input id="int_z1_en" onchange="applyLighting()" type="checkbox"/><span>Interior Zone 1</span><input id="int_z1_range" onchange="applyLighting()" placeholder="e.g. 0-49" type="text"/></label>
+<label class="zone-row"><input id="int_z2_en" onchange="applyLighting()" type="checkbox"/><span>Interior Zone 2</span><input id="int_z2_range" onchange="applyLighting()" placeholder="e.g. 50-99" type="text"/></label>
+<label class="zone-row"><input id="int_z3_en" onchange="applyLighting()" type="checkbox"/><span>Interior Zone 3</span><input id="int_z3_range" onchange="applyLighting()" placeholder="e.g. 100-149" type="text"/></label>
+<label class="zone-row"><input id="int_z4_en" onchange="applyLighting()" type="checkbox"/><span>Interior Zone 4</span><input id="int_z4_range" onchange="applyLighting()" placeholder="e.g. 150-199" type="text"/></label>
+</div>
+</div>
+</div>
+</div></section><nav aria-label="Dashboard pages" class="dashboard-tabs"><button aria-current="page" aria-label="Drive" class="dashboard-tab tab-1 is-active" data-page-target="drive" type="button"><svg aria-hidden="true" class="tab-icon tab-icon-drive" focusable="false" viewbox="282.500275 -226.499176 10.999451 10.998367">
 <title>Drive</title>
 <path class="tab-icon-fill" d="M287.711304,226.499176C286.253387,226.410049,284.906616,225.770874,283.940735,224.709641C283.139069,223.828827,282.656464,222.753387,282.5224,221.548965C282.473572,221.110352,282.503723,220.436874,282.592865,219.975662C282.885895,218.459274,283.797424,217.133957,285.103455,216.325455C285.700653,215.95575,286.412537,215.686966,287.070313,215.582855C287.632629,215.493835,287.813049,215.484268,288.31897,215.516647C288.87323,215.552109,289.353638,215.648956,289.850647,215.825409C290.064453,215.901321,290.105042,215.918518,290.397034,216.056961C291.34552,216.506683,292.176086,217.266602,292.719269,218.181671C293.242767,219.063568,293.500183,219.998505,293.499725,221.016205C293.498535,223.689835,291.567444,225.976151,288.928558,226.428253C288.555878,226.492111,288.064209,226.520752,287.711304,226.499176zM285.1745,220.326294C285.455688,220.266693,285.665802,220.042435,285.720367,219.743683C285.765076,219.499069,285.725922,218.821762,285.643829,218.419022C285.620483,218.304565,285.480774,217.707718,285.414764,217.595108C285.302521,217.403564,285.064819,217.332565,284.858063,217.428818C284.651367,217.525024,284.203613,218.035141,283.915802,218.502258C283.732849,218.799194,283.521698,219.258224,283.464722,219.48288C283.400269,219.73703,283.525421,220.000931,283.765533,220.117172C283.803528,220.135574,284.641418,220.305481,284.839386,220.33873C284.929108,220.353806,285.069244,220.348602,285.1745,220.326294zM291.332367,220.330368C291.437683,220.3116,292.125549,220.240128,292.243195,220.1828C292.485443,220.064743,292.602631,219.782379,292.523163,219.508179C292.429016,219.183212,292.211884,218.733688,291.977661,218.378799C291.734497,218.010361,291.328339,217.551743,291.167877,217.464417C290.93924,217.339966,290.664063,217.432083,290.546722,217.672302C290.522797,217.721298,290.475739,217.847549,290.442139,217.95285C290.408569,218.058151,290.207642,218.927933,290.209808,219.459564C290.210785,219.700073,290.2164,219.770737,290.23822,219.817505C290.253174,219.849548,290.281128,219.918488,290.300323,219.970703C290.349823,220.105286,290.45871,220.219864,290.605286,220.291687C290.807556,220.390762,290.950745,220.398392,291.332367,220.330368zM288.912231,218.492111C289.021667,218.447128,289.122955,218.365479,289.184448,218.272675C289.235901,218.194992,289.308472,217.991714,289.372955,217.744751C289.403137,217.62912,289.567993,216.846161,289.491211,216.694382C289.43399,216.581329,289.295776,216.44873,289.179749,216.395615C288.892242,216.263992,288.036377,216.192032,287.486542,216.253281C287.205414,216.284592,286.89801,216.347183,286.795959,216.393906C286.625458,216.47197,286.496399,216.630737,286.444244,216.826584C286.417664,216.926392,286.671967,218.150116,286.747131,218.26506C286.835205,218.399704,286.975006,218.490921,287.136902,218.519363C287.178131,218.526596,287.575195,218.531326,288.019287,218.529877C288.7995,218.527328,288.829651,218.526047,288.912231,218.492111zM288.532043,225.751541C288.803436,225.720398,289.082031,225.663818,289.355988,225.584198C289.904114,225.424911,290.4646,225.135773,290.949463,224.762177C291.14389,224.612366,291.586761,224.171036,291.73468,223.979675C292.079102,223.534149,292.373199,222.980865,292.535614,222.472961C292.646057,222.127579,292.657379,221.900101,292.571442,221.753433C292.537506,221.695541,292.50705,221.669312,292.435852,221.636719C292.353333,221.598938,292.331238,221.595825,292.218231,221.606079C292.149048,221.612335,291.923279,221.658234,291.716553,221.708054C291.509827,221.757874,290.774078,221.991592,290.7211,222.006805C290.668152,222.022034,290.422516,222.100952,290.175293,222.182205C289.604279,222.369843,289.43512,222.417801,289.126434,222.479584C288.743927,222.556137,288.458984,222.58345,288.04425,222.583359C287.266144,222.583176,286.885742,222.510406,285.796692,222.15332C285.205231,221.959396,284.424561,221.666382,284.19223,221.606995C283.921112,221.537689,283.736664,221.499023,283.677216,221.499023C283.419952,221.499023,283.29541,221.692062,283.338318,222.024338C283.364319,222.225876,283.457611,222.527298,283.593079,222.847565C283.857971,223.473846,284.146942,223.903961,284.622528,224.379822C284.995087,224.75264,285.395813,225.041611,285.864838,225.275711C286.377258,225.531479,286.984833,225.707413,287.536469,225.759766C287.786499,225.783478,288.289948,225.779327,288.532043,225.751541z" transform="matrix(1,0,0,-1,0,0)"></path>
 </svg><span class="sr-only">Drive</span></button><button aria-label="Gear" class="dashboard-tab tab-2" data-page-target="gear" type="button"><svg aria-hidden="true" class="tab-icon tab-icon-gear" focusable="false" viewbox="305.002014 -226.818893 10.999939 10.988190">
@@ -1199,19 +1900,13 @@ body {
 <path class="tab-icon-fill" d="M330.539642,216.62117C330.539642,215.683426,330.571411,215.560837,330.794708,215.63681C330.877441,215.664963,330.889587,215.787598,330.889587,216.594513L330.889587,217.519928L330.71463,217.519928L330.539642,217.519928L330.539642,216.62117z" transform="matrix(1,0,0,-1,0,0)"></path>
 <path class="tab-icon-fill" d="M329.606415,218.161514L329.606415,217.869888L331.997803,217.869888L334.389191,217.869888L334.389191,218.161514L334.389191,218.453156L331.997803,218.453156L329.606415,218.453156L329.606415,218.161514z" transform="matrix(1,0,0,-1,0,0)"></path>
 <path class="tab-icon-fill" d="M331.554932,223.853806C331.034973,223.727585,330.564758,223.34407,330.296753,222.827637C330.163574,222.57106,330.160126,222.523605,330.143616,220.713303L330.126709,218.861435L330.653961,218.861435L331.181244,218.861435L331.181244,219.304657C331.181244,219.578903,331.214691,219.817932,331.268982,219.931656C331.547668,220.51532,332.446167,220.523773,332.720673,219.945328C332.781189,219.817825,332.814362,219.590851,332.814362,219.304657L332.814362,218.861435L333.341644,218.861435L333.868896,218.861435L333.85199,220.713303C333.835632,222.504227,333.830719,222.57402,333.702454,222.834366C333.541962,223.16011,333.16925,223.55159,332.880615,223.697556C332.665833,223.806198,332.132935,223.939972,331.951202,223.930878C331.896637,223.928146,331.718323,223.893463,331.554932,223.853806z" transform="matrix(1,0,0,-1,0,0)"></path>
-</svg><span class="sr-only">Light</span></button></nav>
-</section>
+</svg><span class="sr-only">Light</span></button></nav></section>
 </main>
 <script>
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const rpmSegments = Array.from(
-  document.querySelectorAll(".rpm-progress-segment")
-).sort(
-  (a, b) =>
-    Number(a.dataset.rpmSegment) - Number(b.dataset.rpmSegment)
-);
-
+const rpmActiveFill = document.getElementById("rpm-active-fill");
+const rpmActiveWindowRect = document.getElementById("rpm-active-window-rect");
 const rpmReadout = document.querySelector(".rpm-readout");
 const connectionStatus = document.getElementById("connection-status");
 
@@ -1226,37 +1921,43 @@ const gearLabels = Array.from(
 );
 
 const roadMotionGroups = Array.from(
-  document.querySelectorAll(".road-motion-line[data-road-group]")
-).reduce((groups, segment) => {
-  const groupIndex = Number(segment.dataset.roadGroup);
-  if (!groups[groupIndex]) groups[groupIndex] = [];
-  groups[groupIndex].push(segment);
-  return groups;
-}, []);
+  document.querySelectorAll(".road-motion-frame[data-motion-frame]")
+).sort((a, b) => Number(a.dataset.motionFrame) - Number(b.dataset.motionFrame));
 
 const tireTreadGroups = Array.from(
-  document.querySelectorAll(".tire-tread-line[data-tread-group]")
-).reduce((groups, segment) => {
-  const groupIndex = Number(segment.dataset.treadGroup);
-  if (!groups[groupIndex]) groups[groupIndex] = [];
-  groups[groupIndex].push(segment);
-  return groups;
-}, []);
+  document.querySelectorAll(".tread-motion-frame[data-motion-frame]")
+).sort((a, b) => Number(a.dataset.motionFrame) - Number(b.dataset.motionFrame));
 
+let activeDashboardPage = "drive";
 let sceneMotionActive = false;
 let roadMotionFrame = 0;
 let tireMotionFrame = 0;
-const SCENE_MOTION_INTERVAL_MS = 115;
+// Faster, denser visual motion while preserving the existing direction.
+const SCENE_MOTION_INTERVAL_MS = 75;
+const ROAD_VISIBLE_GROUPS = 3;
+const TREAD_VISIBLE_GROUPS = 2;
 
 const PACKET_TIMEOUT_MS = 1800;
 let lastPacketReceivedAt = 0;
 
 function setConnectionState(connected) {
-  if (!connectionStatus) return;
+  const nextState = Boolean(connected);
 
-  connectionStatus.textContent = connected ? "CONNECTED" : "DISCONNECTED";
-  connectionStatus.classList.toggle("connected", connected);
-  connectionStatus.classList.toggle("disconnected", !connected);
+  if (connectionStatus) {
+    connectionStatus.textContent = nextState ? "CONNECTED" : "DISCONNECTED";
+    connectionStatus.classList.toggle("connected", nextState);
+    connectionStatus.classList.toggle("disconnected", !nextState);
+  }
+
+  if (lastConnectionState !== nextState) {
+    if (lastConnectionState !== null) {
+      pushLog(nextState ? "ECU TELEMETRY LINK ESTABLISHED" : "ECU TELEMETRY LINK LOST", {
+        channel: "LINK",
+        alert: !nextState
+      });
+    }
+    lastConnectionState = nextState;
+  }
 }
 
 function registerPacketReceived(timestamp = performance.now()) {
@@ -1290,62 +1991,99 @@ function setRpmReadoutColor(color) {
     `0 0 6px ${color}88, 0 0 13px ${color}44`;
 }
 
+function spacedMotionIndexes(frame, totalGroups, visibleGroups) {
+  const indexes = new Set();
+  if (totalGroups <= 0 || visibleGroups <= 0) return indexes;
+
+  for (let copy = 0; copy < Math.min(visibleGroups, totalGroups); copy += 1) {
+    const offset = Math.floor((copy * totalGroups) / visibleGroups);
+    indexes.add((frame + offset) % totalGroups);
+  }
+  return indexes;
+}
+
+let activeRoadMotionIndexes = new Set();
+let activeTreadMotionIndexes = new Set();
+let sceneAnimationHandle = 0;
+let lastSceneFrameAt = 0;
+
+function applyMotionFrameSet(groups, previousIndexes, nextIndexes) {
+  previousIndexes.forEach((index) => {
+    if (!nextIndexes.has(index) && groups[index]) {
+      groups[index].classList.remove("is-lit");
+    }
+  });
+  nextIndexes.forEach((index) => {
+    if (!previousIndexes.has(index) && groups[index]) {
+      groups[index].classList.add("is-lit");
+    }
+  });
+  return nextIndexes;
+}
+
 function renderSceneMotionFrame() {
-  roadMotionGroups.forEach((group, groupIndex) => {
-    const isLit =
-      sceneMotionActive &&
-      group.length > 0 &&
-      groupIndex === roadMotionFrame;
+  const nextRoadIndexes = sceneMotionActive
+    ? spacedMotionIndexes(roadMotionFrame, roadMotionGroups.length, ROAD_VISIBLE_GROUPS)
+    : new Set();
+  const nextTreadIndexes = sceneMotionActive
+    ? spacedMotionIndexes(tireMotionFrame, tireTreadGroups.length, TREAD_VISIBLE_GROUPS)
+    : new Set();
 
-    group.forEach((segment) => {
-      segment.classList.toggle("is-lit", isLit);
-    });
-  });
+  activeRoadMotionIndexes = applyMotionFrameSet(
+    roadMotionGroups,
+    activeRoadMotionIndexes,
+    nextRoadIndexes
+  );
+  activeTreadMotionIndexes = applyMotionFrameSet(
+    tireTreadGroups,
+    activeTreadMotionIndexes,
+    nextTreadIndexes
+  );
+}
 
-  tireTreadGroups.forEach((group, groupIndex) => {
-    const isLit =
-      sceneMotionActive &&
-      group.length > 0 &&
-      groupIndex === tireMotionFrame;
+function sceneAnimationLoop(timestamp) {
+  if (!sceneMotionActive || activeDashboardPage !== "drive" || document.hidden) {
+    sceneAnimationHandle = 0;
+    return;
+  }
 
-    group.forEach((segment) => {
-      segment.classList.toggle("is-lit", isLit);
-    });
-  });
+  if (timestamp - lastSceneFrameAt >= SCENE_MOTION_INTERVAL_MS) {
+    lastSceneFrameAt = timestamp;
+    stepSceneMotion();
+  }
+  sceneAnimationHandle = requestAnimationFrame(sceneAnimationLoop);
+}
+
+function ensureSceneAnimationRunning() {
+  if (!sceneAnimationHandle && sceneMotionActive && activeDashboardPage === "drive" && !document.hidden) {
+    lastSceneFrameAt = performance.now();
+    sceneAnimationHandle = requestAnimationFrame(sceneAnimationLoop);
+  }
 }
 
 function setSceneMotionActive(active) {
-  const nextState = Boolean(active);
-
+  const nextState = Boolean(active) && activeDashboardPage === "drive" && !document.hidden;
   if (nextState === sceneMotionActive) {
+    if (nextState) ensureSceneAnimationRunning();
     return;
   }
 
   sceneMotionActive = nextState;
-
   if (!sceneMotionActive) {
-    roadMotionGroups.forEach((group) => {
-      group.forEach((segment) => segment.classList.remove("is-lit"));
-    });
-
-    tireTreadGroups.forEach((group) => {
-      group.forEach((segment) => segment.classList.remove("is-lit"));
-    });
-
+    if (sceneAnimationHandle) cancelAnimationFrame(sceneAnimationHandle);
+    sceneAnimationHandle = 0;
+    renderSceneMotionFrame();
     return;
   }
 
   renderSceneMotionFrame();
+  ensureSceneAnimationRunning();
 }
 
 function stepSceneMotion() {
-  if (!sceneMotionActive) {
-    return;
-  }
-
+  if (!sceneMotionActive) return;
   roadMotionFrame = (roadMotionFrame + 1) % Math.max(roadMotionGroups.length, 1);
   tireMotionFrame = (tireMotionFrame + 1) % Math.max(tireTreadGroups.length, 1);
-
   renderSceneMotionFrame();
 }
 
@@ -1381,62 +2119,152 @@ function setGearIndicator(gear) {
   });
 }
 
+let previousRpmRatio = -1;
+let previousRpmWidth = -1;
+let previousRpmZone = -1;
+
+const RPM_ZONE_COLORS = ["#86fa88", "#d0d000", "#ff8000", "#d33f6a"];
+
+function rpmColourZone(ratio) {
+  if (ratio <= 0) return -1;
+  if (ratio < 0.2875) return 0;
+  if (ratio < 0.5) return 1;
+  if (ratio < 0.7125) return 2;
+  return 3;
+}
+
 function setRpmProgress(rpm, maximumRpm = 8000) {
-  const numericRpm = Number(rpm);
-  const ratio = clamp(numericRpm / maximumRpm, 0, 1);
-  const activeCount =
-    numericRpm <= 0
-      ? 0
-      : Math.max(1, Math.ceil(ratio * rpmSegments.length));
+  const numericRpm = Number.isFinite(Number(rpm)) ? Number(rpm) : 0;
+  const clampedRpm = clamp(numericRpm, 0, maximumRpm);
 
-  let activeColor = "#272727";
+  // Quantise to 10 RPM while updating one transform only.
+  const quantisedRpm = Math.round(clampedRpm / 10) * 10;
+  const ratio = clamp(quantisedRpm / maximumRpm, 0, 1);
+  const formattedRatio = Number(ratio.toFixed(5));
 
-  // Toggle `is-active` only — colours are driven entirely by CSS
-  // [data-rpm-color] attribute selectors; no inline style writes.
-  rpmSegments.forEach((segment, index) => {
-    const active = index < activeCount;
-    segment.classList.toggle("is-active", active);
-    if (active) {
-      activeColor = segment.dataset.rpmColor;
+  if (formattedRatio !== previousRpmRatio) {
+    previousRpmRatio = formattedRatio;
+    const activeWidth = Number((166 * formattedRatio).toFixed(3));
+    if (rpmActiveWindowRect && activeWidth !== previousRpmWidth) {
+      previousRpmWidth = activeWidth;
+      rpmActiveWindowRect.setAttribute("width", activeWidth.toString());
     }
-  });
+  }
 
-  setRpmReadoutColor(activeColor);
+  const zone = rpmColourZone(ratio);
+  if (zone !== previousRpmZone) {
+    previousRpmZone = zone;
+    setRpmReadoutColor(zone >= 0 ? RPM_ZONE_COLORS[zone] : "#272727");
+  }
 }
 
 // Cache last text/bar values to skip redundant DOM writes.
 const _textCache = new Map();
-function setText(id, value, decimals) {
-  const n = Number(value);
-  const strVal = (decimals !== undefined)
-    ? (Number.isFinite(n) ? n.toFixed(decimals) : '--')
-    : String(value);
-  if (_textCache.get(id) === strVal) return;
-  _textCache.set(id, strVal);
+const setText = (id, value) => {
+  if (_textCache.get(id) === value) return;
+  _textCache.set(id, value);
   const element = document.getElementById(id);
-  if (element) element.textContent = strVal;
-}
+  if (element) element.textContent = value;
+};
 
 const _barCache = new Map();
 const setBar = (id, percentage) => {
   const element = document.getElementById(id);
   if (!element) return;
-  const formatted = `${clamp(percentage, 0, 100).toFixed(1)}%`;
+  const ratio = clamp(percentage, 0, 100) / 100;
+  const formatted = ratio.toFixed(3);
   if (_barCache.get(id) === formatted) return;
   _barCache.set(id, formatted);
-  element.style.width = formatted;
+  element.style.transform = `scaleX(${formatted})`;
 };
 
-function pushLog(message) {
+const STREAM_LOG_MAX_LINES = 9;
+const STREAM_LOG_INTERVAL_MS = 280;
+let latestTelemetry = null;
+let streamLogSequence = 0;
+let lastConnectionState = null;
+
+function formatLogTime(date = new Date()) {
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+function finiteNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+const streamLogLines = [];
+
+function pushLog(message, { channel = "SYS", alert = false } = {}) {
   const log = document.getElementById("stream-log");
   if (!log) return;
 
-  const line = document.createElement("div");
-  line.textContent = message;
-  log.prepend(line);
+  const source = String(channel).padEnd(7, " ").slice(0, 7);
+  const alertPrefix = alert ? "! " : "  ";
+  streamLogLines.push(`${formatLogTime()} ${source} // ${alertPrefix}${String(message)}`);
+  if (streamLogLines.length > STREAM_LOG_MAX_LINES) {
+    streamLogLines.splice(0, streamLogLines.length - STREAM_LOG_MAX_LINES);
+  }
 
-  while (log.children.length > 6) {
-    log.removeChild(log.lastElementChild);
+  // A fixed nine-line ring buffer creates the scrolling effect without
+  // reading scrollHeight, which would force synchronous layout.
+  log.textContent = streamLogLines.join("\n");
+}
+
+function emitTelemetryLogLine() {
+  if (activeDashboardPage !== "drive" || document.hidden) return;
+  const d = latestTelemetry;
+
+  if (!d || lastConnectionState !== true) {
+    pushLog("WAITING FOR ECU DATA STREAM", { channel: "LINK", alert: true });
+    return;
+  }
+
+  const lineType = streamLogSequence++ % 10;
+  const rpm = Math.round(finiteNumber(d.rpm));
+  const tps = finiteNumber(d.tps).toFixed(1);
+  const map = finiteNumber(d.map).toFixed(1);
+  const mgpPsi = (finiteNumber(d.mgp) / KPA_PER_PSI).toFixed(1);
+  const oilPsi = (finiteNumber(d.oil_pressure) / KPA_PER_PSI).toFixed(0);
+  const fuelPsi = (finiteNumber(d.fuel_pressure) / KPA_PER_PSI).toFixed(0);
+  const speed = finiteNumber(d.gp_speed_1 ?? d.speed).toFixed(1);
+  const gear = Math.round(finiteNumber(d.gear));
+
+  switch (lineType) {
+    case 0:
+      pushLog(`CH1 RPM ${rpm} MAP ${map}KPA MGP ${finiteNumber(d.mgp).toFixed(1)}KPA`, { channel: "CAN/1" });
+      break;
+    case 1:
+      pushLog(`CH2 SPEED ${speed}KMH GEAR ${gear || 'N'} TPS ${tps}%`, { channel: "CAN/2" });
+      break;
+    case 2:
+      pushLog(`CH2 ECT ${finiteNumber(d.ect).toFixed(1)}C IAT ${finiteNumber(d.iat).toFixed(1)}C`, { channel: "THERM" });
+      break;
+    case 3:
+      pushLog(`CH3 OIL ${finiteNumber(d.oil_pressure).toFixed(1)}KPA FUEL ${finiteNumber(d.fuel_pressure).toFixed(1)}KPA`, { channel: "CAN/3" });
+      break;
+    case 4:
+      pushLog(`CH3 L1 ${finiteNumber(d.lambda1).toFixed(3)} TARGET ${finiteNumber(d.lambda_target).toFixed(3)} ERR ${finiteNumber(d.lambda_error).toFixed(3)}`, { channel: "LAMBDA" });
+      break;
+    case 5:
+      pushLog(`BOOST ${mgpPsi}PSI OIL ${oilPsi}PSI FUEL ${fuelPsi}PSI`, { channel: "PRESS" });
+      break;
+    case 6:
+      pushLog(`VBAT ${finiteNumber(d.battery_v).toFixed(2)}V FRAME ${Math.round(finiteNumber(d.can_frames))}`, { channel: "POWER" });
+      break;
+    case 7:
+      pushLog(`DECODED ${Math.round(finiteNumber(d.can_decoded_frames))} AGE ${Math.round(finiteNumber(d.age_ms))}MS`, { channel: "SYNC" });
+      break;
+    case 8:
+      pushLog(`INJ ${finiteNumber(d.injection_actual_pw).toFixed(2)}MS IGN ${finiteNumber(d.ignition_angle).toFixed(1)}DEG`, { channel: "LEGACY" });
+      break;
+    default:
+      pushLog(`BOOST DUTY ${finiteNumber(d.boost_duty).toFixed(1)}% TARGET ${finiteNumber(d.boost_target).toFixed(1)}KPA`, { channel: "CTRL" });
+      break;
   }
 }
 
@@ -1449,11 +2277,10 @@ function updateDashboard({
   waterTemp = 0,
   airTemp = 0
 } = {}) {
-  registerPacketReceived();
   setText("rpm-value", Math.round(rpm).toString());
   setRpmProgress(rpm);
   setGearIndicator(gear);
-  setSceneMotionActive(Number(gear) > 0 && Number(rpm) > 0);
+  setSceneMotionActive(Number(rpm) > 500);
 
   setText("boost-value", Number(boost).toFixed(1));
   setText("oil-value", Math.round(oilPressure).toString());
@@ -1461,8 +2288,8 @@ function updateDashboard({
   setText("water-value", Math.round(waterTemp).toString());
   setText("air-value", Math.round(airTemp).toString());
 
-  setBar("boost-bar", ((boost + 20) / 270) * 100); // kPa: -20 (vacuum) to 250 (max boost)
-  setBar("oil-bar", (oilPressure / 700) * 100); // kPa: 0 to 700
+  setBar("boost-bar", ((boost + 10) / 30) * 100);
+  setBar("oil-bar", (oilPressure / 100) * 100);
   setBar("voltage-bar", ((voltage - 10) / 5) * 100);
   setBar("water-bar", ((waterTemp - 40) / 100) * 100);
   setBar("air-bar", (airTemp / 80) * 100);
@@ -1473,9 +2300,11 @@ setRpmProgress(0);
 setGearIndicator(0);
 setSceneMotionActive(false);
 setConnectionState(false);
+pushLog("DASHBOARD RUNTIME INITIALIZED", { channel: "BOOT" });
+pushLog("CAN TELEMETRY DECODER READY", { channel: "BOOT" });
+pushLog("AWAITING ECU PACKETS", { channel: "LINK" });
 setInterval(checkConnectionState, 250);
-setInterval(stepSceneMotion, SCENE_MOTION_INTERVAL_MS);
-
+setInterval(emitTelemetryLogLine, STREAM_LOG_INTERVAL_MS);
 
 window.updateDashboard = updateDashboard;
 window.setRpmProgress = setRpmProgress;
@@ -1527,6 +2356,20 @@ function selectDashboardPage(pageName) {
     dashboardRoot.dataset.activePage = pageName;
   }
 
+  activeDashboardPage = pageName;
+  if (pageName === "drive") {
+    if (latestTelemetry) updateDriveFromTelemetry(latestTelemetry);
+    ensureSceneAnimationRunning();
+  } else {
+    setSceneMotionActive(false);
+  }
+  if (pageName === "gear" && latestTelemetry) {
+    updateDebugReadouts(latestTelemetry);
+  }
+  if (pageName === "light") {
+    refreshLightingState();
+  }
+
   return true;
 }
 
@@ -1544,198 +2387,321 @@ window.setSceneMotionActive = setSceneMotionActive;
 window.stepSceneMotion = stepSceneMotion;
 
 
+/* -------------------------------------------------------------------------
+   Working Link ECU data and lighting integration
+   ------------------------------------------------------------------------- */
+const KPA_PER_PSI = 6.894757293;
+const DATA_STALE_MS = 1500;
+const refreshState = {
+  dataInFlight: false,
+  lightingInFlight: false,
+  dataPending: false,
+  lightingPending: false
+};
 
-/* =========================================================================
-   Live data refresh from ESP32 /data endpoint
-   ========================================================================= */
-function hexToRgb(hex) {
-  const c = hex.replace('#','');
-  return { r: parseInt(c.slice(0,2),16), g: parseInt(c.slice(2,4),16), b: parseInt(c.slice(4,6),16) };
+function setNumber(id, value, decimals = 0) {
+  const numeric = Number(value);
+  const safe = Number.isFinite(numeric) ? numeric : 0;
+  setText(id, safe.toFixed(decimals));
 }
 
-function rgbToHex(r,g,b) {
-  return '#'+[r,g,b].map(v=>Number(v).toString(16).padStart(2,'0')).join('');
+function updateDebugReadouts(d) {
+  setNumber('gp_speed_1', d.gp_speed_1 ?? d.speed, 1);
+  const gearValue = Math.round(finiteNumber(d.gear));
+  setText('gear_debug', gearValue > 0 ? String(gearValue) : 'N');
+  setNumber('tps_debug', d.tps, 1);
+  setNumber('map_debug', d.map, 1);
+  setNumber('mgp_debug', d.mgp, 1);
+  setNumber('oil_pressure_debug', d.oil_pressure, 1);
+  setNumber('fuel_pressure_debug', d.fuel_pressure, 1);
+  setNumber('lambda1_debug', d.lambda1, 3);
+  setNumber('lambda_target_debug', d.lambda_target, 3);
+  setNumber('battery_debug', d.battery_v, 2);
+
+  setNumber('ignition_angle', d.ignition_angle, 1);
+  setNumber('injection_actual_pw', d.injection_actual_pw, 1);
+  setNumber('injection_effective_pw', d.injection_effective_pw, 1);
+  setNumber('lambda_error', d.lambda_error, 2);
+  setNumber('boost_target', d.boost_target, 0);
+  setNumber('boost_error', d.boost_error, 0);
+  setNumber('boost_p', d.boost_p, 1);
+  setNumber('boost_i', d.boost_i, 1);
+  setNumber('boost_d', d.boost_d, 1);
+  setNumber('boost_duty', d.boost_duty, 0);
+  setNumber('aps_main', d.aps_main, 0);
+  setNumber('throttle_target', d.throttle_target, 0);
+  setNumber('vvt_in_target', d.vvt_in_target, 0);
+  setNumber('vvt_in_pos', d.vvt_in_pos, 0);
 }
 
-function setCardState(id, state) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.remove('ok','warn','danger');
-  if (state) el.classList.add(state);
+function updateDriveFromTelemetry(d) {
+  const boostPsi = finiteNumber(d.mgp) / KPA_PER_PSI;
+  const oilPsi = finiteNumber(d.oil_pressure) / KPA_PER_PSI;
+  updateDashboard({
+    rpm: finiteNumber(d.rpm),
+    gear: finiteNumber(d.gear),
+    boost: boostPsi,
+    oilPressure: oilPsi,
+    voltage: finiteNumber(d.battery_v),
+    waterTemp: finiteNumber(d.ect),
+    airTemp: finiteNumber(d.iat)
+  });
 }
 
-function updateWarnings(d) {
-  const oilPressureDanger = d.rpm > 1500 && d.oil_pressure < 150;
-  const ectDanger         = d.ect >= 110;
-  const lambdaDanger      = d.map > 120 && d.lambda1 > d.lambda_target + 0.08;
-  const fuelPressureDanger= d.rpm > 1500 && d.fuel_pressure > 0 && d.fuel_pressure < 250;
-  const trigDanger        = d.trig1_err > 0;
+let pendingTelemetryRender = null;
+let telemetryRenderHandle = 0;
 
-  setCardState('card_lambda_error', Math.abs(d.lambda_error) > 0.08 ? 'warn' : null);
-  setCardState('card_boost_error',  Math.abs(d.boost_error)  > 20   ? 'warn' : null);
+function renderPendingTelemetry() {
+  telemetryRenderHandle = 0;
+  const d = pendingTelemetryRender;
+  pendingTelemetryRender = null;
+  if (!d || document.hidden) return;
 
-  const alertBar = document.getElementById('main_alert');
-  if (!alertBar) return;
-  const alerts = [];
-  if (d.age_ms > 1500)   alerts.push('DATA STALE');
-  if (oilPressureDanger) alerts.push('LOW OIL PRESSURE');
-  if (ectDanger)         alerts.push('HIGH COOLANT TEMP');
-  if (lambdaDanger)      alerts.push('LEAN ON BOOST');
-  if (fuelPressureDanger)alerts.push('LOW FUEL PRESSURE');
-  if (trigDanger)        alerts.push('TRIGGER ERROR');
-  alertBar.textContent   = alerts.join(' | ');
-  alertBar.style.display = alerts.length > 0 ? 'block' : 'none';
+  if (activeDashboardPage === "drive") updateDriveFromTelemetry(d);
+  else if (activeDashboardPage === "gear") updateDebugReadouts(d);
 }
 
-const refreshState = { dataInFlight: false, lightingInFlight: false,
-                       dataPending: false,  lightingPending: false };
+function processTelemetry(d) {
+  latestTelemetry = d;
+  const fresh = finiteNumber(d.age_ms, 999999) <= DATA_STALE_MS;
+  if (fresh) registerPacketReceived();
+  else setConnectionState(false);
 
-let lastStreamLogAt = 0;
-let streamLogIndex = 0;
+  if (document.hidden) return;
+  pendingTelemetryRender = d;
+  if (!telemetryRenderHandle) {
+    telemetryRenderHandle = requestAnimationFrame(renderPendingTelemetry);
+  }
+}
+
+let telemetrySocket = null;
+let telemetryReconnectTimer = 0;
+let fallbackTimer = 0;
+let fallbackStartTimer = 0;
+let telemetrySocketOpen = false;
+
+function stopHttpFallback() {
+  if (fallbackTimer) clearInterval(fallbackTimer);
+  if (fallbackStartTimer) clearTimeout(fallbackStartTimer);
+  fallbackTimer = 0;
+  fallbackStartTimer = 0;
+}
 
 async function refreshData() {
-  if (refreshState.dataInFlight) { refreshState.dataPending = true; return; }
+  if (refreshState.dataInFlight || telemetrySocketOpen || document.hidden) return;
   refreshState.dataInFlight = true;
-  do {
-    refreshState.dataPending = false;
-    try {
-      const res = await fetch('/data?_=' + Date.now(), { cache: 'no-store' });
-      const d   = await res.json();
-
-      if (d.age_ms > 1500) {
-        setConnectionState(false);
-      } else {
-        registerPacketReceived();
-      }
-
-      // ---- Drive tab readouts ----
-      updateDashboard({
-        rpm:         Number(d.rpm)          || 0,
-        gear:        0,
-        boost:       Number(d.mgp)          || 0,
-        oilPressure: Number(d.oil_pressure) || 0,
-        voltage:     Number(d.battery_v)    || 0,
-        waterTemp:   Number(d.ect)          || 0,
-        airTemp:     Number(d.iat)          || 0
-      });
-
-      // ---- Stream log (updated every ~3 s) ----
-      const now = Date.now();
-      if (now - lastStreamLogAt > 3000) {
-        lastStreamLogAt = now;
-        const msgs = [
-          '--[RPM ' + Math.round(d.rpm) + ' / MGP ' + Number(d.mgp).toFixed(1) + ' kPa]',
-          '--[OIL ' + Math.round(d.oil_pressure) + ' kPa]',
-          '--[VOLTAGE ' + Number(d.battery_v).toFixed(1) + 'V]',
-          '--[WATER ' + Math.round(d.ect) + 'C / AIR ' + Math.round(d.iat) + 'C]',
-          '--[CAN HEARTBEAT OK]'
-        ];
-        pushLog(msgs[streamLogIndex % msgs.length]);
-        streamLogIndex++;
-      }
-
-      // ---- Gear (debug) tab values ----
-      setText('ignition_angle',        d.ignition_angle,        1);
-      setText('injection_actual_pw',   d.injection_actual_pw,   1);
-      setText('injection_effective_pw',d.injection_effective_pw,1);
-      setText('lambda_error',          d.lambda_error,          2);
-      setText('boost_target',          d.boost_target,          0);
-      setText('boost_error',           d.boost_error,           0);
-      setText('boost_p',               d.boost_p,               1);
-      setText('boost_i',               d.boost_i,               1);
-      setText('boost_d',               d.boost_d,               1);
-      setText('boost_duty',            d.boost_duty,            0);
-      setText('aps_main',              d.aps_main,              0);
-      setText('throttle_target',       d.throttle_target,       0);
-      setText('vvt_in_target',         d.vvt_in_target,         0);
-      setText('vvt_in_pos',            d.vvt_in_pos,            0);
-
-      updateWarnings(d);
-    } catch (err) {
-      setConnectionState(false);
-    }
-  } while (refreshState.dataPending);
-  refreshState.dataInFlight = false;
+  try {
+    const response = await fetch('/data', { cache: 'no-store' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    processTelemetry(await response.json());
+  } catch (error) {
+    setConnectionState(false);
+  } finally {
+    refreshState.dataInFlight = false;
+  }
 }
 
-/* ---- Lighting functions -------------------------------------------------- */
+function startHttpFallback() {
+  if (telemetrySocketOpen || fallbackTimer || document.hidden) return;
+  refreshData();
+  fallbackTimer = setInterval(refreshData, 100);
+}
+
+function scheduleTelemetryReconnect() {
+  if (telemetryReconnectTimer || document.hidden) return;
+  telemetryReconnectTimer = setTimeout(() => {
+    telemetryReconnectTimer = 0;
+    connectTelemetrySocket();
+  }, 1200);
+}
+
+function connectTelemetrySocket() {
+  if (document.hidden || telemetrySocketOpen || telemetrySocket?.readyState === WebSocket.CONNECTING) return;
+  const host = location.hostname || '192.168.4.1';
+  telemetrySocket = new WebSocket(`ws://${host}:81/`);
+
+  fallbackStartTimer = setTimeout(startHttpFallback, 1500);
+
+  telemetrySocket.addEventListener('open', () => {
+    telemetrySocketOpen = true;
+    stopHttpFallback();
+  });
+
+  telemetrySocket.addEventListener('message', (event) => {
+    try {
+      processTelemetry(JSON.parse(event.data));
+    } catch (error) {
+      console.log('Invalid telemetry frame', error);
+    }
+  });
+
+  telemetrySocket.addEventListener('close', () => {
+    telemetrySocketOpen = false;
+    telemetrySocket = null;
+    startHttpFallback();
+    scheduleTelemetryReconnect();
+  });
+
+  telemetrySocket.addEventListener('error', () => {
+    telemetrySocket?.close();
+  });
+}
+
+function hexToRgb(hex) {
+  const clean = hex.replace('#', '');
+  return {
+    r: parseInt(clean.substring(0, 2), 16),
+    g: parseInt(clean.substring(2, 4), 16),
+    b: parseInt(clean.substring(4, 6), 16)
+  };
+}
+
+async function goFullscreen() {
+  const el = document.documentElement;
+
+  try {
+    if (el.requestFullscreen) {
+      await el.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      await el.webkitRequestFullscreen();
+    }
+  } catch (err) {
+    console.log('Fullscreen request failed', err);
+  }
+}
+
 async function applyLighting() {
-  const mode    = document.getElementById('lighting_mode').value;
+  const mode = document.getElementById('lighting_mode').value;
   const pattern = document.getElementById('lighting_pattern').value;
-  const color   = hexToRgb(document.getElementById('static_color').value);
-  const brtPct  = Number(document.getElementById('lighting_brightness').value);
-  const brt     = brtPct / 100.0;
-  const autoOff = Number(document.getElementById('lighting_auto_off_minutes').value) || 0;
-  const lblEl   = document.getElementById('brightness_label');
-  if (lblEl) lblEl.textContent = brtPct;
+  const color = hexToRgb(document.getElementById('static_color').value);
+  const brightnessPct = Number(document.getElementById('lighting_brightness').value);
+  const brightness = brightnessPct / 100.0;
+  const autoOffMinutes = Number(document.getElementById('lighting_auto_off_minutes').value) || 0;
+
+  document.getElementById('brightness_label').textContent = brightnessPct;
 
   const zoneIds = [
-    {ri:'ext_z1_range',ei:'ext_z1_en'},{ri:'ext_z2_range',ei:'ext_z2_en'},
-    {ri:'ext_z3_range',ei:'ext_z3_en'},{ri:'ext_z4_range',ei:'ext_z4_en'},
-    {ri:'int_z1_range',ei:'int_z1_en'},{ri:'int_z2_range',ei:'int_z2_en'},
-    {ri:'int_z3_range',ei:'int_z3_en'},{ri:'int_z4_range',ei:'int_z4_en'},
+    { rangeId: 'ext_z1_range', enId: 'ext_z1_en', rangeParam: 'ext_z1_range', enParam: 'ext_z1_en' },
+    { rangeId: 'ext_z2_range', enId: 'ext_z2_en', rangeParam: 'ext_z2_range', enParam: 'ext_z2_en' },
+    { rangeId: 'ext_z3_range', enId: 'ext_z3_en', rangeParam: 'ext_z3_range', enParam: 'ext_z3_en' },
+    { rangeId: 'ext_z4_range', enId: 'ext_z4_en', rangeParam: 'ext_z4_range', enParam: 'ext_z4_en' },
+    { rangeId: 'int_z1_range', enId: 'int_z1_en', rangeParam: 'int_z1_range', enParam: 'int_z1_en' },
+    { rangeId: 'int_z2_range', enId: 'int_z2_en', rangeParam: 'int_z2_range', enParam: 'int_z2_en' },
+    { rangeId: 'int_z3_range', enId: 'int_z3_en', rangeParam: 'int_z3_range', enParam: 'int_z3_en' },
+    { rangeId: 'int_z4_range', enId: 'int_z4_en', rangeParam: 'int_z4_range', enParam: 'int_z4_en' },
   ];
+
   let zonePart = '';
   for (const z of zoneIds) {
-    const re = document.getElementById(z.ri); const ee = document.getElementById(z.ei);
-    if (re) zonePart += '&'+z.ri+'='+encodeURIComponent(re.value);
-    if (ee) zonePart += '&'+z.ei+'='+(ee.checked?'1':'0');
+    const rangeEl = document.getElementById(z.rangeId);
+    const enEl    = document.getElementById(z.enId);
+    if (rangeEl) zonePart += '&' + z.rangeParam + '=' + encodeURIComponent(rangeEl.value);
+    if (enEl)    zonePart += '&' + z.enParam    + '=' + (enEl.checked ? '1' : '0');
   }
 
-  let pp = '';
-  const pRpmMin=document.getElementById('plasma_rpm_min'),pRpmMax=document.getElementById('plasma_rpm_max');
-  const pMapMin=document.getElementById('plasma_map_min'),pMapMax=document.getElementById('plasma_map_max');
-  if(pRpmMin)pp+='&plasma_rpm_min='+pRpmMin.value;
-  if(pRpmMax)pp+='&plasma_rpm_max='+pRpmMax.value;
-  if(pMapMin)pp+='&plasma_map_min='+pMapMin.value;
-  if(pMapMax)pp+='&plasma_map_max='+pMapMax.value;
+  // Per-pattern parameters.
+  let patternParams = '';
 
-  const bsEl=document.getElementById('breathing_speed');
-  if(bsEl){const s=(Number(bsEl.value)/10).toFixed(1);const l=document.getElementById('breathing_speed_label');if(l)l.textContent=s;pp+='&breathing_speed='+s;}
-  const rsEl=document.getElementById('rainbow_speed');
-  if(rsEl){const s=(Number(rsEl.value)/10).toFixed(1);const l=document.getElementById('rainbow_speed_label');if(l)l.textContent=s;pp+='&rainbow_speed='+s;}
+  // Engine Plasma.
+  const pRpmMin = document.getElementById('plasma_rpm_min');
+  const pRpmMax = document.getElementById('plasma_rpm_max');
+  const pMapMin = document.getElementById('plasma_map_min');
+  const pMapMax = document.getElementById('plasma_map_max');
+  if (pRpmMin) patternParams += '&plasma_rpm_min=' + pRpmMin.value;
+  if (pRpmMax) patternParams += '&plasma_rpm_max=' + pRpmMax.value;
+  if (pMapMin) patternParams += '&plasma_map_min=' + pMapMin.value;
+  if (pMapMax) patternParams += '&plasma_map_max=' + pMapMax.value;
 
-  const c1=document.getElementById('chase_c1'),c2=document.getElementById('chase_c2'),
-        c3=document.getElementById('chase_c3'),c4=document.getElementById('chase_c4'),
-        csEl=document.getElementById('chase_speed');
-  if(c1&&c2&&c3&&c4&&csEl){
-    const r1=hexToRgb(c1.value),r2=hexToRgb(c2.value),r3=hexToRgb(c3.value),r4=hexToRgb(c4.value);
-    const s=(Number(csEl.value)/10).toFixed(1);const l=document.getElementById('chase_speed_label');if(l)l.textContent=s;
-    pp+='&chase_c1_r='+r1.r+'&chase_c1_g='+r1.g+'&chase_c1_b='+r1.b;
-    pp+='&chase_c2_r='+r2.r+'&chase_c2_g='+r2.g+'&chase_c2_b='+r2.b;
-    pp+='&chase_c3_r='+r3.r+'&chase_c3_g='+r3.g+'&chase_c3_b='+r3.b;
-    pp+='&chase_c4_r='+r4.r+'&chase_c4_g='+r4.g+'&chase_c4_b='+r4.b;
-    const w1=document.getElementById('chase_w1'),w2=document.getElementById('chase_w2'),
-          w3=document.getElementById('chase_w3'),w4=document.getElementById('chase_w4');
-    if(w1)pp+='&chase_w1='+Math.max(1,parseInt(w1.value)||50);
-    if(w2)pp+='&chase_w2='+Math.max(1,parseInt(w2.value)||50);
-    if(w3)pp+='&chase_w3='+Math.max(1,parseInt(w3.value)||50);
-    if(w4)pp+='&chase_w4='+Math.max(1,parseInt(w4.value)||50);
-    pp+='&chase_speed='+s;
+  // Breathing speed.
+  const breathSpeedEl = document.getElementById('breathing_speed');
+  if (breathSpeedEl) {
+    const spd = (Number(breathSpeedEl.value) / 10.0).toFixed(1);
+    const lbl = document.getElementById('breathing_speed_label');
+    if (lbl) lbl.textContent = spd;
+    patternParams += '&breathing_speed=' + spd;
   }
 
-  const lc1=document.getElementById('lightning_c1'),lc2=document.getElementById('lightning_c2'),
-        lc3=document.getElementById('lightning_c3'),lfEl=document.getElementById('lightning_freq');
-  if(lc1&&lfEl){
-    const r1=hexToRgb(lc1.value);const freq=(Number(lfEl.value)/10).toFixed(1);
-    const l=document.getElementById('lightning_freq_label');if(l)l.textContent=freq;
-    pp+='&lightning_r='+r1.r+'&lightning_g='+r1.g+'&lightning_b='+r1.b;
-    if(lc2){const r2=hexToRgb(lc2.value);pp+='&lightning_c2_r='+r2.r+'&lightning_c2_g='+r2.g+'&lightning_c2_b='+r2.b;}
-    if(lc3){const r3=hexToRgb(lc3.value);pp+='&lightning_c3_r='+r3.r+'&lightning_c3_g='+r3.g+'&lightning_c3_b='+r3.b;}
-    pp+='&lightning_freq='+freq;
+  // Rainbow speed.
+  const rainbowSpeedEl = document.getElementById('rainbow_speed');
+  if (rainbowSpeedEl) {
+    const spd = (Number(rainbowSpeedEl.value) / 10.0).toFixed(1);
+    const lbl = document.getElementById('rainbow_speed_label');
+    if (lbl) lbl.textContent = spd;
+    patternParams += '&rainbow_speed=' + spd;
   }
 
-  await fetch('/setLighting?mode='+encodeURIComponent(mode)+'&pattern='+encodeURIComponent(pattern)
-    +'&r='+color.r+'&g='+color.g+'&b='+color.b+'&w=0'
-    +'&brightness='+encodeURIComponent(brt)
-    +'&auto_off_minutes='+encodeURIComponent(autoOff)
-    +zonePart+pp);
+  // Color Chase.
+  const c1El = document.getElementById('chase_c1');
+  const c2El = document.getElementById('chase_c2');
+  const c3El = document.getElementById('chase_c3');
+  const c4El = document.getElementById('chase_c4');
+  const cSpeedEl = document.getElementById('chase_speed');
+  if (c1El && c2El && c3El && c4El && cSpeedEl) {
+    const c1 = hexToRgb(c1El.value);
+    const c2 = hexToRgb(c2El.value);
+    const c3 = hexToRgb(c3El.value);
+    const c4 = hexToRgb(c4El.value);
+    const spd = (Number(cSpeedEl.value) / 10.0).toFixed(1);
+    const lbl = document.getElementById('chase_speed_label');
+    if (lbl) lbl.textContent = spd;
+    patternParams += '&chase_c1_r=' + c1.r + '&chase_c1_g=' + c1.g + '&chase_c1_b=' + c1.b;
+    patternParams += '&chase_c2_r=' + c2.r + '&chase_c2_g=' + c2.g + '&chase_c2_b=' + c2.b;
+    patternParams += '&chase_c3_r=' + c3.r + '&chase_c3_g=' + c3.g + '&chase_c3_b=' + c3.b;
+    patternParams += '&chase_c4_r=' + c4.r + '&chase_c4_g=' + c4.g + '&chase_c4_b=' + c4.b;
+    const w1El = document.getElementById('chase_w1');
+    const w2El = document.getElementById('chase_w2');
+    const w3El = document.getElementById('chase_w3');
+    const w4El = document.getElementById('chase_w4');
+    if (w1El) patternParams += '&chase_w1=' + Math.max(1, parseInt(w1El.value) || 50);
+    if (w2El) patternParams += '&chase_w2=' + Math.max(1, parseInt(w2El.value) || 50);
+    if (w3El) patternParams += '&chase_w3=' + Math.max(1, parseInt(w3El.value) || 50);
+    if (w4El) patternParams += '&chase_w4=' + Math.max(1, parseInt(w4El.value) || 50);
+    patternParams += '&chase_speed=' + spd;
+  }
+
+  // Lightning.
+  const ltC1El = document.getElementById('lightning_c1');
+  const ltC2El = document.getElementById('lightning_c2');
+  const ltC3El = document.getElementById('lightning_c3');
+  const ltFreqEl  = document.getElementById('lightning_freq');
+  if (ltC1El && ltFreqEl) {
+    const lc1  = hexToRgb(ltC1El.value);
+    const freq = (Number(ltFreqEl.value) / 10.0).toFixed(1);
+    const lbl  = document.getElementById('lightning_freq_label');
+    if (lbl) lbl.textContent = freq;
+    patternParams += '&lightning_r=' + lc1.r + '&lightning_g=' + lc1.g + '&lightning_b=' + lc1.b;
+    if (ltC2El) {
+      const lc2 = hexToRgb(ltC2El.value);
+      patternParams += '&lightning_c2_r=' + lc2.r + '&lightning_c2_g=' + lc2.g + '&lightning_c2_b=' + lc2.b;
+    }
+    if (ltC3El) {
+      const lc3 = hexToRgb(ltC3El.value);
+      patternParams += '&lightning_c3_r=' + lc3.r + '&lightning_c3_g=' + lc3.g + '&lightning_c3_b=' + lc3.b;
+    }
+    patternParams += '&lightning_freq=' + freq;
+  }
+
+  const url =
+    '/setLighting?' +
+    'mode=' + encodeURIComponent(mode) +
+    '&pattern=' + encodeURIComponent(pattern) +
+    '&r=' + color.r +
+    '&g=' + color.g +
+    '&b=' + color.b +
+    '&w=0' +
+    '&brightness=' + brightness +
+    '&auto_off_minutes=' + autoOffMinutes +
+    zonePart +
+    patternParams;
+
+  await fetch(url);
 }
 
 async function toggleLightingEnabled() {
   const btn = document.getElementById('lighting_enabled_btn');
-  const newState = !(btn && btn.classList.contains('active-btn'));
-  await fetch('/setLighting?enabled='+(newState?'1':'0'));
+  const isOn = btn && btn.classList.contains('active');
+  const newState = !isOn;
+  await fetch('/setLighting?enabled=' + (newState ? '1' : '0'));
   updateLightingEnabledButton(newState);
 }
 
@@ -1743,102 +2709,224 @@ function updateLightingEnabledButton(enabled) {
   const btn = document.getElementById('lighting_enabled_btn');
   if (!btn) return;
   btn.textContent = enabled ? 'On' : 'Off';
-  btn.classList.toggle('active-btn', enabled);
+  btn.classList.toggle('active', enabled);
 }
 
 function updateLightingCardVisibility() {
   const modeEl = document.getElementById('lighting_mode');
   if (!modeEl) return;
-  const mode    = modeEl.value;
-  const patEl   = document.getElementById('lighting_pattern');
-  const pattern = patEl ? patEl.value : '';
-  const sc=document.getElementById('card_static_colour'),
-        pc=document.getElementById('card_pattern_theme'),
-        lc=document.getElementById('card_live_lighting');
-  if(sc)sc.style.display=(mode==='static')?'':'none';
-  if(pc)pc.style.display=(mode==='pattern')?'':'none';
-  if(lc)lc.style.display=(mode==='pattern')?'':'none';
-  const paramIds=['card_params_engine_plasma','card_params_breathing',
-                  'card_params_rainbow','card_params_color_chase','card_params_lightning'];
-  for(const id of paramIds){const el=document.getElementById(id);if(el)el.style.display='none';}
-  if(mode==='pattern'&&pattern){const a=document.getElementById('card_params_'+pattern);if(a)a.style.display='';}
+  const mode = modeEl.value;
+
+  const patternEl = document.getElementById('lighting_pattern');
+  const pattern = patternEl ? patternEl.value : '';
+
+  const staticCard  = document.getElementById('card_static_colour');
+  const patternCard = document.getElementById('card_pattern_theme');
+  const liveCard    = document.getElementById('card_live_lighting');
+  if (staticCard)  staticCard.style.display  = (mode === 'static')  ? '' : 'none';
+  if (patternCard) patternCard.style.display = (mode === 'pattern') ? '' : 'none';
+  if (liveCard)    liveCard.style.display    = (mode === 'pattern') ? '' : 'none';
+
+  // Per-pattern parameter cards.
+  const paramCards = [
+    'card_params_engine_plasma',
+    'card_params_breathing',
+    'card_params_rainbow',
+    'card_params_color_chase',
+    'card_params_lightning',
+  ];
+  for (const id of paramCards) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+  if (mode === 'pattern' && pattern) {
+    const active = document.getElementById('card_params_' + pattern);
+    if (active) active.style.display = '';
+  }
 }
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b]
+    .map((value) => Number(value).toString(16).padStart(2, '0'))
+    .join('');
+}
+
 
 async function refreshLightingState() {
-  if(refreshState.lightingInFlight){refreshState.lightingPending=true;return;}
-  refreshState.lightingInFlight=true;
+  if (activeDashboardPage !== "light" || document.hidden) return;
+  if (refreshState.lightingInFlight) {
+    refreshState.lightingPending = true;
+    return;
+  }
+
+  refreshState.lightingInFlight = true;
+
   do {
-    refreshState.lightingPending=false;
+    refreshState.lightingPending = false;
+
     try {
-      const res=await fetch('/lightingState?_='+Date.now(),{cache:'no-store'});
-      const s=await res.json();
-      const preview=document.getElementById('lighting_preview'),
-            ptxt=document.getElementById('lighting_preview_text'),
-            pmode=document.getElementById('lighting_preview_mode');
-      if(preview)preview.style.backgroundColor='rgb('+s.preview_r+','+s.preview_g+','+s.preview_b+')';
-      if(ptxt)ptxt.textContent='RGBW: '+s.r+', '+s.g+', '+s.b+', '+s.w;
-      const autoOffTxt=Number(s.auto_off_minutes)>0
-        ?' / Auto-off: '+s.auto_off_minutes+' min'+(s.auto_off_expired?' active':'')
-        :' / Auto-off: disabled';
-      if(pmode)pmode.textContent='Mode: '+s.mode+' / Pattern: '+s.pattern
-        +' / Brightness: '+Math.round(s.max_brightness*100)+'%'+autoOffTxt;
-      const ms=document.getElementById('lighting_mode');
-      if(ms){ms.value=s.mode;updateLightingCardVisibility();}
-      const ps=document.getElementById('lighting_pattern');
-      if(ps){ps.value=s.pattern;updateLightingCardVisibility();}
-      const sc=document.getElementById('static_color');
-      if(sc)sc.value=rgbToHex(s.static_r,s.static_g,s.static_b);
-      const brt=document.getElementById('lighting_brightness'),
-            brtLbl=document.getElementById('brightness_label'),
-            brtPct=Math.round((Number(s.max_brightness)||0)*100);
-      if(brt)brt.value=String(brtPct);
-      if(brtLbl&&brtLbl.textContent!==String(brtPct))brtLbl.textContent=brtPct;
-      const aoIn=document.getElementById('lighting_auto_off_minutes');
-      if(aoIn&&document.activeElement!==aoIn)aoIn.value=String(s.auto_off_minutes||0);
-      updateLightingEnabledButton(s.enabled);
-      const zoneMap=[{zones:s.exterior_zones,rp:'ext_z',ep:'ext_z'},{zones:s.interior_zones,rp:'int_z',ep:'int_z'}];
-      for(const g of zoneMap){
-        if(!Array.isArray(g.zones))continue;
-        for(let i=0;i<g.zones.length&&i<4;i++){
-          const z=g.zones[i];const idx=i+1;
-          const re=document.getElementById(g.rp+idx+'_range'),ee=document.getElementById(g.ep+idx+'_en');
-          if(re&&document.activeElement!==re)re.value=z.start+'-'+z.end;
-          if(ee)ee.checked=z.enabled;
+      const res = await fetch('/lightingState?_=' + Date.now(), { cache: 'no-store' });
+      const s = await res.json();
+
+      const preview = document.getElementById('lighting_preview');
+      const text = document.getElementById('lighting_preview_text');
+      const mode = document.getElementById('lighting_preview_mode');
+
+      if (preview && text && mode) {
+        preview.style.backgroundColor =
+          'rgb(' + s.preview_r + ',' + s.preview_g + ',' + s.preview_b + ')';
+
+        const previewTextStr = 'RGBW: ' + s.r + ', ' + s.g + ', ' + s.b + ', ' + s.w;
+        if (text.textContent !== previewTextStr) text.textContent = previewTextStr;
+
+        const autoOffText =
+          Number(s.auto_off_minutes) > 0
+            ? ' / Auto-off: ' + s.auto_off_minutes + ' min' + (s.auto_off_expired ? ' active' : '')
+            : ' / Auto-off: disabled';
+
+        const modeTextStr = 'Mode: ' + s.mode + ' / Pattern: ' + s.pattern +
+                            ' / Brightness: ' + Math.round(s.max_brightness * 100) + '%' +
+                            autoOffText;
+        if (mode.textContent !== modeTextStr) mode.textContent = modeTextStr;
+
+        const modeSelect = document.getElementById('lighting_mode');
+        if (modeSelect) {
+          modeSelect.value = s.mode;
+          updateLightingCardVisibility();
+        }
+
+        const patternSelect = document.getElementById('lighting_pattern');
+        if (patternSelect) {
+          patternSelect.value = s.pattern;
+          updateLightingCardVisibility();
+        }
+
+        const staticColor = document.getElementById('static_color');
+        if (staticColor) {
+          staticColor.value = rgbToHex(s.static_r, s.static_g, s.static_b);
+        }
+
+        const brightness = document.getElementById('lighting_brightness');
+        const brightnessLabel = document.getElementById('brightness_label');
+        const brightnessPct = Math.round((Number(s.max_brightness) || 0) * 100);
+        if (brightness) brightness.value = String(brightnessPct);
+        if (brightnessLabel && brightnessLabel.textContent !== String(brightnessPct)) {
+          brightnessLabel.textContent = brightnessPct;
+        }
+        
+        const autoOffInput = document.getElementById('lighting_auto_off_minutes');
+        if (autoOffInput && document.activeElement !== autoOffInput) {
+          autoOffInput.value = String(s.auto_off_minutes || 0);
+        }
+
+        updateLightingEnabledButton(s.enabled);
+
+        // Populate zone inputs.
+        const zoneMap = [
+          { zones: s.exterior_zones, rangePrefix: 'ext_z', enPrefix: 'ext_z' },
+          { zones: s.interior_zones, rangePrefix: 'int_z', enPrefix: 'int_z' },
+        ];
+        for (const group of zoneMap) {
+          if (!Array.isArray(group.zones)) continue;
+          for (let i = 0; i < group.zones.length && i < 4; i++) {
+            const z = group.zones[i];
+            const idx = i + 1;
+            const rangeEl = document.getElementById(group.rangePrefix + idx + '_range');
+            const enEl    = document.getElementById(group.enPrefix   + idx + '_en');
+            if (rangeEl && document.activeElement !== rangeEl) {
+              rangeEl.value = z.start + '-' + z.end;
+            }
+            if (enEl) enEl.checked = z.enabled;
+          }
+        }
+
+        // Populate per-pattern parameter inputs.
+        function setInput(id, value) {
+          const el = document.getElementById(id);
+          if (el && document.activeElement !== el) el.value = String(value);
+        }
+        function setLabel(id, value) {
+          const el = document.getElementById(id);
+          if (el) el.textContent = String(value);
+        }
+        function setColorInput(id, r, g, b) {
+          const el = document.getElementById(id);
+          if (el) el.value = rgbToHex(r, g, b);
+        }
+
+        if (s.plasma_rpm_min !== undefined) setInput('plasma_rpm_min', Math.round(s.plasma_rpm_min));
+        if (s.plasma_rpm_max !== undefined) setInput('plasma_rpm_max', Math.round(s.plasma_rpm_max));
+        if (s.plasma_map_min !== undefined) setInput('plasma_map_min', Math.round(s.plasma_map_min));
+        if (s.plasma_map_max !== undefined) setInput('plasma_map_max', Math.round(s.plasma_map_max));
+
+        if (s.breathing_speed !== undefined) {
+          const sliderVal = Math.round(Number(s.breathing_speed) * 10);
+          setInput('breathing_speed', sliderVal);
+          setLabel('breathing_speed_label', Number(s.breathing_speed).toFixed(1));
+        }
+
+        if (s.rainbow_speed !== undefined) {
+          const sliderVal = Math.round(Number(s.rainbow_speed) * 10);
+          setInput('rainbow_speed', sliderVal);
+          setLabel('rainbow_speed_label', Number(s.rainbow_speed).toFixed(1));
+        }
+
+        if (s.chase_c1_r !== undefined) setColorInput('chase_c1', s.chase_c1_r, s.chase_c1_g, s.chase_c1_b);
+        if (s.chase_c2_r !== undefined) setColorInput('chase_c2', s.chase_c2_r, s.chase_c2_g, s.chase_c2_b);
+        if (s.chase_c3_r !== undefined) setColorInput('chase_c3', s.chase_c3_r, s.chase_c3_g, s.chase_c3_b);
+        if (s.chase_c4_r !== undefined) setColorInput('chase_c4', s.chase_c4_r, s.chase_c4_g, s.chase_c4_b);
+        if (s.chase_w1 !== undefined) setInput('chase_w1', s.chase_w1);
+        if (s.chase_w2 !== undefined) setInput('chase_w2', s.chase_w2);
+        if (s.chase_w3 !== undefined) setInput('chase_w3', s.chase_w3);
+        if (s.chase_w4 !== undefined) setInput('chase_w4', s.chase_w4);
+        if (s.chase_speed !== undefined) {
+          const sliderVal = Math.round(Number(s.chase_speed) * 10);
+          setInput('chase_speed', sliderVal);
+          setLabel('chase_speed_label', Number(s.chase_speed).toFixed(1));
+        }
+
+        if (s.lightning_r !== undefined) setColorInput('lightning_c1', s.lightning_r, s.lightning_g, s.lightning_b);
+        if (s.lightning_c2_r !== undefined) setColorInput('lightning_c2', s.lightning_c2_r, s.lightning_c2_g, s.lightning_c2_b);
+        if (s.lightning_c3_r !== undefined) setColorInput('lightning_c3', s.lightning_c3_r, s.lightning_c3_g, s.lightning_c3_b);
+        if (s.lightning_freq !== undefined) {
+          const sliderVal = Math.round(Number(s.lightning_freq) * 10);
+          setInput('lightning_freq', sliderVal);
+          setLabel('lightning_freq_label', Number(s.lightning_freq).toFixed(1));
         }
       }
-      function _si(id,v){const e=document.getElementById(id);if(e&&document.activeElement!==e)e.value=String(v);}
-      function _sl(id,v){const e=document.getElementById(id);if(e)e.textContent=String(v);}
-      function _sc(id,r,g,b){const e=document.getElementById(id);if(e)e.value=rgbToHex(r,g,b);}
-      if(s.plasma_rpm_min!==undefined)_si('plasma_rpm_min',Math.round(s.plasma_rpm_min));
-      if(s.plasma_rpm_max!==undefined)_si('plasma_rpm_max',Math.round(s.plasma_rpm_max));
-      if(s.plasma_map_min!==undefined)_si('plasma_map_min',Math.round(s.plasma_map_min));
-      if(s.plasma_map_max!==undefined)_si('plasma_map_max',Math.round(s.plasma_map_max));
-      if(s.breathing_speed!==undefined){_si('breathing_speed',Math.round(Number(s.breathing_speed)*10));_sl('breathing_speed_label',Number(s.breathing_speed).toFixed(1));}
-      if(s.rainbow_speed!==undefined){_si('rainbow_speed',Math.round(Number(s.rainbow_speed)*10));_sl('rainbow_speed_label',Number(s.rainbow_speed).toFixed(1));}
-      if(s.chase_c1_r!==undefined)_sc('chase_c1',s.chase_c1_r,s.chase_c1_g,s.chase_c1_b);
-      if(s.chase_c2_r!==undefined)_sc('chase_c2',s.chase_c2_r,s.chase_c2_g,s.chase_c2_b);
-      if(s.chase_c3_r!==undefined)_sc('chase_c3',s.chase_c3_r,s.chase_c3_g,s.chase_c3_b);
-      if(s.chase_c4_r!==undefined)_sc('chase_c4',s.chase_c4_r,s.chase_c4_g,s.chase_c4_b);
-      if(s.chase_w1!==undefined)_si('chase_w1',s.chase_w1);if(s.chase_w2!==undefined)_si('chase_w2',s.chase_w2);
-      if(s.chase_w3!==undefined)_si('chase_w3',s.chase_w3);if(s.chase_w4!==undefined)_si('chase_w4',s.chase_w4);
-      if(s.chase_speed!==undefined){_si('chase_speed',Math.round(Number(s.chase_speed)*10));_sl('chase_speed_label',Number(s.chase_speed).toFixed(1));}
-      if(s.lightning_r!==undefined)_sc('lightning_c1',s.lightning_r,s.lightning_g,s.lightning_b);
-      if(s.lightning_c2_r!==undefined)_sc('lightning_c2',s.lightning_c2_r,s.lightning_c2_g,s.lightning_c2_b);
-      if(s.lightning_c3_r!==undefined)_sc('lightning_c3',s.lightning_c3_r,s.lightning_c3_g,s.lightning_c3_b);
-      if(s.lightning_freq!==undefined){_si('lightning_freq',Math.round(Number(s.lightning_freq)*10));_sl('lightning_freq_label',Number(s.lightning_freq).toFixed(1));}
-    } catch(e){/* ignore */}
-  } while(refreshState.lightingPending);
-  refreshState.lightingInFlight=false;
+    } catch (err) {
+      console.log('Lighting state refresh failed', err);
+    }
+  } while (refreshState.lightingPending);
+
+  refreshState.lightingInFlight = false;
 }
+
+
 
 updateLightingCardVisibility();
-setInterval(refreshData, 100);
-refreshData();
-setInterval(refreshLightingState, 2000);
-refreshLightingState();
+connectTelemetrySocket();
+setInterval(() => {
+  if (activeDashboardPage === "light" && !document.hidden) refreshLightingState();
+}, 2000);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopHttpFallback();
+    if (telemetryReconnectTimer) clearTimeout(telemetryReconnectTimer);
+    telemetryReconnectTimer = 0;
+    telemetrySocket?.close();
+    setSceneMotionActive(false);
+  } else {
+    connectTelemetrySocket();
+    if (activeDashboardPage === "drive" && latestTelemetry) {
+      updateDriveFromTelemetry(latestTelemetry);
+    }
+    if (activeDashboardPage === "light") refreshLightingState();
+  }
+});
 
 </script>
-</body>
-</html>
-)rawliteral";
-}
+</body></html>)rawliteral";
+
+const size_t DASHBOARD_HTML_LENGTH = sizeof(DASHBOARD_HTML) - 1;
