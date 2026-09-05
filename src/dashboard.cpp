@@ -184,27 +184,48 @@ body {
 }
 
 .rpm-panel {
-  left: 25.2%;
-  top: 27.3%;
-  width: 51%;
+  left: -5%;
+  top: 29%;
+  width: 52%;
   height: 21.4%;
   display: grid;
   place-items: center;
+  justify-content: end;
+}
+
+.rpm-cluster {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 6%;
+  width: 100%;
 }
 
 .rpm-readout {
   padding: 0 1.2%;
   background: #000;
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
   gap: 0.22em;
+  align-items: flex-end;
+  flex-direction: column-reverse;
   color: var(--blue);
   line-height: 0.9;
+  letter-spacing: -0.04em;
   text-shadow: 0 0 8px rgba(0, 160, 255, 0.22);
 }
 
+.speed-readout {
+  color: var(--grey);
+  text-shadow: 0 0 6px rgba(169, 173, 179, 0.5), 0 0 13px rgba(169, 173, 179, 0.22);
+}
+
 #rpm-value {
+  font-size: clamp(54px, 8.5vw, 150px);
+  font-weight: 300;
+  letter-spacing: -0.055em;
+}
+
+#speed-value {
   font-size: clamp(54px, 8.5vw, 150px);
   font-weight: 300;
   letter-spacing: -0.055em;
@@ -340,7 +361,9 @@ body {
 .top-tab,
 .panel-heading,
 .stream-log,
+.rpm-cluster,
 .rpm-readout,
+.speed-readout,
 .metric-readout,
 .metric-unit,
 .rpm-unit {
@@ -417,6 +440,7 @@ body {
 }
 
 #rpm-value,
+#speed-value,
 .metric-readout > span:first-child {
   font-family: var(--lcd-font);
   font-weight: 500;
@@ -1558,9 +1582,14 @@ body {
 </div>
 <pre class="stream-log stream-log-live" id="stream-log" aria-label="Live scrolling ECU telemetry log"></pre>
 </section>
-<section aria-label="RPM display" class="rpm-panel">
+<section aria-label="RPM and speed display" class="rpm-panel">
+<div class="rpm-cluster">
 <div class="rpm-readout">
 <span id="rpm-value">0</span><span class="rpm-unit">rpm</span>
+</div>
+<div class="rpm-readout speed-readout">
+<span id="speed-value">0</span><span class="rpm-unit">spd</span>
+</div>
 </div>
 </section>
 <section aria-label="Boost pressure" class="boost-panel metric-panel" data-panel-id="P-01 // MAP">
@@ -1618,7 +1647,7 @@ body {
 <div class="summary">Live Link ECU CAN channels 1-3, followed by legacy tuning fields.</div>
 <div class="grid">
 <div class="card">
-<div class="label">GP Speed 1</div>
+<div class="label">DI 1 Freq - GP Speed 1</div>
 <div class="value" id="gp_speed_1">0.0</div>
 <div class="unit">km/h</div>
 </div>
@@ -2270,6 +2299,7 @@ function emitTelemetryLogLine() {
 
 function updateDashboard({
   rpm = 0,
+  speed = 0,
   gear = 0,
   boost = 0,
   oilPressure = 0,
@@ -2278,6 +2308,7 @@ function updateDashboard({
   airTemp = 0
 } = {}) {
   setText("rpm-value", Math.round(rpm).toString());
+  setText("speed-value", Math.round(speed).toString());
   setRpmProgress(rpm);
   setGearIndicator(gear);
   setSceneMotionActive(Number(rpm) > 500);
@@ -2437,8 +2468,10 @@ function updateDebugReadouts(d) {
 function updateDriveFromTelemetry(d) {
   const boostPsi = finiteNumber(d.mgp) / KPA_PER_PSI;
   const oilPsi = finiteNumber(d.oil_pressure) / KPA_PER_PSI;
+  const speedSource = d.gp_speed_1 ?? d.speed;
   updateDashboard({
     rpm: finiteNumber(d.rpm),
+    speed: finiteNumber(speedSource),
     gear: finiteNumber(d.gear),
     boost: boostPsi,
     oilPressure: oilPsi,

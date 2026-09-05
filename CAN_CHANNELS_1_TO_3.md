@@ -35,7 +35,7 @@ static constexpr uint32_t LINK_ECU_CAN_ID_CHANNEL_3 = 0x3EAU;
 
 | Bytes | Parameter | Decode |
 |---|---|---|
-| 0-1 | GP Speed 1 | unsigned big-endian, raw / 10 |
+| 0-1 | DI 1 Freq - GP Speed 1 | unsigned big-endian, raw / 10 |
 | 2 | Gear | unsigned byte |
 | 3 | TPS | unsigned byte, raw / 2 percent |
 | 4-5 | ECT | signed big-endian, raw / 10 °C |
@@ -62,6 +62,6 @@ The drive page uses:
 - ECT → water-temperature panel
 - IAT → air-temperature panel
 
-The gear/debug tab also displays GP Speed 1, TPS, MAP, MGP, oil pressure, fuel pressure, Lambda 1, Lambda Target and battery voltage.
+The gear/debug tab also displays DI 1 Freq - GP Speed 1, TPS, MAP, MGP, oil pressure, fuel pressure, Lambda 1, Lambda Target and battery voltage.
 
 The `/canStatus` route now reports independent frame counts and ages for all three channels.
