@@ -7,6 +7,7 @@ struct EcuData {
   float mgp = 0;
   float map = 0;
   float tps = 0;
+  float gp_speed_1 = 0;  // Channel 2 GP Speed 1, decoded as raw / 10
 
   float ignition_angle = 0;
   float injection_actual_pw = 0;
@@ -38,6 +39,9 @@ struct EcuData {
   float throttle_target = 0;
   float vvt_in_target = 0;
   float vvt_in_pos = 0;
+
+  // Channel 2 gear value. UDP replay can still populate this as optional field 32.
+  int gear = 0;
 
   unsigned long last_update_ms = 0;
 };

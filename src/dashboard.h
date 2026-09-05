@@ -2,4 +2,5 @@
 
 #include <Arduino.h>
 
-String dashboardHtml();
+extern const char DASHBOARD_HTML[] PROGMEM;
+extern const size_t DASHBOARD_HTML_LENGTH;

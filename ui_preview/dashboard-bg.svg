@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="196.999969 -211.000000 226.000031 132.000000"
+     aria-hidden="true">
+  <style>
+    .vector-outline {
+      fill: none;
+      vector-effect: non-scaling-stroke;
+    }
+    .dashboard-object {
+      pointer-events: none;
+    }
+    .dashboard-outline {
+      filter:
+        drop-shadow(0 0 1.5px rgba(255, 34, 13, 0.52))
+        drop-shadow(0 0 5px rgba(255, 34, 13, 0.18));
+    }
+    .dashboard-boundary,
+    .dashboard-panel-boundary,
+    .scene-road,
+    .scene-sun,
+    .scene-car,
+    .brand-logo {
+      vector-effect: non-scaling-stroke;
+    }
+    #sun .dashboard-outline,
+    #brand-logo .dashboard-outline {
+      stroke: #ff5040;
+      fill: rgba(255, 34, 13, 0.24);
+      filter:
+        drop-shadow(0 0 4px rgba(255, 34, 13, 0.85))
+        drop-shadow(0 0 9px rgba(255, 34, 13, 0.40))
+        drop-shadow(0 0 18px rgba(255, 34, 13, 0.22));
+    }
+
+    .metric-panel-shell {
+      fill: #090405;
+      fill-opacity: 0.86;
+      stroke: #ff3b28;
+      stroke-opacity: 0.72;
+      stroke-width: 0.72px;
+      vector-effect: non-scaling-stroke;
+    }
+    .metric-panel-grid {
+      fill: none;
+      stroke: #ff3b28;
+      stroke-opacity: 0.16;
+      stroke-width: 0.42px;
+      vector-effect: non-scaling-stroke;
+    }
+    .metric-panel-accent {
+      fill: none;
+      stroke: #ff3b28;
+      stroke-opacity: 0.94;
+      stroke-width: 0.95px;
+      vector-effect: non-scaling-stroke;
+    }
+  </style>
+
+<g aria-label="Static red metric panel decoration" class="dashboard-object" id="metric-panel-decoration" transform="matrix(1,0,0,-1,0,0)">
+  <path class="metric-panel-shell" d="M370.4,173.8L419.7,173.8L419.7,147L370.4,147Z"></path>
+  <path class="metric-panel-shell" d="M200.5,141.8L249.7,141.8L249.7,115L200.5,115Z"></path>
+  <path class="metric-panel-shell" d="M370.4,141.8L419.7,141.8L419.7,115L370.4,115Z"></path>
+  <path class="metric-panel-shell" d="M200.5,109.7L249.7,109.7L249.7,92.3L232.2,83.4L200.5,83.4Z"></path>
+  <path class="metric-panel-shell" d="M370.4,109.7L419.7,109.7L419.7,83.4L387.9,83.4L370.4,92.3Z"></path>
+
+  <path class="metric-panel-grid" d="M371.6,166.2L418.5,166.2M371.6,153.9L418.5,153.9"></path>
+  <path class="metric-panel-grid" d="M201.7,134.2L248.5,134.2M201.7,121.9L248.5,121.9"></path>
+  <path class="metric-panel-grid" d="M371.6,134.2L418.5,134.2M371.6,121.9L418.5,121.9"></path>
+  <path class="metric-panel-grid" d="M201.7,102.1L248.5,102.1M201.7,90.8L246.7,90.8"></path>
+  <path class="metric-panel-grid" d="M371.6,102.1L418.5,102.1M373.4,90.8L418.5,90.8"></path>
+
+  <path class="metric-panel-accent" d="M371.6,172.7L384.2,172.7M418.5,148.1L418.5,154.5"></path>
+  <path class="metric-panel-accent" d="M201.7,140.7L214.3,140.7M248.5,116.1L248.5,122.5"></path>
+  <path class="metric-panel-accent" d="M371.6,140.7L384.2,140.7M418.5,116.1L418.5,122.5"></path>
+  <path class="metric-panel-accent" d="M201.7,108.6L214.3,108.6M248.5,93.4L248.5,98.5M231.7,84.5L224.5,84.5"></path>
+  <path class="metric-panel-accent" d="M371.6,108.6L384.2,108.6M371.6,93.4L371.6,98.5M388.4,84.5L395.6,84.5"></path>
+</g>
+<path class="vector-outline" d="M367.078857,176.404099L251.706238,176.404099L220.706238,145.404099L198.078857,145.404099L245.078827,192.404068L367.078857,192.404068L367.078857,176.404099z" style="stroke:#808080;stroke-width:1.35px;fill:none" transform="matrix(1,0,0,-1,0,0)"></path>
+<g aria-label="Outer dashboard frame" class="dashboard-object dashboard-boundary" id="dashboard-frame" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M423,79.183479L197.105621,79.000008L196.999969,211L423,211L423,79.183479z" id="outer-frame" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Horizontal dashboard dividers" class="dashboard-object dashboard-boundary" id="dashboard-dividers" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M197.75061,144.404099L422.250641,144.404099" id="divider-upper" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M197.75061,112.404099L422.250641,112.404099" id="divider-lower" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Road and perspective lines" class="dashboard-object scene-road" id="road-scene" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M422.786011,80.404099L386.615784,80.404144L324.961182,112.404114L380.325134,80.404144L239.630371,80.40416L294.978943,112.404114L233.324371,80.40416L197.285278,80.404114" id="road-perspective" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Striped sun" class="dashboard-object scene-sun" id="sun" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M327.542511,118.916367L292.380829,118.916367C292.262207,118.635666,292.152252,118.351334,292.051208,118.063614L327.872162,118.063614C327.771088,118.351334,327.661133,118.635666,327.542511,118.916367z" id="sun-stripe-1" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M328.339233,116.43541C328.274872,116.722427,328.201843,117.00679,328.120392,117.288193L291.802948,117.288193C291.721527,117.00676,291.648468,116.722427,291.584137,116.435379L328.339233,116.43541" id="sun-stripe-2" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M328.606781,114.807205C328.576599,115.093674,328.537842,115.378036,328.490784,115.660019L291.432587,115.659988C291.385529,115.378006,291.346771,115.093674,291.316559,114.807205L328.606781,114.807205" id="sun-stripe-3" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M328.685303,113.179001C328.685638,113.219681,328.685791,113.260452,328.685791,113.301224C328.685791,113.546066,328.679596,113.789658,328.667267,114.031815L291.256073,114.031815C291.243774,113.789658,291.237549,113.546066,291.237549,113.301224C291.237549,113.260452,291.237701,113.219711,291.238037,113.179031L328.685303,113.179001" id="sun-stripe-4" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M292.734863,119.691727L327.188507,119.691727C324.331665,125.507385,317.694061,129.583069,309.96167,129.583069C302.22934,129.583069,295.591644,125.507385,292.734863,119.691727z" id="sun-body" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Rear car wireframe" class="dashboard-object scene-car" id="car" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M298.305145,97.504929L296.103149,98.291061" id="car-detail-00" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M321.594971,98.68129L310.007416,98.681259L298.3573,98.681259" id="car-detail-01" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M318.949158,92.868362L310.007416,92.874374L301.024536,92.868362" id="car-detail-02" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M321.65741,97.500992L310.007416,97.483139L298.316254,97.500961L298.316254,97.500961" id="car-detail-03" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M315.797943,86.190399C315.833008,85.814781,316.394318,85.51619,317.081573,85.51619C317.791473,85.51619,318.366943,85.834755,318.366943,86.227722C318.366943,86.620689,317.791473,86.939255,317.081573,86.939255C316.371674,86.939255,315.796204,86.620689,315.796204,86.227722" id="car-detail-04" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M304.176971,86.205612C304.155884,85.822861,303.588745,85.516159,302.892212,85.516159C302.182312,85.516159,301.606842,85.834724,301.606842,86.227692C301.606842,86.620659,302.182312,86.939224,302.892212,86.939224C303.602112,86.939224,304.177582,86.620659,304.177582,86.227692" id="car-detail-05" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M297.956085,86.469864L301.21283,86.451859C301.212585,86.45784,301.212433,86.463852,301.212433,86.469864C301.212433,86.919479,301.941406,87.283966,302.840637,87.283966C303.739838,87.283966,304.468811,86.919479,304.468811,86.469864C304.468811,86.457825,304.468262,86.445816,304.467285,86.433899L309.966278,86.40329L315.506409,86.433914C315.505432,86.445847,315.504883,86.45784,315.504883,86.469894C315.504883,86.919495,316.233856,87.283981,317.133057,87.283981C318.032257,87.283981,318.76123,86.919495,318.76123,86.469894C318.76123,86.463882,318.761108,86.45787,318.760834,86.451889L322.017609,86.469894" id="car-detail-06" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M321.687256,95.249382C321.687256,94.657661,322.200256,94.177979,322.833069,94.177979C323.465881,94.177979,323.978882,94.657661,323.978882,95.249382C323.978882,95.841103,323.465881,96.320786,322.833069,96.320786C322.200256,96.320786,321.687256,95.841103,321.687256,95.249382z" id="car-detail-07" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M300.596954,102.799576L310.007416,103.269119L319.37674,102.799606" id="car-detail-08" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M319.205109,102.799606L310.007416,102.799576L301.053497,102.799576" id="car-detail-09" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M296.327881,98.681259L300.596954,102.799576L298.346039,98.681259L298.316864,97.523697" id="car-detail-10" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M298.322083,98.681259L296.369629,98.681259" id="car-detail-11" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M323.645752,98.681259L319.376678,102.799576L321.627594,98.681259L321.656982,97.517563" id="car-detail-12" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M323.61264,98.68129L321.668457,98.68129" id="car-detail-13" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M325.22876,93.22551L323.899109,98.301285L321.690552,97.512802" id="car-detail-14" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M321.658997,97.436752L321.687134,96.320663L318.949097,92.868362L325.191162,93.223343" id="car-detail-15" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M298.315704,97.478958L298.286499,96.320663L301.024536,92.868362L294.744934,93.225479L293.177216,93.760635" id="car-detail-16" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M298.28653,95.249367C298.28653,94.657646,297.773529,94.177963,297.140717,94.177963C296.507904,94.177963,295.994904,94.657646,295.994904,95.249367C295.994904,95.841087,296.507904,96.32077,297.140717,96.32077C297.773529,96.32077,298.28653,95.841087,298.28653,95.249367z" id="car-detail-17" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M319.715637,86.37352L319.733948,83.491455L326.5513,83.54628L326.53302,85.655777" id="car-detail-18" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M300.258087,86.388901L300.239685,83.491455L293.422333,83.54628L293.440613,85.655777" id="car-detail-19" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M309.966278,93.796738L313.876678,93.796738L313.876678,96.511673L310.007416,96.511673L306.096985,96.511673L306.096985,93.796707L309.966278,93.796738z" id="car-detail-20" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M322.017609,86.398743L322.017609,85.655807L326.902161,85.655807L326.902161,93.796738L323.645782,98.68129" id="car-detail-21" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M325.228699,93.225479L326.824707,93.770279" id="car-detail-22" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M322.074158,86.480225L326.8703,87.357681" id="car-detail-23" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M325.228699,93.225479L324.359161,91.113388" id="car-detail-24" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M326.591278,91.083618L324.359161,91.113388L324.388,86.962234" id="car-detail-25" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M296.327881,98.681259L293.071533,93.796707L293.071533,85.655777L297.956085,85.655777L297.956085,86.397629" id="car-detail-26" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M297.923218,86.475876L293.071533,87.363495" id="car-detail-27" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M294.744934,93.225479L295.614471,91.113388" id="car-detail-28" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M296.074585,98.301254L294.744934,93.225479" id="car-detail-29" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M293.382355,91.083618L295.614471,91.113388L295.585754,86.972672" id="car-detail-30" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M322.889496,86.653564L319.418823,90.250351L310.007416,90.264938L300.554871,90.25032L297.097565,86.667374" id="car-detail-31" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M320.349365,89.201233L310.007416,89.228592L299.625488,89.201202" id="car-detail-32" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M321.542786,87.971298L310.007416,88.156021L298.394012,87.970673" id="car-detail-33" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Voltage panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-voltage" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M233.276566,81.404099L198.078857,81.404099L198.078857,111.404099L252.078857,111.404099L252.078857,91.155319L233.276566,81.404099z" id="voltage-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Air-temperature panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-air-temperature" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M386.635284,81.404099L422.078857,81.404099L422.078857,111.404099L368.078857,111.404099L368.078857,91.027817L386.635284,81.404099z" id="air-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Boost panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-boost" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M422.078857,145.404099L368.078857,145.404099L368.078857,175.404099L422.078857,175.404099L422.078857,145.404099z" id="boost-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Oil-pressure panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-oil-pressure" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M252.078857,113.404099L198.078857,113.404099L198.078857,143.404099L252.078857,143.404099L252.078857,113.404099z" id="oil-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Water-temperature panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-water-temperature" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M422.078857,113.404099L368.078857,113.404099L368.078857,143.404099L422.078857,143.404099L422.078857,113.404099z" id="water-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Stream-status outer boundary" class="dashboard-object dashboard-panel-boundary" id="panel-stream-status" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M422.078857,192.385254L422.078857,209.999603L368.078857,209.999603L368.078857,188.796326L368.078857,176.385254L422.078857,176.385254L422.078857,192.385254z" id="stream-status-outer-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Stream-status inner boundary" class="dashboard-object dashboard-panel-boundary" id="panel-stream-status-inner" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M421.078857,177.385254L369.078857,177.385254L369.078857,206.933258L421.078857,206.933258L421.078857,177.385254z" id="stream-status-inner-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="Top tab panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-tabs" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M367.078857,193.404083L253.078857,193.404083L253.078857,210L367.078857,210L367.078857,193.404083z" id="tabs-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g
+  aria-label="Top-left brand and current-gear indicator boundary"
+  class="dashboard-object dashboard-panel-boundary"
+  id="panel-brand-header"
+  transform="matrix(1,0,0,-1,0,0)"
+>
+  <path
+    class="vector-outline dashboard-outline"
+    d="M228.078842,176.404099L198.078857,176.404114L198.078857,192.404053L198.078857,209.817383L198.078857,210L252.078857,210L252.078857,208.983765L252.078857,193.404083L245.078827,193.404083L228.078842,176.404099"
+    id="brand-header-boundary"
+    style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"
+  ></path>
+</g>
+<g aria-label="Top-left vector logo" class="dashboard-object brand-logo" id="brand-logo" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M208.166504,186.486816L207.868164,187.017578L207.522949,187.541992L207.112793,187.371582L207.280762,187.12793C207.453903,186.861053,207.61235,186.58493,207.755371,186.300781L208.166504,186.486816z" id="brand-logo-part-01" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M228.116211,184.774902C227.887939,185.46344,227.632538,186.1427,227.350586,186.811035L226.753906,186.610352L226.837402,186.424805C227.092056,185.816162,227.317429,185.195633,227.512695,184.56543L228.116211,184.774902z" id="brand-logo-part-02" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M226.057129,184.224609C225.790512,184.940903,225.501282,185.648666,225.189941,186.34668L224.577637,186.121582C224.910721,185.433334,225.200333,184.72496,225.444824,184.000488L226.057129,184.224609z" id="brand-logo-part-03" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M217.637207,181.555176C218.346848,182.742935,218.846207,184.044281,219.113281,185.401855L219.158691,185.61084C219.201553,185.800751,219.250732,185.989151,219.306152,186.175781L218.616211,186.314941L218.566406,185.969238C218.308502,184.294998,217.654022,182.706451,216.657715,181.336426L217.315918,181.058105L217.637207,181.555176z" id="brand-logo-part-04" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M223.231934,181.297852C222.705475,183.059204,222.015778,184.76767,221.171875,186.400879L220.544922,186.191895L220.67627,185.952148C221.46611,184.394882,222.091537,182.759644,222.54248,181.072754L223.231934,181.297852z" id="brand-logo-part-05" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M226.739258,180.896973C228.539063,181.690857,229.894836,183.243073,230.439453,185.133301C230.53096,185.448853,230.623093,185.775421,230.709961,186.092285L230.787598,186.314941L230.07666,186.51709L230.003906,186.079102C229.824051,185.086319,229.425201,184.145996,228.836426,183.32666C228.048904,182.355057,226.989441,181.640701,225.793457,181.274902L226.328125,180.73291L226.739258,180.896973z" id="brand-logo-part-06" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M213.10791,180.901855C213.089554,181.12616,213.080597,181.35112,213.081055,181.576172L213.081055,184.84375L213.658691,185.250488C214.199554,185.647888,214.706207,186.089859,215.17334,186.571777L214.654297,187.051758L214.442871,186.80957C213.371017,185.674454,212.052063,184.801437,210.588379,184.258301C210.119781,184.073959,209.641357,183.91568,209.155273,183.78418L209.464844,183.179199C210.490646,183.494217,211.479965,183.917679,212.416016,184.442383C212.432037,183.409454,212.430756,182.376205,212.412109,181.343262C212.408676,181.144409,212.394501,180.945862,212.369629,180.748535L213.128418,180.748535L213.10791,180.901855z" id="brand-logo-part-07" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M202.97168,180.651367C203.792007,181.008713,204.539627,181.513855,205.177246,182.141602L205.448242,182.426758C205.738892,182.205414,206.020538,181.972473,206.29248,181.728516L206.748535,182.263184C206.461197,182.496338,206.16716,182.721024,205.866699,182.937012C206.441299,183.735687,206.879425,184.624298,207.163086,185.566406L207.260742,185.765625L206.896484,185.982422L207.306641,186.168945C207.114639,186.534866,206.902573,186.889893,206.671387,187.232422L206.26123,187.053223L206.424316,186.811035C206.589371,186.547455,206.741714,186.276169,206.880859,185.998047L206.748535,186.075684L206.646484,186.04541C206.512283,186.017166,206.375412,186.003738,206.238281,186.005371L204.147461,186.005371L204.302246,186.277832L204.456055,186.563965L204.650879,186.891113L203.945313,187.116211L203.898438,186.95459C203.352783,185.648575,202.414124,184.545242,201.212402,183.797363L201.731445,183.402832C202.526886,183.962982,203.220779,184.654892,203.783203,185.44873L206.400391,185.44873C206.187851,184.673004,205.830658,183.944397,205.347656,183.30127L204.935547,183.584961C204.537552,183.856216,204.129868,184.113083,203.713379,184.35498L203.295898,183.921875L203.683594,183.673828C204.109131,183.395416,204.527298,183.105728,204.9375,182.805176L204.664551,182.525879C203.894119,181.79158,202.9608,181.250122,201.940918,180.945801L202.49707,180.458008L202.97168,180.651367z" id="brand-logo-part-08" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+<path class="vector-outline dashboard-outline" d="M200.722473,206.808929L200.277359,206.722397L205.588638,201.125549C208.509842,198.047287,211.235153,195.179535,211.644897,194.752762L212.389862,193.976837L210.921066,191.777771C210.113235,190.568298,209.486465,189.543976,209.528259,189.50148C209.623276,189.404892,213.153,190.053131,218.441589,191.138412C230.98407,193.71228,239.560364,196.068008,243.561188,198.038223C245.227402,198.858749,245.886963,199.312134,246.267227,199.898376C246.644684,200.480286,246.577896,200.85881,245.9823,201.513458C243.583023,204.150681,235.782364,205.778839,221.332062,206.658508C220.007263,206.739151,215.578644,206.842285,211.490692,206.887711L204.058044,206.970291L209.616791,201.389404C213.605988,197.384338,215.276672,195.795135,215.533768,195.761047C215.882675,195.714798,219.918991,196.095291,220.681458,196.246323L221.063141,196.321915L220.351425,197.114639C219.959991,197.550629,218.055649,199.601151,216.119568,201.671356L212.599411,205.435349L215.210815,205.336838C224.335098,204.992645,233.677185,204.200287,238.443344,203.366318C245.253525,202.174698,246.932526,200.685349,243.079437,199.253845C239.294006,197.847488,229.593918,196.200882,218.001892,194.996902L214.878189,194.67247L208.849319,200.802368L202.82045,206.932281L201.994019,206.913864C201.539474,206.903732,200.967285,206.856506,200.722473,206.808929z" id="brand-logo-part-09" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+<g aria-label="RPM readout panel boundary" class="dashboard-object dashboard-panel-boundary" id="panel-rpm-readout" transform="matrix(1,0,0,-1,0,0)">
+<path class="vector-outline dashboard-outline" d="M253.078857,145.404099L367.078857,145.404099L367.078857,175.404099L253.078857,175.404099L251.706238,175.404099L221.706238,145.404099L253.078857,145.404099z" id="rpm-readout-panel-boundary" style="stroke:#ff220d;fill:none;fill-rule:evenodd;stroke-width:1.8px"></path>
+</g>
+</svg>
