@@ -7,7 +7,7 @@ struct EcuData {
   float mgp = 0;
   float map = 0;
   float tps = 0;
-  float gp_speed_1 = 0;  // Channel 2 GP Speed 1, decoded as raw / 10
+  float gp_speed_1 = 0;  // Channel 2 DI 1 Freq - GP Speed 1, decoded as raw / 10
 
   float ignition_angle = 0;
   float injection_actual_pw = 0;

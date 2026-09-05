@@ -88,7 +88,7 @@ static void decodeChannel1(const twai_message_t& msg, unsigned long now) {
 }
 
 // Channel 2 / ID 0x3E9
-//   bytes 0-1 GP Speed 1, unsigned, raw / 10
+//   bytes 0-1 DI 1 Freq - GP Speed 1, unsigned, raw / 10
 //   byte  2   Gear,       unsigned, raw / 1
 //   byte  3   TPS,        unsigned, raw / 2 percent
 //   bytes 4-5 ECT,        signed,   raw / 10 deg C
