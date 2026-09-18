@@ -46,6 +46,9 @@ textarea,
 :root {
   --background: #050505fb;
   --red: #ff220d;
+  --pink: #d33f6a;
+  --orange: #ff8000;
+  --yellow: #d0d000;
   --grey: #a9adb3;
   --green: #00e000;
   --blue: #00a0ff;
@@ -595,6 +598,69 @@ body {
   background: #ff3b28;
   box-shadow: none;
   transition: none;
+}
+
+.boost-panel .bar-track::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  z-index: 1;
+  background: rgba(169, 173, 179, 0.72);
+}
+
+#boost-bar {
+  left: 50%;
+  width: 50% !important;
+  transform-origin: left center;
+  background: var(--pink);
+}
+
+#oil-bar {
+  background: linear-gradient(
+    90deg,
+    var(--red) 0 20%,
+    var(--orange) 20% 25%,
+    var(--yellow) 25% 30%,
+    var(--green) 30% 50%,
+    var(--yellow) 50% 60%,
+    var(--orange) 60% 70%,
+    var(--pink) 70% 100%
+  );
+}
+
+#voltage-bar {
+  background: linear-gradient(
+    90deg,
+    var(--red) 0 66.6667%,
+    var(--pink) 66.6667% 76.6667%,
+    var(--yellow) 76.6667% 83.3333%,
+    var(--green) 83.3333% 100%
+  );
+}
+
+#water-bar {
+  background: linear-gradient(
+    90deg,
+    var(--blue) 0 66.6667%,
+    var(--green) 66.6667% 87.5%,
+    var(--yellow) 87.5% 91.6667%,
+    var(--orange) 91.6667% 95.8333%,
+    var(--red) 95.8333% 100%
+  );
+}
+
+#air-bar {
+  background: linear-gradient(
+    90deg,
+    var(--blue) 0 37.5%,
+    var(--green) 37.5% 50%,
+    var(--yellow) 50% 62.5%,
+    var(--orange) 62.5% 75%,
+    var(--red) 75% 100%
+  );
 }
 
 .metric-panel .metric-readout {
@@ -1349,14 +1415,16 @@ body {
 <path d="M346.752686,177.404083L346.752686,191.404083L366.078857,191.404083L366.078857,177.404083L346.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
 </clipPath>
 <linearGradient id="rpm-zone-gradient" gradientUnits="userSpaceOnUse" x1="200.390107" y1="0" x2="366.390107" y2="0">
-<stop offset="0%" stop-color="#86fa88"></stop>
-<stop offset="28.749%" stop-color="#86fa88"></stop>
-<stop offset="28.75%" stop-color="#d0d000"></stop>
-<stop offset="49.999%" stop-color="#d0d000"></stop>
-<stop offset="50%" stop-color="#ff8000"></stop>
-<stop offset="71.249%" stop-color="#ff8000"></stop>
-<stop offset="71.25%" stop-color="#d33f6a"></stop>
-<stop offset="100%" stop-color="#d33f6a"></stop>
+<stop offset="0%" stop-color="#00e000"></stop>
+<stop offset="18.749%" stop-color="#00e000"></stop>
+<stop offset="18.75%" stop-color="#d0d000"></stop>
+<stop offset="37.499%" stop-color="#d0d000"></stop>
+<stop offset="37.5%" stop-color="#ff8000"></stop>
+<stop offset="56.249%" stop-color="#ff8000"></stop>
+<stop offset="56.25%" stop-color="#d33f6a"></stop>
+<stop offset="74.999%" stop-color="#d33f6a"></stop>
+<stop offset="75%" stop-color="#ff220d"></stop>
+<stop offset="100%" stop-color="#ff220d"></stop>
 </linearGradient>
 <clipPath id="rpm-active-window" clipPathUnits="userSpaceOnUse">
 <rect id="rpm-active-window-rect" x="200.390107" y="-192" width="0" height="47"></rect>
@@ -1961,10 +2029,12 @@ let activeDashboardPage = "drive";
 let sceneMotionActive = false;
 let roadMotionFrame = 0;
 let tireMotionFrame = 0;
-// Faster, denser visual motion while preserving the existing direction.
-const SCENE_MOTION_INTERVAL_MS = 75;
+const SCENE_MOTION_SLOW_INTERVAL_MS = 140;
+const SCENE_MOTION_MEDIUM_INTERVAL_MS = 95;
+const SCENE_MOTION_FAST_INTERVAL_MS = 60;
 const ROAD_VISIBLE_GROUPS = 3;
 const TREAD_VISIBLE_GROUPS = 2;
+let sceneMotionIntervalMs = SCENE_MOTION_MEDIUM_INTERVAL_MS;
 
 const PACKET_TIMEOUT_MS = 1800;
 let lastPacketReceivedAt = 0;
@@ -2076,7 +2146,7 @@ function sceneAnimationLoop(timestamp) {
     return;
   }
 
-  if (timestamp - lastSceneFrameAt >= SCENE_MOTION_INTERVAL_MS) {
+  if (timestamp - lastSceneFrameAt >= sceneMotionIntervalMs) {
     lastSceneFrameAt = timestamp;
     stepSceneMotion();
   }
@@ -2152,14 +2222,14 @@ let previousRpmRatio = -1;
 let previousRpmWidth = -1;
 let previousRpmZone = -1;
 
-const RPM_ZONE_COLORS = ["#86fa88", "#d0d000", "#ff8000", "#d33f6a"];
+const RPM_ZONE_COLORS = ["#00e000", "#d0d000", "#ff8000", "#d33f6a", "#ff220d"];
 
-function rpmColourZone(ratio) {
-  if (ratio <= 0) return -1;
-  if (ratio < 0.2875) return 0;
-  if (ratio < 0.5) return 1;
-  if (ratio < 0.7125) return 2;
-  return 3;
+function rpmColourZone(rpm) {
+  if (rpm <= 1500) return 0;
+  if (rpm <= 3000) return 1;
+  if (rpm <= 4500) return 2;
+  if (rpm <= 6000) return 3;
+  return 4;
 }
 
 function setRpmProgress(rpm, maximumRpm = 8000) {
@@ -2180,10 +2250,10 @@ function setRpmProgress(rpm, maximumRpm = 8000) {
     }
   }
 
-  const zone = rpmColourZone(ratio);
+  const zone = rpmColourZone(quantisedRpm);
   if (zone !== previousRpmZone) {
     previousRpmZone = zone;
-    setRpmReadoutColor(zone >= 0 ? RPM_ZONE_COLORS[zone] : "#272727");
+    setRpmReadoutColor(RPM_ZONE_COLORS[zone]);
   }
 }
 
@@ -2206,6 +2276,43 @@ const setBar = (id, percentage) => {
   _barCache.set(id, formatted);
   element.style.transform = `scaleX(${formatted})`;
 };
+
+const _boostBarCache = new Map();
+function setBoostBar(boost) {
+  const element = document.getElementById("boost-bar");
+  if (!element) return;
+
+  const numericBoost = finiteNumber(boost);
+  const isPositive = numericBoost >= 0;
+  const ratio = isPositive
+    ? clamp(numericBoost / 10, 0, 1)
+    : clamp(Math.abs(numericBoost) / 15, 0, 1);
+  const state = [
+    isPositive ? "right" : "left",
+    ratio.toFixed(3)
+  ].join(":");
+
+  if (_boostBarCache.get("boost-bar") === state) return;
+  _boostBarCache.set("boost-bar", state);
+
+  element.style.left = isPositive ? "50%" : "0";
+  element.style.transformOrigin = isPositive ? "left center" : "right center";
+  element.style.background = isPositive ? "#d33f6a" : "#00a0ff";
+  element.style.transform = `scaleX(${ratio.toFixed(3)})`;
+}
+
+function sceneMotionIntervalForSpeed(speed) {
+  const numericSpeed = finiteNumber(speed);
+  if (numericSpeed < 20) return SCENE_MOTION_SLOW_INTERVAL_MS;
+  if (numericSpeed < 40) return SCENE_MOTION_MEDIUM_INTERVAL_MS;
+  return SCENE_MOTION_FAST_INTERVAL_MS;
+}
+
+function updateSceneMotionSpeed(speed) {
+  const numericSpeed = finiteNumber(speed);
+  sceneMotionIntervalMs = sceneMotionIntervalForSpeed(numericSpeed);
+  setSceneMotionActive(numericSpeed >= 10);
+}
 
 const STREAM_LOG_MAX_LINES = 9;
 const STREAM_LOG_INTERVAL_MS = 280;
@@ -2311,7 +2418,7 @@ function updateDashboard({
   setText("speed-value", Math.round(speed).toString());
   setRpmProgress(rpm);
   setGearIndicator(gear);
-  setSceneMotionActive(Number(rpm) > 500);
+  updateSceneMotionSpeed(speed);
 
   setText("boost-value", Number(boost).toFixed(1));
   setText("oil-value", Math.round(oilPressure).toString());
@@ -2319,11 +2426,11 @@ function updateDashboard({
   setText("water-value", Math.round(waterTemp).toString());
   setText("air-value", Math.round(airTemp).toString());
 
-  setBar("boost-bar", ((boost + 10) / 30) * 100);
+  setBoostBar(boost);
   setBar("oil-bar", (oilPressure / 100) * 100);
-  setBar("voltage-bar", ((voltage - 10) / 5) * 100);
-  setBar("water-bar", ((waterTemp - 40) / 100) * 100);
-  setBar("air-bar", (airTemp / 80) * 100);
+  setBar("voltage-bar", (voltage / 15) * 100);
+  setBar("water-bar", (waterTemp / 120) * 100);
+  setBar("air-bar", (airTemp / 40) * 100);
 }
 
 // Initialise the SVG bar and connection indicator.
