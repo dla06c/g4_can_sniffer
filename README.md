@@ -170,8 +170,8 @@ optional 32nd value can now provide the selected gear. When omitted, gear is 0
   so it loads directly from the ESP32 without SPIFFS/LittleFS.
 - The Stream Status body is fixed decorative terminal text; it no longer appends
   or scrolls live ECU readings. The connected/disconnected heading remains live.
-- Road and tyre motion activates at RPM > 500 without checking gear.
-- Motion updates every 75 ms with multiple spaced line groups visible at once.
+- Road and tyre motion follows vehicle speed: below 10 the current road lines stay visible but static, 10-20 moves slowly, 20-40 moves at medium speed, and 40+ moves fast.
+- Motion timing varies by speed while keeping multiple spaced line groups visible at once.
 
 
 ## Performance-optimized dashboard
