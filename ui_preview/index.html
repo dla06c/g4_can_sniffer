@@ -47,8 +47,8 @@ textarea,
   --orange: #ff8000;
   --yellow: #d0d000;
   --grey: #a9adb3;
-  --green: #00e000;
-  --blue: #00a0ff;
+  --green: #86fa88;
+  --blue: #98E2E6;
   --dynamic-text: #aac522;
 }
 
@@ -616,48 +616,19 @@ body {
 }
 
 #oil-bar {
-  background: linear-gradient(
-    90deg,
-    var(--red) 0 20%,
-    var(--orange) 20% 25%,
-    var(--yellow) 25% 30%,
-    var(--green) 30% 50%,
-    var(--yellow) 50% 60%,
-    var(--orange) 60% 70%,
-    var(--pink) 70% 100%
-  );
+  background: var(--red);
 }
 
 #voltage-bar {
-  background: linear-gradient(
-    90deg,
-    var(--red) 0 66.6667%,
-    var(--pink) 66.6667% 76.6667%,
-    var(--yellow) 76.6667% 83.3333%,
-    var(--green) 83.3333% 100%
-  );
+  background: var(--red);
 }
 
 #water-bar {
-  background: linear-gradient(
-    90deg,
-    var(--blue) 0 66.6667%,
-    var(--green) 66.6667% 87.5%,
-    var(--yellow) 87.5% 91.6667%,
-    var(--orange) 91.6667% 95.8333%,
-    var(--red) 95.8333% 100%
-  );
+  background: var(--blue);
 }
 
 #air-bar {
-  background: linear-gradient(
-    90deg,
-    var(--blue) 0 37.5%,
-    var(--green) 37.5% 50%,
-    var(--yellow) 50% 62.5%,
-    var(--orange) 62.5% 75%,
-    var(--red) 75% 100%
-  );
+  background: var(--blue);
 }
 
 .metric-panel .metric-readout {
@@ -1412,8 +1383,8 @@ body {
 <path d="M346.752686,177.404083L346.752686,191.404083L366.078857,191.404083L366.078857,177.404083L346.752686,177.404083" transform="matrix(1,0,0,-1,0,0)"></path>
 </clipPath>
 <linearGradient id="rpm-zone-gradient" gradientUnits="userSpaceOnUse" x1="200.390107" y1="0" x2="366.390107" y2="0">
-<stop offset="0%" stop-color="#00e000"></stop>
-<stop offset="18.749%" stop-color="#00e000"></stop>
+<stop offset="0%" stop-color="#86fa88"></stop>
+<stop offset="18.749%" stop-color="#86fa88"></stop>
 <stop offset="18.75%" stop-color="#d0d000"></stop>
 <stop offset="37.499%" stop-color="#d0d000"></stop>
 <stop offset="37.5%" stop-color="#ff8000"></stop>
@@ -2118,12 +2089,16 @@ function applyMotionFrameSet(groups, previousIndexes, nextIndexes) {
 }
 
 function renderSceneMotionFrame() {
-  const nextRoadIndexes = sceneMotionActive
-    ? spacedMotionIndexes(roadMotionFrame, roadMotionGroups.length, ROAD_VISIBLE_GROUPS)
-    : new Set();
-  const nextTreadIndexes = sceneMotionActive
-    ? spacedMotionIndexes(tireMotionFrame, tireTreadGroups.length, TREAD_VISIBLE_GROUPS)
-    : new Set();
+  const nextRoadIndexes = spacedMotionIndexes(
+    roadMotionFrame,
+    roadMotionGroups.length,
+    ROAD_VISIBLE_GROUPS
+  );
+  const nextTreadIndexes = spacedMotionIndexes(
+    tireMotionFrame,
+    tireTreadGroups.length,
+    TREAD_VISIBLE_GROUPS
+  );
 
   activeRoadMotionIndexes = applyMotionFrameSet(
     roadMotionGroups,
@@ -2161,6 +2136,7 @@ function setSceneMotionActive(active) {
   const nextState = Boolean(active) && activeDashboardPage === "drive" && !document.hidden;
   if (nextState === sceneMotionActive) {
     if (nextState) ensureSceneAnimationRunning();
+    else renderSceneMotionFrame();
     return;
   }
 
@@ -2219,7 +2195,24 @@ let previousRpmRatio = -1;
 let previousRpmWidth = -1;
 let previousRpmZone = -1;
 
-const RPM_ZONE_COLORS = ["#00e000", "#d0d000", "#ff8000", "#d33f6a", "#ff220d"];
+const DASHBOARD_COLORS = Object.freeze({
+  red: "#ff220d",
+  pink: "#d33f6a",
+  grey: "#a9adb3",
+  green: "#86fa88",
+  blue: "#98E2E6",
+  yellow: "#d0d000",
+  orange: "#ff8000",
+  dynamicText: "#aac522"
+});
+
+const RPM_ZONE_COLORS = [
+  DASHBOARD_COLORS.green,
+  DASHBOARD_COLORS.yellow,
+  DASHBOARD_COLORS.orange,
+  DASHBOARD_COLORS.pink,
+  DASHBOARD_COLORS.red
+];
 
 function rpmColourZone(rpm) {
   if (rpm <= 1500) return 0;
@@ -2264,15 +2257,55 @@ const setText = (id, value) => {
 };
 
 const _barCache = new Map();
-const setBar = (id, percentage) => {
+const setBar = (id, percentage, color) => {
   const element = document.getElementById(id);
   if (!element) return;
   const ratio = clamp(percentage, 0, 100) / 100;
   const formatted = ratio.toFixed(3);
-  if (_barCache.get(id) === formatted) return;
-  _barCache.set(id, formatted);
+  const nextColor = color || element.style.background || "";
+  const state = `${formatted}:${nextColor}`;
+  if (_barCache.get(id) === state) return;
+  _barCache.set(id, state);
   element.style.transform = `scaleX(${formatted})`;
+  if (color) element.style.background = color;
 };
+
+function oilBarColor(oilPressure) {
+  const value = finiteNumber(oilPressure);
+  if (value < 20) return DASHBOARD_COLORS.red;
+  if (value < 25) return DASHBOARD_COLORS.orange;
+  if (value < 30) return DASHBOARD_COLORS.yellow;
+  if (value < 50) return DASHBOARD_COLORS.green;
+  if (value < 60) return DASHBOARD_COLORS.yellow;
+  if (value < 70) return DASHBOARD_COLORS.orange;
+  return DASHBOARD_COLORS.pink;
+}
+
+function voltageBarColor(voltage) {
+  const value = finiteNumber(voltage);
+  if (value < 10) return DASHBOARD_COLORS.red;
+  if (value < 11.5) return DASHBOARD_COLORS.pink;
+  if (value < 12.5) return DASHBOARD_COLORS.yellow;
+  return DASHBOARD_COLORS.green;
+}
+
+function waterBarColor(waterTemp) {
+  const value = finiteNumber(waterTemp);
+  if (value < 80) return DASHBOARD_COLORS.blue;
+  if (value < 105) return DASHBOARD_COLORS.green;
+  if (value < 110) return DASHBOARD_COLORS.yellow;
+  if (value < 115) return DASHBOARD_COLORS.orange;
+  return DASHBOARD_COLORS.red;
+}
+
+function airBarColor(airTemp) {
+  const value = finiteNumber(airTemp);
+  if (value < 15) return DASHBOARD_COLORS.blue;
+  if (value < 20) return DASHBOARD_COLORS.green;
+  if (value < 25) return DASHBOARD_COLORS.yellow;
+  if (value < 30) return DASHBOARD_COLORS.orange;
+  return DASHBOARD_COLORS.red;
+}
 
 const _boostBarCache = new Map();
 function setBoostBar(boost) {
@@ -2294,7 +2327,7 @@ function setBoostBar(boost) {
 
   element.style.left = isPositive ? "50%" : "0";
   element.style.transformOrigin = isPositive ? "left center" : "right center";
-  element.style.background = isPositive ? "#d33f6a" : "#00a0ff";
+  element.style.background = isPositive ? DASHBOARD_COLORS.pink : DASHBOARD_COLORS.blue;
   element.style.transform = `scaleX(${ratio.toFixed(3)})`;
 }
 
@@ -2424,10 +2457,10 @@ function updateDashboard({
   setText("air-value", Math.round(airTemp).toString());
 
   setBoostBar(boost);
-  setBar("oil-bar", (oilPressure / 100) * 100);
-  setBar("voltage-bar", (voltage / 15) * 100);
-  setBar("water-bar", (waterTemp / 120) * 100);
-  setBar("air-bar", (airTemp / 40) * 100);
+  setBar("oil-bar", (oilPressure / 100) * 100, oilBarColor(oilPressure));
+  setBar("voltage-bar", (voltage / 15) * 100, voltageBarColor(voltage));
+  setBar("water-bar", (waterTemp / 120) * 100, waterBarColor(waterTemp));
+  setBar("air-bar", (airTemp / 40) * 100, airBarColor(airTemp));
 }
 
 // Initialise the SVG bar and connection indicator.
