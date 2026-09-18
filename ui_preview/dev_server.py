@@ -35,8 +35,8 @@ def mock_data():
         "mgp": mgp,
         "map": map_kpa,
         "tps": 25 + 20 * ((math.sin(t * 0.75) + 1) / 2),
-        "gp_speed_1": 62 + 18 * math.sin(t * 0.3),
-        "speed": 62 + 18 * math.sin(t * 0.3),
+        "gp_speed_1": 25 + 25 * math.sin(t * 0.3),
+        "speed": 25 + 25 * math.sin(t * 0.3),
         "gear": 3,
 
         "ignition_angle": 22.5,
