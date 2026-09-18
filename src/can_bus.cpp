@@ -94,7 +94,7 @@ static void decodeChannel1(const twai_message_t& msg, unsigned long now) {
 //   bytes 4-5 ECT,        signed,   raw / 10 deg C
 //   bytes 6-7 IAT,        signed,   raw / 10 deg C
 static void decodeChannel2(const twai_message_t& msg, unsigned long now) {
-  ecu.gp_speed_1 = readU16BE(msg.data, 0) / 10.0f;
+  ecu.gp_speed_1 = (readU16BE(msg.data, 0) / 10.0f) * 1.428;
   ecu.gear = constrain((int)msg.data[2], 0, 5);
   ecu.tps = constrain(msg.data[3] / 2.0f, 0.0f, 100.0f);
   ecu.ect = readS16BE(msg.data, 4) / 10.0f;
